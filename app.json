@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "VinoVino",
+    "slug": "vinovino",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "vinovino",
+    "newArchEnabled": true,
+    "splash": {
+      "backgroundColor": "#1a0a0f",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.vinovino.app"
+    },
+    "android": {
+      "package": "com.vinovino.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#1a0a0f"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router"
+    ]
+  }
+}
