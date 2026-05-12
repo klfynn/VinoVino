@@ -62,28 +62,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   );
 
   const value = useMemo<AppContextValue>(
-    () => ({
-      watchlist,
-      cart,
-      addToWatchlist,
-      removeFromWatchlist,
-      addToCart,
-      updateCartQuantity,
-      removeFromCart,
-      cartTotal,
-      cartCount,
-    }),
-    [
-      watchlist,
-      cart,
-      addToWatchlist,
-      removeFromWatchlist,
-      addToCart,
-      updateCartQuantity,
-      removeFromCart,
-      cartTotal,
-      cartCount,
-    ],
+    () => ({ watchlist, cart, addToWatchlist, removeFromWatchlist, addToCart, updateCartQuantity, removeFromCart, cartTotal, cartCount }),
+    [watchlist, cart, addToWatchlist, removeFromWatchlist, addToCart, updateCartQuantity, removeFromCart, cartTotal, cartCount],
   );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
