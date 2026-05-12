@@ -1,10 +1,6 @@
 import React, { useEffect } from 'react';
-import {
-  Modal, View, Text, StyleSheet, Image, ScrollView, Dimensions, TouchableOpacity,
-} from 'react-native';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing,
-} from 'react-native-reanimated';
+import { Modal, View, Text, StyleSheet, Image, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -22,40 +18,29 @@ interface Props {
   watchlisted: boolean;
 }
 
-export function WineDetailModal({
-  visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted,
-}: Props) {
+export function WineDetailModal({ visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted }: Props) {
   const ty = useSharedValue(SCREEN_H);
 
   useEffect(() => {
-    if (visible) {
-      ty.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
-    } else {
-      ty.value = SCREEN_H;
-    }
+    if (visible) ty.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
+    else ty.value = SCREEN_H;
   }, [visible, ty]);
 
   const close = () => {
-    ty.value = withTiming(SCREEN_H, { duration: 260 }, (finished) => {
-      if (finished) runOnJS(onClose)();
-    });
+    ty.value = withTiming(SCREEN_H, { duration: 260 }, (ok) => { if (ok) runOnJS(onClose)(); });
   };
 
   const pan = Gesture.Pan()
     .activeOffsetY(10)
     .onUpdate((e) => { if (e.translationY > 0) ty.value = e.translationY; })
     .onEnd((e) => {
-      if (e.translationY > 120 || e.velocityY > 800) {
-        ty.value = withTiming(SCREEN_H, { duration: 240 }, (finished) => {
-          if (finished) runOnJS(onClose)();
-        });
-      } else {
+      if (e.translationY > 120 || e.velocityY > 800)
+        ty.value = withTiming(SCREEN_H, { duration: 240 }, (ok) => { if (ok) runOnJS(onClose)(); });
+      else
         ty.value = withTiming(0, { duration: 200 });
-      }
     });
 
   const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: ty.value }] }));
-
   if (!wine) return null;
 
   return (
@@ -63,11 +48,8 @@ export function WineDetailModal({
       <View style={styles.backdrop}>
         <Animated.View style={[styles.sheet, sheetStyle]}>
           <GestureDetector gesture={pan}>
-            <View style={styles.dragArea}>
-              <View style={styles.handle} />
-            </View>
+            <View style={styles.dragArea}><View style={styles.handle} /></View>
           </GestureDetector>
-
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={styles.imageWrap}>
               <Image source={{ uri: wine.image }} style={styles.image} resizeMode="cover" />
@@ -80,30 +62,23 @@ export function WineDetailModal({
                 <Text style={styles.ratingDenom}>/100</Text>
               </View>
             </View>
-
             <View style={styles.body}>
               <Text style={styles.eyebrow}>{wine.type.toUpperCase()}</Text>
               <Text style={styles.name}>{wine.name}</Text>
               <Text style={styles.winery}>{wine.winery}</Text>
-
               <View style={styles.metaGrid}>
-                <Meta label="Jahrgang" value={String(wine.vintage)} />
-                <Meta label="Herkunft" value={`${wine.region}, ${wine.country}`} />
-                <Meta label="Rebsorte" value={wine.grape} />
+                <MetaItem label="Jahrgang" value={String(wine.vintage)} />
+                <MetaItem label="Herkunft" value={`${wine.region}, ${wine.country}`} />
+                <MetaItem label="Rebsorte" value={wine.grape} />
               </View>
-
               <Section title="Geschmack">
                 <View style={styles.tasteRow}>
-                  {wine.taste.map((t) => (
-                    <View key={t} style={styles.chip}><Text style={styles.chipText}>{t}</Text></View>
-                  ))}
+                  {wine.taste.map((t) => <View key={t} style={styles.chip}><Text style={styles.chipText}>{t}</Text></View>)}
                 </View>
               </Section>
-
               <Section title="Tasting Notes">
                 <Text style={styles.description}>{wine.description}</Text>
               </Section>
-
               <View style={styles.priceCard}>
                 <View>
                   <Text style={styles.priceLabel}>Preis pro Flasche</Text>
@@ -113,7 +88,6 @@ export function WineDetailModal({
               </View>
             </View>
           </ScrollView>
-
           <View style={styles.actionBar}>
             <TouchableOpacity style={[styles.actionBtn, styles.watchBtn]} onPress={() => onAddToWatchlist(wine)}>
               <Ionicons name={watchlisted ? 'bookmark' : 'bookmark-outline'} size={20} color={colors.accent} />
@@ -130,7 +104,7 @@ export function WineDetailModal({
   );
 }
 
-function Meta({ label, value }: { label: string; value: string }) {
+function MetaItem({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.metaItem}>
       <Text style={styles.metaLabel}>{label}</Text>
@@ -150,12 +124,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay },
-  sheet: {
-    flex: 1, backgroundColor: colors.card, marginTop: 60,
-    borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl,
-    borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1,
-    borderColor: colors.border, overflow: 'hidden',
-  },
+  sheet: { flex: 1, backgroundColor: colors.card, marginTop: 60, borderTopLeftRadius: radii.xl, borderTopRightRadius: radii.xl, borderTopWidth: 1, borderLeftWidth: 1, borderRightWidth: 1, borderColor: colors.border, overflow: 'hidden' },
   dragArea: { alignItems: 'center', paddingTop: spacing.sm, paddingBottom: spacing.xs, backgroundColor: colors.card, zIndex: 10 },
   handle: { width: 44, height: 4, backgroundColor: colors.border, borderRadius: 2 },
   scroll: { flex: 1 },
@@ -163,60 +132,29 @@ const styles = StyleSheet.create({
   imageWrap: { height: 380, width: '100%' },
   image: { width: '100%', height: '100%' },
   imageGradient: { position: 'absolute', bottom: 0, left: 0, right: 0, height: 140 },
-  closeBtn: {
-    position: 'absolute', top: spacing.md, right: spacing.md,
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: 'rgba(26,10,15,0.75)', borderWidth: 1, borderColor: colors.border,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  ratingBadge: {
-    position: 'absolute', bottom: spacing.lg, right: spacing.lg,
-    flexDirection: 'row', alignItems: 'baseline',
-    backgroundColor: 'rgba(26,10,15,0.85)',
-    paddingHorizontal: spacing.md, paddingVertical: spacing.sm,
-    borderRadius: radii.md, borderWidth: 1, borderColor: colors.accent,
-  },
+  closeBtn: { position: 'absolute', top: spacing.md, right: spacing.md, width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(26,10,15,0.75)', borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center' },
+  ratingBadge: { position: 'absolute', bottom: spacing.lg, right: spacing.lg, flexDirection: 'row', alignItems: 'baseline', backgroundColor: 'rgba(26,10,15,0.85)', paddingHorizontal: spacing.md, paddingVertical: spacing.sm, borderRadius: radii.md, borderWidth: 1, borderColor: colors.accent },
   ratingNumber: { color: colors.accent, fontSize: 26, fontWeight: '700' },
   ratingDenom: { color: colors.textMuted, fontSize: 14, marginLeft: 2 },
   body: { padding: spacing.lg, marginTop: -spacing.lg },
   eyebrow: { color: colors.accent, letterSpacing: 3, fontSize: 11, fontWeight: '700' },
   name: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: spacing.sm, lineHeight: 36 },
   winery: { color: colors.textMuted, fontStyle: 'italic', fontSize: 16, marginTop: 4 },
-  metaGrid: {
-    flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.lg,
-    backgroundColor: colors.cardElevated, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.border,
-    padding: spacing.md, gap: spacing.md,
-  },
+  metaGrid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.lg, backgroundColor: colors.cardElevated, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, padding: spacing.md, gap: spacing.md },
   metaItem: { minWidth: '45%', flexGrow: 1 },
   metaLabel: { color: colors.textMuted, fontSize: 11, letterSpacing: 2, marginBottom: 2 },
   metaValue: { color: colors.text, fontSize: 15, fontWeight: '600' },
   section: { marginTop: spacing.lg },
   sectionTitle: { color: colors.accent, fontSize: 12, letterSpacing: 3, fontWeight: '700', marginBottom: spacing.sm },
   tasteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.md,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardElevated,
-  },
+  chip: { paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardElevated },
   chipText: { color: colors.text, fontSize: 13 },
   description: { color: colors.text, fontSize: 15, lineHeight: 22, opacity: 0.9 },
-  priceCard: {
-    marginTop: spacing.lg, padding: spacing.lg, borderRadius: radii.lg,
-    borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardElevated,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-  },
+  priceCard: { marginTop: spacing.lg, padding: spacing.lg, borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardElevated, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   priceLabel: { color: colors.textMuted, fontSize: 12, letterSpacing: 2 },
   price: { color: colors.accent, fontSize: 28, fontWeight: '700', marginTop: 4 },
-  actionBar: {
-    position: 'absolute', left: 0, right: 0, bottom: 0,
-    padding: spacing.md, paddingBottom: spacing.lg,
-    flexDirection: 'row', gap: spacing.sm,
-    backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border,
-  },
-  actionBtn: {
-    flex: 1, paddingVertical: spacing.md, borderRadius: radii.lg,
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm,
-  },
+  actionBar: { position: 'absolute', left: 0, right: 0, bottom: 0, padding: spacing.md, paddingBottom: spacing.lg, flexDirection: 'row', gap: spacing.sm, backgroundColor: colors.card, borderTopWidth: 1, borderTopColor: colors.border },
+  actionBtn: { flex: 1, paddingVertical: spacing.md, borderRadius: radii.lg, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm },
   watchBtn: { borderWidth: 1, borderColor: colors.accent, backgroundColor: 'transparent' },
   watchText: { color: colors.accent, fontWeight: '700' },
   cartBtn: { backgroundColor: colors.accent, flex: 1.4 },
