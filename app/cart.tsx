@@ -1,20 +1,27 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useApp } from '../../context/AppContext';
-import { colors, radii, spacing } from '../../theme';
+import { useRouter } from 'expo-router';
+import { useApp } from '../context/AppContext';
+import { colors, radii, spacing } from '../theme';
 
 export default function CartScreen() {
   const { cart, updateCartQuantity, removeFromCart, cartTotal, cartCount } = useApp();
+  const router = useRouter();
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Warenkorb</Text>
-        <Text style={styles.subtitle}>
-          {cartCount} {cartCount === 1 ? 'Flasche' : 'Flaschen'}
-        </Text>
+        <Pressable onPress={() => router.back()} hitSlop={10} style={styles.backBtn}>
+          <Ionicons name="chevron-back" size={26} color={colors.text} />
+        </Pressable>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Warenkorb</Text>
+          <Text style={styles.subtitle}>
+            {cartCount} {cartCount === 1 ? 'Flasche' : 'Flaschen'}
+          </Text>
+        </View>
       </View>
 
       {cart.length === 0 ? (
@@ -82,7 +89,11 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
+  header: {
+    flexDirection: 'row', alignItems: 'center', gap: spacing.sm,
+    paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md,
+  },
+  backBtn: { padding: 4 },
   title: { color: colors.accent, fontSize: 28, fontWeight: '700', letterSpacing: 2 },
   subtitle: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
   list: { padding: spacing.md, paddingBottom: 200 },

@@ -36,3 +36,24 @@ export interface User {
   address: Address;
   createdAt: string;
 }
+
+export type Weinart = 'Rot' | 'Weiß' | 'Rosé' | 'Schaumwein' | 'Port';
+export type Geschmack = 'Trocken' | 'Halbtrocken' | 'Lieblich';
+export type Anlass = 'Dinner' | 'Geschenk' | 'Party' | 'Apéritif' | 'Zum Kochen';
+
+export interface Range {
+  min: number;
+  max: number;
+}
+
+export interface FilterState {
+  weinart: Weinart[];
+  geschmack: Geschmack[];
+  herkunft: string[];
+  rebsorte: string[];
+  jahrgang: Range;
+  preis: Range;
+  anlass: Anlass[];
+  bio: boolean;
+  bewertungMin: number;
+}

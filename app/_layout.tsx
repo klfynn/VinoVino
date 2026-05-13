@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider } from '../context/AppContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { FilterProvider } from '../context/FilterContext';
 import { colors } from '../theme';
 
 function AuthGate({ children }: { children: React.ReactNode }) {
@@ -40,18 +41,25 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <AppProvider>
-            <StatusBar style="light" />
-            <AuthGate>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                  contentStyle: { backgroundColor: colors.background },
-                }}
-              >
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen name="(tabs)" />
-              </Stack>
-            </AuthGate>
+            <FilterProvider>
+              <StatusBar style="light" />
+              <AuthGate>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                    contentStyle: { backgroundColor: colors.background },
+                  }}
+                >
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen name="(tabs)" />
+                  <Stack.Screen name="cart" options={{ animation: 'slide_from_right' }} />
+                  <Stack.Screen
+                    name="filter"
+                    options={{ presentation: 'modal', animation: 'slide_from_bottom' }}
+                  />
+                </Stack>
+              </AuthGate>
+            </FilterProvider>
           </AppProvider>
         </AuthProvider>
       </SafeAreaProvider>
