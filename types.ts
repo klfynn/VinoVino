@@ -20,3 +20,19 @@ export interface CartItem {
   wine: Wine;
   quantity: number;
 }
+
+export interface Address {
+  street: string;
+  zip: string;
+  city: string;
+  country: string;
+}
+
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  address: Address;
+  createdAt: string;
+}
