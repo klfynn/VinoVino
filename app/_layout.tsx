@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Stack, useRouter, useSegments, useRootNavigationState } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -12,10 +12,9 @@ function AuthGate() {
   const { isAuthenticated, isLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
-  const navState = useRootNavigationState();
 
   useEffect(() => {
-    if (!navState?.key || isLoading) return;
+    if (isLoading) return;
 
     const inAuthScreen = segments[0] === 'login' || segments[0] === 'register';
 
@@ -24,7 +23,7 @@ function AuthGate() {
     } else if (isAuthenticated && inAuthScreen) {
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, isLoading, segments, router, navState?.key]);
+  }, [isAuthenticated, isLoading, segments, router]);
 
   if (isLoading) {
     return (
