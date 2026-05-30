@@ -5,6 +5,18 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../theme';
 import { useApp } from '../../context/AppContext';
 
+function ScannerTabIcon() {
+  return (
+    <View style={scannerIconStyles.wrap}>
+      <Ionicons name="scan-outline" size={30} color={colors.accent} />
+    </View>
+  );
+}
+
+const scannerIconStyles = StyleSheet.create({
+  wrap: { alignItems: 'center', justifyContent: 'center' },
+});
+
 function CartIcon({ color, size }: { color: string; size: number }) {
   const { cartCount } = useApp();
   return (
@@ -49,6 +61,16 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="scanner"
+        options={{
+          title: 'SCANNER',
+          tabBarIcon: () => <ScannerTabIcon />,
+          tabBarLabel: () => (
+            <Text style={styles.scannerLabel}>SCANNER</Text>
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="watchlist"
         options={{
           title: 'MERKLISTE',
@@ -83,5 +105,12 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 10,
     fontWeight: '700',
+  },
+  scannerLabel: {
+    color: colors.accent,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1.5,
+    marginTop: 2,
   },
 });

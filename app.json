@@ -25,7 +25,13 @@
       "bundler": "metro"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "VinoVino benötigt Kamerazugriff zum Scannen von Weinetiketten."
+        }
+      ]
     ]
   }
 }
