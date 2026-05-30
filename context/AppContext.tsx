@@ -1,9 +1,10 @@
 import React, { createContext, useContext, useMemo, useState, useCallback } from 'react';
-import { Wine, CartItem } from '../types';
+import { Wine, CartItem, PurchasedWine } from '../types';
 
 interface AppContextValue {
   watchlist: Wine[];
   cart: CartItem[];
+  purchasedWines: PurchasedWine[];
   addToWatchlist: (wine: Wine) => void;
   removeFromWatchlist: (id: string) => void;
   addToCart: (wine: Wine, quantity: number) => void;
@@ -11,6 +12,8 @@ interface AppContextValue {
   removeFromCart: (id: string) => void;
   cartTotal: number;
   cartCount: number;
+  addToPurchased: (wine: Wine) => void;
+  updatePurchasedRating: (id: string, rating: number | null, note: string) => void;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -18,6 +21,7 @@ const AppContext = createContext<AppContextValue | undefined>(undefined);
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [watchlist, setWatchlist] = useState<Wine[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [purchasedWines, setPurchasedWines] = useState<PurchasedWine[]>([]);
 
   const addToWatchlist = useCallback((wine: Wine) => {
     setWatchlist((prev) => (prev.find((w) => w.id === wine.id) ? prev : [...prev, wine]));
@@ -51,6 +55,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setCart((prev) => prev.filter((item) => item.wine.id !== id));
   }, []);
 
+  const addToPurchased = useCallback((wine: Wine) => {
+    setPurchasedWines((prev) => {
+      if (prev.find((p) => p.wine.id === wine.id)) return prev;
+      return [{ wine, purchasedAt: new Date(), myRating: null, myNote: '' }, ...prev];
+    });
+  }, []);
+
+  const updatePurchasedRating = useCallback((id: string, rating: number | null, note: string) => {
+    setPurchasedWines((prev) =>
+      prev.map((p) => (p.wine.id === id ? { ...p, myRating: rating, myNote: note } : p)),
+    );
+  }, []);
+
   const cartTotal = useMemo(
     () => cart.reduce((sum, item) => sum + item.wine.price * item.quantity, 0),
     [cart],
@@ -65,6 +82,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       watchlist,
       cart,
+      purchasedWines,
       addToWatchlist,
       removeFromWatchlist,
       addToCart,
@@ -72,10 +90,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       removeFromCart,
       cartTotal,
       cartCount,
+      addToPurchased,
+      updatePurchasedRating,
     }),
     [
       watchlist,
       cart,
+      purchasedWines,
       addToWatchlist,
       removeFromWatchlist,
       addToCart,
@@ -83,6 +104,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       removeFromCart,
       cartTotal,
       cartCount,
+      addToPurchased,
+      updatePurchasedRating,
     ],
   );
 

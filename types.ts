@@ -20,3 +20,10 @@ export interface CartItem {
   wine: Wine;
   quantity: number;
 }
+
+export interface PurchasedWine {
+  wine: Wine;
+  purchasedAt: Date;
+  myRating: number | null;
+  myNote: string;
+}
