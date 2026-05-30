@@ -133,6 +133,7 @@ const styles = StyleSheet.create({
   card: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: radii.xl,
+    overflow: 'hidden',
   },
   label: {
     position: 'absolute',
