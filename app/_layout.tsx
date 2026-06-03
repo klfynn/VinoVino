@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider } from '../context/AppContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { FilterProvider } from '../context/FilterContext';
 import { colors } from '../theme';
 
 function AuthGate() {
@@ -42,9 +43,19 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <AuthProvider>
           <AppProvider>
-            <StatusBar style="light" />
-            <Slot />
-            <AuthGate />
+            <FilterProvider>
+              <StatusBar style="light" />
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="login" options={{ headerShown: false }} />
+                <Stack.Screen name="register" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="filter"
+                  options={{ presentation: 'modal', headerShown: false }}
+                />
+              </Stack>
+              <AuthGate />
+            </FilterProvider>
           </AppProvider>
         </AuthProvider>
       </SafeAreaProvider>
