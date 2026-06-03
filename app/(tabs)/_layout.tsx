@@ -84,6 +84,15 @@ export default function TabsLayout() {
           tabBarIcon: ({ color, size }) => <CartIcon color={color} size={size} />,
         }}
       />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'PROFIL',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
+          ),
+        }}
+      />
     </Tabs>
   );
 }
