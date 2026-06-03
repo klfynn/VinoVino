@@ -51,6 +51,8 @@ export default function SwipeScreen() {
     herkunft,
     jahrgang,
     preis,
+    anlass,
+    bio,
     bewertungMin,
     activeFilterCount,
   } = useFilter();
@@ -79,14 +81,16 @@ export default function SwipeScreen() {
       if (w.vintage < jahrgang.min || w.vintage > jahrgang.max) return false;
       if (w.price < preis.min || w.price > preis.max) return false;
       if (w.rating < STAR_MIN[bewertungMin]) return false;
+      if (bio && !w.bio) return false;
+      if (anlass.length > 0 && !anlass.some((a) => w.anlass?.includes(a))) return false;
       return true;
     });
-  }, [weinart, geschmack, herkunft, jahrgang, preis, bewertungMin]);
+  }, [weinart, geschmack, herkunft, jahrgang, preis, bewertungMin, bio, anlass]);
 
   // Reset deck position whenever filters change
   useEffect(() => {
     setIndex(0);
-  }, [weinart, geschmack, herkunft, jahrgang.min, jahrgang.max, preis.min, preis.max, bewertungMin]);
+  }, [weinart, geschmack, herkunft, jahrgang.min, jahrgang.max, preis.min, preis.max, bewertungMin, bio, anlass]);
 
   const advance = useCallback(() => setIndex((i) => i + 1), []);
 

@@ -14,6 +14,8 @@ export interface Wine {
   rating: number;
   price: number;
   image: string;
+  bio?: boolean;
+  anlass?: string[];
 }
 
 export interface CartItem {
