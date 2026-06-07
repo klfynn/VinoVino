@@ -5,18 +5,6 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../theme';
 import { useApp } from '../../context/AppContext';
 
-function ScannerTabIcon() {
-  return (
-    <View style={scannerIconStyles.wrap}>
-      <Ionicons name="scan-outline" size={30} color={colors.accent} />
-    </View>
-  );
-}
-
-const scannerIconStyles = StyleSheet.create({
-  wrap: { alignItems: 'center', justifyContent: 'center' },
-});
-
 function CartIcon({ color, size }: { color: string; size: number }) {
   const { cartCount } = useApp();
   return (
@@ -34,6 +22,7 @@ function CartIcon({ color, size }: { color: string; size: number }) {
 export default function TabsLayout() {
   return (
     <Tabs
+      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
@@ -57,17 +46,7 @@ export default function TabsLayout() {
         name="scanner"
         options={{
           title: 'SCANNER',
-          tabBarIcon: () => <ScannerTabIcon />,
-          tabBarLabel: () => (
-            <Text style={styles.scannerLabel}>SCANNER</Text>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'ENTDECKEN',
-          tabBarIcon: ({ color, size }) => <Ionicons name="wine-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="scan-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -75,6 +54,21 @@ export default function TabsLayout() {
         options={{
           title: 'SAMMLUNG',
           tabBarIcon: ({ color, size }) => <Ionicons name="library-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'ENTDECKEN',
+          headerShown: false,
+          tabBarIcon: ({ color, size }) => <Ionicons name="wine-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="recipes"
+        options={{
+          title: 'REZEPTE',
+          tabBarIcon: ({ color, size }) => <Ionicons name="restaurant-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -111,12 +105,5 @@ const styles = StyleSheet.create({
     color: colors.background,
     fontSize: 10,
     fontWeight: '700',
-  },
-  scannerLabel: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginTop: 2,
   },
 });

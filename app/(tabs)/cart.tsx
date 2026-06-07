@@ -18,10 +18,19 @@ export default function CartScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Warenkorb</Text>
-        <Text style={styles.subtitle}>
-          {cartCount} {cartCount === 1 ? 'Flasche' : 'Flaschen'}
-        </Text>
+        <View>
+          <Text style={styles.title}>Warenkorb</Text>
+          <Text style={styles.subtitle}>
+            {cartCount} {cartCount === 1 ? 'Flasche' : 'Flaschen'}
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.profileBtn}
+          onPress={() => router.push('/profile')}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="person-circle-outline" size={32} color={colors.accent} />
+        </TouchableOpacity>
       </View>
 
       {cart.length === 0 ? (
@@ -89,7 +98,15 @@ export default function CartScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { paddingHorizontal: spacing.lg, paddingTop: spacing.md, paddingBottom: spacing.md },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.md,
+  },
+  profileBtn: { padding: 4 },
   title: { color: colors.accent, fontSize: 28, fontWeight: '700', letterSpacing: 2 },
   subtitle: { color: colors.textMuted, fontSize: 13, marginTop: 2 },
   list: { padding: spacing.md, paddingBottom: 200 },
