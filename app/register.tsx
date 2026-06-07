@@ -45,7 +45,7 @@ export default function RegisterScreen() {
     setLoading(true);
     try {
       await register({ firstName, lastName, email, password });
-      router.replace('/(tabs)');
+      // AuthGate detects new user (no TUTORIAL_SEEN_KEY) and redirects to onboarding
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Registrierung fehlgeschlagen.');
     } finally {
