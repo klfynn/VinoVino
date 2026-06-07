@@ -277,7 +277,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.background, fontSize: 9, fontWeight: '700' },
 
-  deck: { flex: 1, margin: spacing.md, marginBottom: spacing.sm },
+  deck: { flex: 1, marginHorizontal: spacing.sm, marginTop: spacing.xs, marginBottom: spacing.sm },
 
   actions: {
     flexDirection: 'row',

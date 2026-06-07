@@ -1,22 +1,21 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, Pressable } from 'react-native';
+import { View, Text, Image, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Wine } from '../types';
 import { colors, radii, spacing } from '../theme';
 
 interface Props {
   wine: Wine;
-  onPress?: () => void;
 }
 
-export function WineCardView({ wine, onPress }: Props) {
+export function WineCardView({ wine }: Props) {
   return (
-    <Pressable onPress={onPress} style={styles.container}>
+    <View style={styles.container}>
       <Image source={{ uri: wine.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
 
       <LinearGradient
-        colors={['transparent', 'rgba(26,10,15,0.25)', 'rgba(26,10,15,0.96)']}
-        locations={[0.45, 0.65, 1]}
+        colors={['transparent', 'rgba(26,10,15,0.15)', 'rgba(26,10,15,0.85)', '#1a0a0f']}
+        locations={[0.35, 0.55, 0.8, 1]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -40,7 +39,7 @@ export function WineCardView({ wine, onPress }: Props) {
           <Text style={styles.price}>€ {wine.price.toFixed(2)}</Text>
         </View>
       </View>
-    </Pressable>
+    </View>
   );
 }
 
@@ -50,8 +49,6 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     overflow: 'hidden',
     backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   content: {
     position: 'absolute',
@@ -71,9 +68,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     paddingVertical: 4,
     borderRadius: radii.sm,
-    backgroundColor: 'rgba(201, 169, 110, 0.15)',
+    backgroundColor: 'rgba(201, 169, 110, 0.18)',
     borderWidth: 1,
-    borderColor: 'rgba(201, 169, 110, 0.45)',
+    borderColor: 'rgba(201, 169, 110, 0.5)',
   },
   pillText: {
     color: colors.accent,
@@ -83,9 +80,10 @@ const styles = StyleSheet.create({
   },
   name: {
     color: colors.text,
-    fontSize: 30,
-    fontWeight: '700',
-    lineHeight: 35,
+    fontSize: 34,
+    fontWeight: '800',
+    lineHeight: 40,
+    letterSpacing: 0.3,
   },
   bottomRow: {
     flexDirection: 'row',
@@ -95,7 +93,7 @@ const styles = StyleSheet.create({
   },
   winery: {
     color: colors.accent,
-    fontSize: 13,
+    fontSize: 14,
     fontStyle: 'italic',
     flex: 1,
     marginRight: spacing.sm,
