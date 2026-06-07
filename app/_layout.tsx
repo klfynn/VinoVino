@@ -10,7 +10,7 @@ import { AuthProvider, useAuth } from '../context/AuthContext';
 import { CellarProvider } from '../context/CellarContext';
 import { FilterProvider } from '../context/FilterContext';
 import { TutorialProvider, TUTORIAL_SEEN_KEY } from '../context/TutorialContext';
-import { CoachMarkOverlay } from './tutorial/coachmarks';
+import CoachMarkOverlay from './tutorial/coachmarks';
 import { colors } from '../theme';
 
 function AuthGate() {
