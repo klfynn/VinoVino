@@ -57,7 +57,7 @@ const COACH_MARKS: CoachMarkDef[] = [
   },
 ];
 
-export function CoachMarkOverlay() {
+export default function CoachMarkOverlay() {
   const { coachMarkStep, nextCoachMark, finishCoachMarks } = useTutorial();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const prevStep = useRef<number | null>(null);

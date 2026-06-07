@@ -1,11 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, Image, ScrollView, Dimensions, TouchableOpacity,
+  Animated, PanResponder, Easing,
 } from 'react-native';
-import Animated, {
-  useSharedValue, useAnimatedStyle, withTiming, runOnJS, Easing,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Wine } from '../types';
@@ -26,48 +23,52 @@ interface Props {
 export function WineDetailModal({
   visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted, onAddToCellar,
 }: Props) {
-  const ty = useSharedValue(SCREEN_H);
+  const ty = useRef(new Animated.Value(SCREEN_H)).current;
 
   useEffect(() => {
     if (visible) {
-      ty.value = withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) });
+      Animated.timing(ty, {
+        toValue: 0, duration: 320, easing: Easing.out(Easing.cubic), useNativeDriver: true,
+      }).start();
     } else {
-      ty.value = SCREEN_H;
+      ty.setValue(SCREEN_H);
     }
   }, [visible, ty]);
 
   const close = () => {
-    ty.value = withTiming(SCREEN_H, { duration: 260 }, (finished) => {
-      if (finished) runOnJS(onClose)();
+    Animated.timing(ty, { toValue: SCREEN_H, duration: 260, useNativeDriver: true }).start(({ finished }) => {
+      if (finished) onClose();
     });
   };
 
-  const pan = Gesture.Pan()
-    .activeOffsetY(10)
-    .onUpdate((e) => { if (e.translationY > 0) ty.value = e.translationY; })
-    .onEnd((e) => {
-      if (e.translationY > 120 || e.velocityY > 800) {
-        ty.value = withTiming(SCREEN_H, { duration: 240 }, (finished) => {
-          if (finished) runOnJS(onClose)();
-        });
-      } else {
-        ty.value = withTiming(0, { duration: 200 });
-      }
-    });
-
-  const sheetStyle = useAnimatedStyle(() => ({ transform: [{ translateY: ty.value }] }));
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, g) => g.dy > 10 && Math.abs(g.dy) > Math.abs(g.dx),
+      onPanResponderMove: (_, g) => {
+        if (g.dy > 0) ty.setValue(g.dy);
+      },
+      onPanResponderRelease: (_, g) => {
+        if (g.dy > 120 || g.vy > 0.8) {
+          Animated.timing(ty, { toValue: SCREEN_H, duration: 240, useNativeDriver: true }).start(({ finished }) => {
+            if (finished) onClose();
+          });
+        } else {
+          Animated.timing(ty, { toValue: 0, duration: 200, useNativeDriver: true }).start();
+        }
+      },
+    })
+  ).current;
 
   if (!wine) return null;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={close}>
       <View style={styles.backdrop}>
-        <Animated.View style={[styles.sheet, sheetStyle]}>
-          <GestureDetector gesture={pan}>
-            <View style={styles.dragArea}>
-              <View style={styles.handle} />
-            </View>
-          </GestureDetector>
+        <Animated.View style={[styles.sheet, { transform: [{ translateY: ty }] }]}>
+          <View style={styles.dragArea} {...panResponder.panHandlers}>
+            <View style={styles.handle} />
+          </View>
 
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={styles.imageWrap}>
