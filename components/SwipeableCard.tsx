@@ -1,15 +1,12 @@
-import React from 'react';
-import { Dimensions, StyleSheet, View, Text } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  runOnJS,
-  interpolate,
-  Extrapolation,
-} from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import React, { useRef } from 'react';
+import {
+  Animated,
+  Dimensions,
+  PanResponder,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Wine } from '../types';
 import { WineCardView } from './WineCardView';
 import { colors, radii } from '../theme';
@@ -37,95 +34,128 @@ export function SwipeableCard({
   isTop,
   stackIndex,
 }: Props) {
-  const tx = useSharedValue(0);
-  const ty = useSharedValue(0);
+  const position = useRef(new Animated.ValueXY()).current;
 
-  const pan = Gesture.Pan()
-    .enabled(isTop)
-    .onUpdate((e) => {
-      tx.value = e.translationX;
-      ty.value = e.translationY;
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => isTop,
+      onMoveShouldSetPanResponder: () => isTop,
+      onPanResponderMove: Animated.event(
+        [null, { dx: position.x, dy: position.y }],
+        { useNativeDriver: false }
+      ),
+      onPanResponderRelease: (_, gs) => {
+        const { dx, dy } = gs;
+
+        const isTap = Math.abs(dx) < 6 && Math.abs(dy) < 6;
+        if (isTap) {
+          position.setValue({ x: 0, y: 0 });
+          onTap();
+          return;
+        }
+
+        const goingUp = dy < -SWIPE_Y && Math.abs(dy) > Math.abs(dx);
+        const goingRight = dx > SWIPE_X;
+        const goingLeft = dx < -SWIPE_X;
+
+        if (goingUp) {
+          Animated.timing(position, {
+            toValue: { x: dx, y: -SCREEN_H },
+            duration: 260,
+            useNativeDriver: true,
+          }).start(() => {
+            position.setValue({ x: 0, y: 0 });
+            onSwipeUp();
+          });
+        } else if (goingRight) {
+          Animated.timing(position, {
+            toValue: { x: SCREEN_W * 1.5, y: dy },
+            duration: 260,
+            useNativeDriver: true,
+          }).start(() => onSwipeRight());
+        } else if (goingLeft) {
+          Animated.timing(position, {
+            toValue: { x: -SCREEN_W * 1.5, y: dy },
+            duration: 260,
+            useNativeDriver: true,
+          }).start(() => onSwipeLeft());
+        } else {
+          Animated.spring(position, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: true,
+            friction: 6,
+          }).start();
+        }
+      },
+      onPanResponderTerminate: () => {
+        Animated.spring(position, {
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: true,
+          friction: 6,
+        }).start();
+      },
     })
-    .onEnd((e) => {
-      const { translationX, translationY } = e;
-      const goingUp = translationY < -SWIPE_Y && Math.abs(translationY) > Math.abs(translationX);
-      const goingRight = translationX > SWIPE_X;
-      const goingLeft = translationX < -SWIPE_X;
+  ).current;
 
-      if (goingUp) {
-        tx.value = withTiming(translationX, { duration: 220 });
-        ty.value = withTiming(-SCREEN_H, { duration: 260 }, (finished) => {
-          if (finished) {
-            runOnJS(onSwipeUp)();
-            tx.value = 0;
-            ty.value = 0;
-          }
-        });
-      } else if (goingRight) {
-        tx.value = withTiming(SCREEN_W * 1.5, { duration: 260 }, (finished) => {
-          if (finished) runOnJS(onSwipeRight)();
-        });
-        ty.value = withTiming(translationY, { duration: 260 });
-      } else if (goingLeft) {
-        tx.value = withTiming(-SCREEN_W * 1.5, { duration: 260 }, (finished) => {
-          if (finished) runOnJS(onSwipeLeft)();
-        });
-        ty.value = withTiming(translationY, { duration: 260 });
-      } else {
-        tx.value = withSpring(0);
-        ty.value = withSpring(0);
-      }
-    });
-
-  const tap = Gesture.Tap()
-    .enabled(isTop)
-    .maxDuration(250)
-    .onEnd(() => {
-      runOnJS(onTap)();
-    });
-
-  const composed = Gesture.Exclusive(pan, tap);
-
-  const cardStyle = useAnimatedStyle(() => {
-    const rotate = interpolate(tx.value, [-SCREEN_W, 0, SCREEN_W], [-12, 0, 12], Extrapolation.CLAMP);
-    const stackOffset = stackIndex * 10;
-    const stackScale = 1 - stackIndex * 0.05;
-    return {
-      transform: [
-        { translateX: tx.value },
-        { translateY: ty.value + (isTop ? 0 : stackOffset) },
-        { rotate: `${rotate}deg` },
-        { scale: isTop ? 1 : stackScale },
-      ],
-      zIndex: 100 - stackIndex,
-    };
+  const rotate = position.x.interpolate({
+    inputRange: [-SCREEN_W, 0, SCREEN_W],
+    outputRange: ['-12deg', '0deg', '12deg'],
+    extrapolate: 'clamp',
   });
 
-  const likeStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tx.value, [0, SWIPE_X], [0, 1], Extrapolation.CLAMP),
-  }));
-  const skipStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(tx.value, [-SWIPE_X, 0], [1, 0], Extrapolation.CLAMP),
-  }));
-  const cartStyle = useAnimatedStyle(() => ({
-    opacity: interpolate(ty.value, [-SWIPE_Y, 0], [1, 0], Extrapolation.CLAMP),
-  }));
+  const likeOpacity = position.x.interpolate({
+    inputRange: [0, SWIPE_X],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+  const skipOpacity = position.x.interpolate({
+    inputRange: [-SWIPE_X, 0],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const cartOpacity = position.y.interpolate({
+    inputRange: [-SWIPE_Y, 0],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+
+  const stackOffset = stackIndex * 10;
+  const stackScale = 1 - stackIndex * 0.05;
+
+  const cardStyle = isTop
+    ? {
+        transform: [
+          { translateX: position.x },
+          { translateY: position.y },
+          { rotate },
+        ],
+        zIndex: 100,
+      }
+    : {
+        transform: [
+          { translateY: stackOffset },
+          { scale: stackScale },
+        ],
+        zIndex: 100 - stackIndex,
+      };
 
   return (
-    <GestureDetector gesture={composed}>
-      <Animated.View style={[styles.card, cardStyle]} pointerEvents={isTop ? 'auto' : 'none'}>
-        <WineCardView wine={wine} onPress={onTap} />
-        <Animated.View style={[styles.label, styles.likeLabel, likeStyle]}>
-          <Text style={styles.labelText}>MERKEN</Text>
-        </Animated.View>
-        <Animated.View style={[styles.label, styles.skipLabel, skipStyle]}>
-          <Text style={styles.labelText}>SKIP</Text>
-        </Animated.View>
-        <Animated.View style={[styles.label, styles.cartLabel, cartStyle]}>
-          <Text style={styles.labelText}>IN DEN WARENKORB</Text>
-        </Animated.View>
+    <Animated.View
+      style={[styles.card, cardStyle]}
+      {...(isTop ? panResponder.panHandlers : {})}
+      pointerEvents={isTop ? 'auto' : 'none'}
+    >
+      <WineCardView wine={wine} />
+      <Animated.View style={[styles.label, styles.likeLabel, { opacity: likeOpacity }]}>
+        <Text style={styles.labelText}>MERKEN</Text>
       </Animated.View>
-    </GestureDetector>
+      <Animated.View style={[styles.label, styles.skipLabel, { opacity: skipOpacity }]}>
+        <Text style={styles.labelText}>SKIP</Text>
+      </Animated.View>
+      <Animated.View style={[styles.label, styles.cartLabel, { opacity: cartOpacity }]}>
+        <Text style={styles.labelText}>IN DEN WARENKORB</Text>
+      </Animated.View>
+    </Animated.View>
   );
 }
 
