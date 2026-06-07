@@ -16,7 +16,7 @@ export interface User {
   firstName: string;
   lastName: string;
   email: string;
-  address: string;
+  address?: string;
 }
 
 interface StoredUser extends User {
@@ -28,7 +28,7 @@ interface RegisterInput {
   lastName: string;
   email: string;
   password: string;
-  address: string;
+  address?: string;
 }
 
 interface AuthContextValue {
@@ -105,10 +105,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const lastName = input.lastName.trim();
       const email = input.email.trim().toLowerCase();
       const password = input.password;
-      const address = input.address.trim();
 
-      if (!firstName || !lastName || !email || !password || !address) {
+      if (!firstName || !email || !password) {
         throw new Error('Bitte alle Felder ausfüllen.');
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        throw new Error('Bitte eine gültige E-Mail-Adresse eingeben.');
       }
       if (password.length < 6) {
         throw new Error('Das Passwort muss mindestens 6 Zeichen haben.');
@@ -124,7 +126,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         firstName,
         lastName,
         email,
-        address,
         password,
       };
 

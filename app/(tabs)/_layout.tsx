@@ -54,13 +54,6 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
-        options={{
-          title: 'ENTDECKEN',
-          tabBarIcon: ({ color, size }) => <Ionicons name="wine-outline" size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
         name="scanner"
         options={{
           title: 'SCANNER',
@@ -71,10 +64,17 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="index"
+        options={{
+          title: 'ENTDECKEN',
+          tabBarIcon: ({ color, size }) => <Ionicons name="wine-outline" size={size} color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="watchlist"
         options={{
-          title: 'MERKLISTE',
-          tabBarIcon: ({ color, size }) => <Ionicons name="bookmark-outline" size={size} color={color} />,
+          title: 'SAMMLUNG',
+          tabBarIcon: ({ color, size }) => <Ionicons name="library-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -87,10 +87,7 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'PROFIL',
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="person-outline" size={size} color={color} />
-          ),
+          href: null,
         }}
       />
     </Tabs>
