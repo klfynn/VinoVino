@@ -75,6 +75,10 @@ export default function RootLayout() {
                     name="checkout"
                     options={{ headerShown: false }}
                   />
+                  <Stack.Screen
+                    name="recipe/[id]"
+                    options={{ headerShown: false }}
+                  />
                 </Stack>
                 <AuthGate />
                 <CoachMarkOverlay />
