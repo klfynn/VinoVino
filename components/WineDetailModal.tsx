@@ -20,10 +20,11 @@ interface Props {
   onAddToWatchlist: (wine: Wine) => void;
   onAddToCart: (wine: Wine) => void;
   watchlisted: boolean;
+  onAddToCellar?: (wine: Wine) => void;
 }
 
 export function WineDetailModal({
-  visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted,
+  visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted, onAddToCellar,
 }: Props) {
   const ty = useSharedValue(SCREEN_H);
 
@@ -119,10 +120,17 @@ export function WineDetailModal({
               <Ionicons name={watchlisted ? 'bookmark' : 'bookmark-outline'} size={20} color={colors.accent} />
               <Text style={styles.watchText}>{watchlisted ? 'Gemerkt' : 'Merken'}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, styles.cartBtn]} onPress={() => onAddToCart(wine)}>
-              <Ionicons name="cart" size={20} color={colors.background} />
-              <Text style={styles.cartText}>In den Warenkorb</Text>
-            </TouchableOpacity>
+            {onAddToCellar ? (
+              <TouchableOpacity style={[styles.actionBtn, styles.cartBtn]} onPress={() => onAddToCellar(wine)}>
+                <Ionicons name="library" size={20} color={colors.background} />
+                <Text style={styles.cartText}>Zum Weinkeller</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity style={[styles.actionBtn, styles.cartBtn]} onPress={() => onAddToCart(wine)}>
+                <Ionicons name="cart" size={20} color={colors.background} />
+                <Text style={styles.cartText}>In den Warenkorb</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </Animated.View>
       </View>

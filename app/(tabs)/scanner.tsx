@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
   StyleSheet,
   Text,
@@ -10,17 +11,12 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
-import Animated, {
-  Easing,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from 'react-native-reanimated';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { WineDetailModal } from '../../components/WineDetailModal';
 import { useApp } from '../../context/AppContext';
+import { useCellar } from '../../context/CellarContext';
 import { recognizeWineLabel } from '../../services/wineRecognition';
 import { colors, radii, spacing } from '../../theme';
 import type { Wine } from '../../types';
@@ -39,19 +35,30 @@ export default function ScannerScreen() {
   const [modalVisible, setModalVisible] = useState(false);
   const cameraRef = useRef<CameraView>(null);
   const { watchlist, addToWatchlist, removeFromWatchlist, addToCart } = useApp();
+  const { addToCellar } = useCellar();
+  const router = useRouter();
+  const { addToCellar: addToCellarParam } = useLocalSearchParams<{ addToCellar?: string }>();
+  const cellarMode = addToCellarParam === 'true';
 
-  const scanY = useSharedValue(0);
+  const scanY = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    scanY.value = withRepeat(
-      withTiming(FRAME_SIZE - 2, { duration: 2000, easing: Easing.inOut(Easing.sin) }),
-      -1,
-      true,
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scanY, {
+          toValue: FRAME_SIZE - 2,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scanY, {
+          toValue: 0,
+          duration: 2000,
+          useNativeDriver: true,
+        }),
+      ]),
     );
+    loop.start();
+    return () => loop.stop();
   }, [scanY]);
-
-  const scanLineStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: scanY.value }],
-  }));
 
   const watchlisted =
     scannedWine != null && watchlist.some((w) => w.id === scannedWine.id);
@@ -153,13 +160,21 @@ export default function ScannerScreen() {
         <View style={[styles.corner, styles.cornerTR]} />
         <View style={[styles.corner, styles.cornerBL]} />
         <View style={[styles.corner, styles.cornerBR]} />
-        <Animated.View style={[styles.scanLine, scanLineStyle]} />
+        <Animated.View
+          style={[styles.scanLine, { transform: [{ translateY: scanY }] }]}
+        />
       </View>
 
       {/* Header */}
       <SafeAreaView style={styles.header} edges={['top']}>
-        <Text style={styles.headerTitle}>ETIKETT SCANNEN</Text>
-        <Text style={styles.headerSub}>Halte das Weinetikett in den Rahmen</Text>
+        <Text style={styles.headerTitle}>
+          {cellarMode ? 'WEIN FÜR WEINKELLER SCANNEN' : 'ETIKETT SCANNEN'}
+        </Text>
+        <Text style={styles.headerSub}>
+          {cellarMode
+            ? 'Scan um direkt zum Weinkeller hinzuzufügen'
+            : 'Halte das Weinetikett in den Rahmen'}
+        </Text>
       </SafeAreaView>
 
       {/* Bottom controls */}
@@ -194,7 +209,10 @@ export default function ScannerScreen() {
       <WineDetailModal
         visible={modalVisible}
         wine={scannedWine}
-        onClose={() => setModalVisible(false)}
+        onClose={() => {
+          setModalVisible(false);
+          if (cellarMode) router.back();
+        }}
         onAddToWatchlist={(wine) => {
           if (watchlisted) removeFromWatchlist(wine.id);
           else addToWatchlist(wine);
@@ -204,6 +222,15 @@ export default function ScannerScreen() {
           setModalVisible(false);
         }}
         watchlisted={watchlisted}
+        onAddToCellar={
+          cellarMode
+            ? (wine) => {
+                addToCellar(wine, 1, 'scanner');
+                setModalVisible(false);
+                router.back();
+              }
+            : undefined
+        }
       />
     </View>
   );

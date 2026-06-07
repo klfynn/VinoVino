@@ -6,6 +6,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider } from '../context/AppContext';
 import { AuthProvider, useAuth } from '../context/AuthContext';
+import { CellarProvider } from '../context/CellarContext';
 import { FilterProvider } from '../context/FilterContext';
 import { colors } from '../theme';
 
@@ -42,6 +43,7 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.background }}>
       <SafeAreaProvider>
         <AuthProvider>
+          <CellarProvider>
           <AppProvider>
             <FilterProvider>
               <StatusBar style="light" />
@@ -57,6 +59,7 @@ export default function RootLayout() {
               <AuthGate />
             </FilterProvider>
           </AppProvider>
+          </CellarProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>
