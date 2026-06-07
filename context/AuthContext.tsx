@@ -11,12 +11,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const SESSION_KEY = '@vinovino_session';
 const USERS_KEY = '@vinovino_users';
 
+export interface Address {
+  street: string;
+  zip: string;
+  city: string;
+  country: string;
+}
+
 export interface User {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
-  address?: string;
+  address?: Address;
 }
 
 interface StoredUser extends User {
@@ -28,7 +35,7 @@ interface RegisterInput {
   lastName: string;
   email: string;
   password: string;
-  address?: string;
+  address?: Address;
 }
 
 interface AuthContextValue {
@@ -38,6 +45,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (input: RegisterInput) => Promise<void>;
   logout: () => Promise<void>;
+  updateAddress: (address: Address) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -140,6 +148,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await persistSession(null);
   }, [persistSession]);
 
+  const updateAddress = useCallback(
+    async (address: Address) => {
+      if (!user) return;
+      const updatedUser: User = { ...user, address };
+      const users = await loadUsers();
+      const updatedUsers = users.map((u) =>
+        u.id === user.id ? { ...u, address } : u,
+      );
+      await saveUsers(updatedUsers);
+      await persistSession(updatedUser);
+    },
+    [user, persistSession],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -148,8 +170,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       login,
       register,
       logout,
+      updateAddress,
     }),
-    [user, isLoading, login, register, logout],
+    [user, isLoading, login, register, logout, updateAddress],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
