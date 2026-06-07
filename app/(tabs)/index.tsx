@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { wines as ALL_WINES } from '../../data/wines';
@@ -12,7 +11,6 @@ import { WineDetailModal } from '../../components/WineDetailModal';
 import { Wine } from '../../types';
 import { colors, radii, spacing } from '../../theme';
 
-// Maps filter chip labels to Wine.type values
 const WEINART_MAP: Record<string, string> = {
   Rot: 'Rotwein',
   Weiß: 'Weißwein',
@@ -21,18 +19,14 @@ const WEINART_MAP: Record<string, string> = {
   Port: 'Süßwein',
 };
 
-// Countries considered "Neue Welt" for the herkunft filter
 const NEUE_WELT = ['USA', 'Australien', 'Neuseeland', 'Chile', 'Argentinien', 'Südafrika'];
-
-// Maps bewertungMin (1–5 stars) to minimum 100-pt wine rating
-// star 1 = no restriction; stars 2–5 progressively tighter
 const STAR_MIN = [0, 0, 85, 88, 90, 95];
 
 function CartHeaderIcon() {
   const { cartCount } = useApp();
   return (
     <View>
-      <Ionicons name="cart-outline" size={24} color={colors.text} />
+      <Ionicons name="cart-outline" size={26} color={colors.text} />
       {cartCount > 0 && (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{cartCount > 9 ? '9+' : cartCount}</Text>
@@ -59,7 +53,6 @@ export default function SwipeScreen() {
   const [qtyWine, setQtyWine] = useState<Wine | null>(null);
   const [detailWine, setDetailWine] = useState<Wine | null>(null);
 
-  // TODO: replace with API query passing filter params when backend is available
   const filteredWines = useMemo(() => {
     return ALL_WINES.filter((w) => {
       if (weinart.length > 0) {
@@ -83,7 +76,6 @@ export default function SwipeScreen() {
     });
   }, [weinart, geschmack, herkunft, jahrgang, preis, bewertungMin]);
 
-  // Reset deck position whenever filters change
   useEffect(() => {
     setIndex(0);
   }, [weinart, geschmack, herkunft, jahrgang.min, jahrgang.max, preis.min, preis.max, bewertungMin]);
@@ -116,49 +108,14 @@ export default function SwipeScreen() {
   const allDiscovered = !noResults && !current;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.logo}>VinoVino</Text>
-          <Text style={styles.tagline}>Entdecke deinen nächsten Lieblingswein</Text>
-        </View>
-        <View style={styles.headerIcons}>
-          {/* Filter icon with active-filter badge */}
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push('/filter')}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="options-outline" size={24} color={colors.text} />
-            {activeFilterCount > 0 && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>
-                  {activeFilterCount > 9 ? '9+' : activeFilterCount}
-                </Text>
-              </View>
-            )}
-          </TouchableOpacity>
-          {/* Cart icon with item count */}
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.push('/(tabs)/cart')}
-            activeOpacity={0.7}
-          >
-            <CartHeaderIcon />
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* ── Card deck ── */}
+    <View style={styles.container}>
+      {/* Card deck – fills screen from top edge to action buttons */}
       <View style={styles.deck}>
         {noResults ? (
           <View style={styles.empty}>
             <Ionicons name="funnel-outline" size={64} color={colors.accent} />
             <Text style={styles.emptyTitle}>Keine Weine gefunden</Text>
-            <Text style={styles.emptySub}>
-              Die aktuellen Filter passen auf keinen Wein.
-            </Text>
+            <Text style={styles.emptySub}>Die aktuellen Filter passen auf keinen Wein.</Text>
             <TouchableOpacity style={styles.resetBtn} onPress={() => router.push('/filter')}>
               <Text style={styles.resetText}>Filter anpassen</Text>
             </TouchableOpacity>
@@ -167,9 +124,7 @@ export default function SwipeScreen() {
           <View style={styles.empty}>
             <Ionicons name="wine-outline" size={64} color={colors.accent} />
             <Text style={styles.emptyTitle}>Alle Weine entdeckt</Text>
-            <Text style={styles.emptySub}>
-              Schau in deine Merkliste oder starte von vorn.
-            </Text>
+            <Text style={styles.emptySub}>Schau in deine Merkliste oder starte von vorn.</Text>
             <TouchableOpacity style={styles.resetBtn} onPress={() => setIndex(0)}>
               <Text style={styles.resetText}>Neu starten</Text>
             </TouchableOpacity>
@@ -200,9 +155,39 @@ export default function SwipeScreen() {
             />
           </>
         )}
+
+        {/* Logo overlay – top left */}
+        <View style={styles.overlayTopLeft} pointerEvents="none">
+          <Text style={styles.logo}>VinoVino</Text>
+        </View>
+
+        {/* Filter + Cart icons – top right */}
+        <View style={styles.overlayTopRight}>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => router.push('/filter')}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="options-outline" size={24} color={colors.text} />
+            {activeFilterCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>
+                  {activeFilterCount > 9 ? '9+' : activeFilterCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => router.push('/(tabs)/cart')}
+            activeOpacity={0.7}
+          >
+            <CartHeaderIcon />
+          </TouchableOpacity>
+        </View>
       </View>
 
-      {/* ── Action buttons ── */}
+      {/* Action buttons below the card */}
       {current && !noResults && (
         <View style={styles.actions}>
           <TouchableOpacity
@@ -243,25 +228,43 @@ export default function SwipeScreen() {
         }}
         watchlisted={isWatchlisted(detailWine)}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
 
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-    paddingBottom: spacing.sm,
+  deck: {
+    flex: 1,
+    position: 'relative',
   },
-  logo: { color: colors.accent, fontSize: 28, fontWeight: '700', letterSpacing: 2 },
-  tagline: { color: colors.textMuted, fontSize: 13, fontStyle: 'italic', marginTop: 2 },
 
-  headerIcons: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  overlayTopLeft: {
+    position: 'absolute',
+    top: 52,
+    left: 20,
+    zIndex: 200,
+  },
+  logo: {
+    color: colors.accent,
+    fontSize: 22,
+    fontWeight: '700',
+    letterSpacing: 2,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
+
+  overlayTopRight: {
+    position: 'absolute',
+    top: 46,
+    right: 12,
+    zIndex: 200,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   iconBtn: { padding: spacing.sm, position: 'relative' },
   badge: {
     position: 'absolute',
@@ -277,8 +280,6 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.background, fontSize: 9, fontWeight: '700' },
 
-  deck: { flex: 1, marginHorizontal: spacing.sm, marginTop: spacing.xs, marginBottom: spacing.sm },
-
   actions: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -286,6 +287,7 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
+    backgroundColor: colors.background,
   },
   actionBtn: {
     width: 64,
