@@ -8,11 +8,10 @@ import { colors } from '../theme';
 export default function RegisterScreen() {
   const { register } = useAuth();
   const router = useRouter();
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [address, setAddress] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [focused, setFocused] = useState<string | null>(null);
@@ -21,9 +20,31 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     setError('');
+
+    if (!fullName.trim() || !email.trim() || !password || !confirmPassword) {
+      setError('Bitte alle Felder ausfüllen.');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Bitte eine gültige E-Mail-Adresse eingeben.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Das Passwort muss mindestens 6 Zeichen haben.');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Die Passwörter stimmen nicht überein.');
+      return;
+    }
+
+    const nameParts = fullName.trim().split(/\s+/);
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ');
+
     setLoading(true);
     try {
-      await register({ firstName, lastName, email, password, address });
+      await register({ firstName, lastName, email, password });
       router.replace('/(tabs)');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Registrierung fehlgeschlagen.');
@@ -50,33 +71,18 @@ export default function RegisterScreen() {
     >
       {error ? <Text style={s.error}>{error}</Text> : null}
 
-      <View style={{ flexDirection: 'row', gap: 12 }}>
-        <View style={[s.field, { flex: 1 }]}>
-          <Text style={s.label}>Vorname</Text>
-          <TextInput
-            style={inputStyle('firstName')}
-            value={firstName}
-            onChangeText={setFirstName}
-            placeholder="Max"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="words"
-            onFocus={() => setFocused('firstName')}
-            onBlur={() => setFocused(null)}
-          />
-        </View>
-        <View style={[s.field, { flex: 1 }]}>
-          <Text style={s.label}>Nachname</Text>
-          <TextInput
-            style={inputStyle('lastName')}
-            value={lastName}
-            onChangeText={setLastName}
-            placeholder="Mustermann"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="words"
-            onFocus={() => setFocused('lastName')}
-            onBlur={() => setFocused(null)}
-          />
-        </View>
+      <View style={s.field}>
+        <Text style={s.label}>Voller Name</Text>
+        <TextInput
+          style={inputStyle('fullName')}
+          value={fullName}
+          onChangeText={setFullName}
+          placeholder="Max Mustermann"
+          placeholderTextColor={colors.textMuted}
+          autoCapitalize="words"
+          onFocus={() => setFocused('fullName')}
+          onBlur={() => setFocused(null)}
+        />
       </View>
 
       <View style={s.field}>
@@ -110,15 +116,15 @@ export default function RegisterScreen() {
       </View>
 
       <View style={s.field}>
-        <Text style={s.label}>Adresse</Text>
+        <Text style={s.label}>Passwort bestätigen</Text>
         <TextInput
-          style={[inputStyle('address'), { minHeight: 80, textAlignVertical: 'top', paddingTop: 14 }]}
-          value={address}
-          onChangeText={setAddress}
-          placeholder="Straße, PLZ, Stadt"
+          style={inputStyle('confirmPassword')}
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
+          placeholder="Passwort wiederholen"
           placeholderTextColor={colors.textMuted}
-          multiline
-          onFocus={() => setFocused('address')}
+          secureTextEntry
+          onFocus={() => setFocused('confirmPassword')}
           onBlur={() => setFocused(null)}
         />
       </View>
