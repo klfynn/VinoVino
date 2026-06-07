@@ -55,6 +55,10 @@ export default function RootLayout() {
                   name="filter"
                   options={{ presentation: 'modal', headerShown: false }}
                 />
+                <Stack.Screen
+                  name="checkout"
+                  options={{ headerShown: false }}
+                />
               </Stack>
               <AuthGate />
             </FilterProvider>

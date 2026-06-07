@@ -1,35 +1,18 @@
 import React from 'react';
-import { Alert, View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
-import { useCellar } from '../../context/CellarContext';
 import { colors, radii, spacing } from '../../theme';
 
 export default function CartScreen() {
-  const { cart, updateCartQuantity, removeFromCart, cartTotal, cartCount, addToPurchased } = useApp();
-  const { addToCellar } = useCellar();
+  const { cart, updateCartQuantity, removeFromCart, cartTotal, cartCount } = useApp();
+  const router = useRouter();
 
   function handleCheckout() {
     if (cart.length === 0) return;
-    Alert.alert(
-      'Bestellung aufgeben',
-      `${cartCount} Flaschen für € ${cartTotal.toFixed(2)} kaufen?`,
-      [
-        { text: 'Abbrechen', style: 'cancel' },
-        {
-          text: 'Kaufen',
-          onPress: () => {
-            cart.forEach((item) => {
-              addToCellar(item.wine, item.quantity, 'purchase');
-              addToPurchased(item.wine);
-            });
-            cart.forEach((item) => removeFromCart(item.wine.id));
-            Alert.alert('Bestellung aufgegeben', 'Die Weine wurden zu deinem Weinkeller hinzugefügt.');
-          },
-        },
-      ],
-    );
+    router.push('/checkout');
   }
 
   return (
