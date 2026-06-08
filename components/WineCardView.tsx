@@ -13,10 +13,20 @@ export function WineCardView({ wine }: Props) {
     <View style={styles.container}>
       <Image source={{ uri: wine.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
 
+      {/* Top gradient: protects logo, filter and cart icons */}
       <LinearGradient
-        colors={['transparent', 'rgba(26,10,15,0.15)', 'rgba(26,10,15,0.85)', '#1a0a0f']}
-        locations={[0.35, 0.55, 0.8, 1]}
-        style={StyleSheet.absoluteFill}
+        colors={['rgba(26,10,15,0.72)', 'rgba(26,10,15,0.30)', 'transparent']}
+        locations={[0, 0.55, 1]}
+        style={styles.topGradient}
+        pointerEvents="none"
+      />
+
+      {/* Bottom gradient: protects wine name, winery, price and tags */}
+      <LinearGradient
+        colors={['transparent', 'rgba(26,10,15,0.35)', 'rgba(26,10,15,0.82)', '#1a0a0f']}
+        locations={[0, 0.28, 0.62, 1]}
+        style={styles.bottomGradient}
+        pointerEvents="none"
       />
 
       <View style={styles.content}>
@@ -49,6 +59,20 @@ const styles = StyleSheet.create({
     borderRadius: radii.xl,
     overflow: 'hidden',
     backgroundColor: colors.card,
+  },
+  topGradient: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  bottomGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 250,
   },
   content: {
     position: 'absolute',
