@@ -128,43 +128,75 @@ export default function RecipeDetailScreen() {
             ))}
           </View>
 
-          {/* Wine Recommendation */}
-          <View style={styles.wineSection}>
-            <View style={styles.wineSectionHeader}>
-              <Text style={styles.wineSectionTitle}>🍷 Passender Wein</Text>
+          {/* Wine Pairings (new format) */}
+          {recipe.pairings && recipe.pairings.length > 0 && (
+            <View>
+              <Text style={styles.wineSectionTitle}>🍷 Weinempfehlungen</Text>
+              {recipe.pairings.map((pairing, idx) => (
+                <View key={idx} style={[styles.wineSection, { marginBottom: spacing.md }]}>
+                  <View style={styles.wineTagRow}>
+                    <View style={styles.wineTag}>
+                      <Ionicons name="wine-outline" size={13} color={colors.accent} />
+                      <Text style={styles.wineTagText}>{pairing.type}</Text>
+                    </View>
+                    <View style={styles.wineTag}>
+                      <Ionicons name="leaf-outline" size={13} color={colors.accent} />
+                      <Text style={styles.wineTagText}>{pairing.grapes.join(', ')}</Text>
+                    </View>
+                    <View style={styles.wineTag}>
+                      <Ionicons name="water-outline" size={13} color={colors.accent} />
+                      <Text style={styles.wineTagText}>{pairing.taste}</Text>
+                    </View>
+                  </View>
+                  <Text style={styles.wineDescription}>{pairing.description}</Text>
+                  {pairing.recommendedWineIds.length > 0 && (
+                    <FlatList
+                      data={pairing.recommendedWineIds}
+                      keyExtractor={(item) => item}
+                      renderItem={({ item }) => <WineRecommendCard wineId={item} />}
+                      horizontal
+                      showsHorizontalScrollIndicator={false}
+                      contentContainerStyle={styles.wineCardList}
+                    />
+                  )}
+                </View>
+              ))}
             </View>
+          )}
 
-            {/* Wine Tags */}
-            <View style={styles.wineTagRow}>
-              <View style={styles.wineTag}>
-                <Ionicons name="wine-outline" size={13} color={colors.accent} />
-                <Text style={styles.wineTagText}>{recipe.wineRecommendation.type}</Text>
+          {/* Wine Recommendation (legacy format) */}
+          {recipe.wineRecommendation && (
+            <View style={styles.wineSection}>
+              <View style={styles.wineSectionHeader}>
+                <Text style={styles.wineSectionTitle}>🍷 Passender Wein</Text>
               </View>
-              <View style={styles.wineTag}>
-                <Ionicons name="leaf-outline" size={13} color={colors.accent} />
-                <Text style={styles.wineTagText}>{recipe.wineRecommendation.grape}</Text>
+              <View style={styles.wineTagRow}>
+                <View style={styles.wineTag}>
+                  <Ionicons name="wine-outline" size={13} color={colors.accent} />
+                  <Text style={styles.wineTagText}>{recipe.wineRecommendation.type}</Text>
+                </View>
+                <View style={styles.wineTag}>
+                  <Ionicons name="leaf-outline" size={13} color={colors.accent} />
+                  <Text style={styles.wineTagText}>{recipe.wineRecommendation.grape}</Text>
+                </View>
+                <View style={styles.wineTag}>
+                  <Ionicons name="water-outline" size={13} color={colors.accent} />
+                  <Text style={styles.wineTagText}>{recipe.wineRecommendation.taste}</Text>
+                </View>
               </View>
-              <View style={styles.wineTag}>
-                <Ionicons name="water-outline" size={13} color={colors.accent} />
-                <Text style={styles.wineTagText}>{recipe.wineRecommendation.taste}</Text>
-              </View>
+              <Text style={styles.wineDescription}>{recipe.wineRecommendation.description}</Text>
+              {recipe.wineRecommendation.recommendedWines.length > 0 && (
+                <FlatList
+                  data={recipe.wineRecommendation.recommendedWines}
+                  keyExtractor={(item) => item}
+                  renderItem={({ item }) => <WineRecommendCard wineId={item} />}
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={styles.wineCardList}
+                />
+              )}
             </View>
-
-            {/* Why this wine */}
-            <Text style={styles.wineDescription}>{recipe.wineRecommendation.description}</Text>
-
-            {/* Recommended Wine Cards */}
-            {recipe.wineRecommendation.recommendedWines.length > 0 && (
-              <FlatList
-                data={recipe.wineRecommendation.recommendedWines}
-                keyExtractor={(item) => item}
-                renderItem={({ item }) => <WineRecommendCard wineId={item} />}
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.wineCardList}
-              />
-            )}
-          </View>
+          )}
 
           {/* Ingredients */}
           <View style={styles.section}>
