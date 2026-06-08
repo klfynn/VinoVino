@@ -36,10 +36,22 @@ export function SwipeableCard({
 }: Props) {
   const position = useRef(new Animated.ValueXY()).current;
 
+  // Refs so the PanResponder (created once) always reads the latest prop values
+  const isTopRef = useRef(isTop);
+  isTopRef.current = isTop;
+  const onSwipeLeftRef = useRef(onSwipeLeft);
+  onSwipeLeftRef.current = onSwipeLeft;
+  const onSwipeRightRef = useRef(onSwipeRight);
+  onSwipeRightRef.current = onSwipeRight;
+  const onSwipeUpRef = useRef(onSwipeUp);
+  onSwipeUpRef.current = onSwipeUp;
+  const onTapRef = useRef(onTap);
+  onTapRef.current = onTap;
+
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => isTop,
-      onMoveShouldSetPanResponder: () => isTop,
+      onStartShouldSetPanResponder: () => isTopRef.current,
+      onMoveShouldSetPanResponder: () => isTopRef.current,
       onPanResponderMove: Animated.event(
         [null, { dx: position.x, dy: position.y }],
         { useNativeDriver: false }
@@ -50,7 +62,7 @@ export function SwipeableCard({
         const isTap = Math.abs(dx) < 6 && Math.abs(dy) < 6;
         if (isTap) {
           position.setValue({ x: 0, y: 0 });
-          onTap();
+          onTapRef.current();
           return;
         }
 
@@ -65,20 +77,20 @@ export function SwipeableCard({
             useNativeDriver: true,
           }).start(() => {
             position.setValue({ x: 0, y: 0 });
-            onSwipeUp();
+            onSwipeUpRef.current();
           });
         } else if (goingRight) {
           Animated.timing(position, {
             toValue: { x: SCREEN_W * 1.5, y: dy },
             duration: 260,
             useNativeDriver: true,
-          }).start(() => onSwipeRight());
+          }).start(() => onSwipeRightRef.current());
         } else if (goingLeft) {
           Animated.timing(position, {
             toValue: { x: -SCREEN_W * 1.5, y: dy },
             duration: 260,
             useNativeDriver: true,
-          }).start(() => onSwipeLeft());
+          }).start(() => onSwipeLeftRef.current());
         } else {
           Animated.spring(position, {
             toValue: { x: 0, y: 0 },
