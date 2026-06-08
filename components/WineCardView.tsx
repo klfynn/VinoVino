@@ -29,7 +29,7 @@ export function WineCardView({ wine }: Props) {
         pointerEvents="none"
       />
 
-      <View style={styles.content}>
+      <View style={styles.content} pointerEvents="none">
         <View style={styles.tasteRow}>
           {wine.taste.slice(0, 3).map((tag) => (
             <View key={tag} style={styles.pill}>

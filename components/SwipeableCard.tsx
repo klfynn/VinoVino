@@ -146,13 +146,13 @@ export function SwipeableCard({
       pointerEvents={isTop ? 'auto' : 'none'}
     >
       <WineCardView wine={wine} />
-      <Animated.View style={[styles.label, styles.likeLabel, { opacity: likeOpacity }]}>
+      <Animated.View pointerEvents="none" style={[styles.label, styles.likeLabel, { opacity: likeOpacity }]}>
         <Text style={styles.labelText}>MERKEN</Text>
       </Animated.View>
-      <Animated.View style={[styles.label, styles.skipLabel, { opacity: skipOpacity }]}>
+      <Animated.View pointerEvents="none" style={[styles.label, styles.skipLabel, { opacity: skipOpacity }]}>
         <Text style={styles.labelText}>SKIP</Text>
       </Animated.View>
-      <Animated.View style={[styles.label, styles.cartLabel, { opacity: cartOpacity }]}>
+      <Animated.View pointerEvents="none" style={[styles.label, styles.cartLabel, { opacity: cartOpacity }]}>
         <Text style={styles.labelText}>IN DEN WARENKORB</Text>
       </Animated.View>
     </Animated.View>
