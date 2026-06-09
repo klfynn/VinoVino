@@ -6,7 +6,6 @@ import {
   ScrollView,
   Image,
   TouchableOpacity,
-  FlatList,
   Alert,
   Dimensions,
 } from 'react-native';
@@ -44,12 +43,11 @@ function WineRecommendCard({ wineId }: { wineId: string }) {
           <Text style={styles.wineCardPrice}>€{wine.price.toFixed(2)}</Text>
         </View>
         <View style={styles.wineCardRating}>
-          <Ionicons name="star" size={12} color={colors.accent} />
+          <Ionicons name="star" size={10} color={colors.accent} />
           <Text style={styles.ratingText}>{wine.rating}</Text>
         </View>
-        <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart}>
+        <TouchableOpacity style={styles.cartButton} onPress={handleAddToCart} activeOpacity={0.75}>
           <Ionicons name="cart-outline" size={14} color={colors.background} />
-          <Text style={styles.cartButtonText}>In den Warenkorb</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -130,71 +128,57 @@ export default function RecipeDetailScreen() {
 
           {/* Wine Pairings (new format) */}
           {recipe.pairings && recipe.pairings.length > 0 && (
-            <View>
+            <View style={styles.pairingsContainer}>
               <Text style={styles.wineSectionTitle}>🍷 Weinempfehlungen</Text>
-              {recipe.pairings.map((pairing, idx) => (
-                <View key={idx} style={[styles.wineSection, { marginBottom: spacing.md }]}>
-                  <View style={styles.wineTagRow}>
-                    <View style={styles.wineTag}>
-                      <Ionicons name="wine-outline" size={13} color={colors.accent} />
-                      <Text style={styles.wineTagText}>{pairing.type}</Text>
-                    </View>
-                    <View style={styles.wineTag}>
-                      <Ionicons name="leaf-outline" size={13} color={colors.accent} />
-                      <Text style={styles.wineTagText}>{pairing.grapes.join(', ')}</Text>
-                    </View>
-                    <View style={styles.wineTag}>
-                      <Ionicons name="water-outline" size={13} color={colors.accent} />
-                      <Text style={styles.wineTagText}>{pairing.taste}</Text>
+              {recipe.pairings.map((pairing, idx) => {
+                const tagTokens = [pairing.type, ...pairing.grapes, pairing.taste].join(' · ');
+                return (
+                  <View key={idx}>
+                    {idx > 0 && <View style={styles.pairingDivider} />}
+                    <View style={styles.pairingBlock}>
+                      <Text style={styles.pairingTypeLabel}>🍷 {pairing.type}-Empfehlung</Text>
+                      <Text style={styles.tagLine}>{tagTokens}</Text>
+                      <Text style={styles.wineDescription}>{pairing.description}</Text>
+                      {pairing.recommendedWineIds.length > 0 && (
+                        <ScrollView
+                          horizontal
+                          showsHorizontalScrollIndicator={false}
+                          contentContainerStyle={styles.wineCardList}
+                        >
+                          {pairing.recommendedWineIds.map((wid) => (
+                            <WineRecommendCard key={wid} wineId={wid} />
+                          ))}
+                        </ScrollView>
+                      )}
                     </View>
                   </View>
-                  <Text style={styles.wineDescription}>{pairing.description}</Text>
-                  {pairing.recommendedWineIds.length > 0 && (
-                    <FlatList
-                      data={pairing.recommendedWineIds}
-                      keyExtractor={(item) => item}
-                      renderItem={({ item }) => <WineRecommendCard wineId={item} />}
-                      horizontal
-                      showsHorizontalScrollIndicator={false}
-                      contentContainerStyle={styles.wineCardList}
-                    />
-                  )}
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
 
           {/* Wine Recommendation (legacy format) */}
           {recipe.wineRecommendation && (
-            <View style={styles.wineSection}>
-              <View style={styles.wineSectionHeader}>
-                <Text style={styles.wineSectionTitle}>🍷 Passender Wein</Text>
+            <View style={styles.pairingsContainer}>
+              <Text style={styles.wineSectionTitle}>🍷 Passender Wein</Text>
+              <View style={styles.pairingBlock}>
+                <Text style={styles.pairingTypeLabel}>🍷 {recipe.wineRecommendation.type}-Empfehlung</Text>
+                <Text style={styles.tagLine}>
+                  {[recipe.wineRecommendation.type, recipe.wineRecommendation.grape, recipe.wineRecommendation.taste].join(' · ')}
+                </Text>
+                <Text style={styles.wineDescription}>{recipe.wineRecommendation.description}</Text>
+                {recipe.wineRecommendation.recommendedWines.length > 0 && (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.wineCardList}
+                  >
+                    {recipe.wineRecommendation.recommendedWines.map((wid) => (
+                      <WineRecommendCard key={wid} wineId={wid} />
+                    ))}
+                  </ScrollView>
+                )}
               </View>
-              <View style={styles.wineTagRow}>
-                <View style={styles.wineTag}>
-                  <Ionicons name="wine-outline" size={13} color={colors.accent} />
-                  <Text style={styles.wineTagText}>{recipe.wineRecommendation.type}</Text>
-                </View>
-                <View style={styles.wineTag}>
-                  <Ionicons name="leaf-outline" size={13} color={colors.accent} />
-                  <Text style={styles.wineTagText}>{recipe.wineRecommendation.grape}</Text>
-                </View>
-                <View style={styles.wineTag}>
-                  <Ionicons name="water-outline" size={13} color={colors.accent} />
-                  <Text style={styles.wineTagText}>{recipe.wineRecommendation.taste}</Text>
-                </View>
-              </View>
-              <Text style={styles.wineDescription}>{recipe.wineRecommendation.description}</Text>
-              {recipe.wineRecommendation.recommendedWines.length > 0 && (
-                <FlatList
-                  data={recipe.wineRecommendation.recommendedWines}
-                  keyExtractor={(item) => item}
-                  renderItem={({ item }) => <WineRecommendCard wineId={item} />}
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.wineCardList}
-                />
-              )}
             </View>
           )}
 
@@ -336,131 +320,126 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   // Wine Section
-  wineSection: {
-    backgroundColor: colors.card,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    padding: spacing.md,
+  pairingsContainer: {
     marginBottom: spacing.lg,
-  },
-  wineSectionHeader: {
-    marginBottom: spacing.md,
   },
   wineSectionTitle: {
     color: colors.accent,
     fontSize: 18,
     fontWeight: '700',
     letterSpacing: 0.5,
-  },
-  wineTagRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  wineTag: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 5,
-    borderRadius: radii.lg,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.accent,
+  pairingDivider: {
+    height: 1,
+    backgroundColor: '#c9a96e',
+    opacity: 0.3,
+    marginVertical: spacing.md,
   },
-  wineTagText: {
+  pairingBlock: {
+    paddingVertical: spacing.xs,
+  },
+  pairingTypeLabel: {
+    color: colors.accent,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+    marginBottom: 6,
+  },
+  tagLine: {
     color: colors.accent,
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '500',
+    opacity: 0.8,
+    marginBottom: 8,
+    letterSpacing: 0.2,
   },
   wineDescription: {
-    color: colors.text,
+    color: '#f0e6d3',
     fontSize: 13,
-    lineHeight: 20,
+    lineHeight: 21,
+    opacity: 0.85,
     marginBottom: spacing.md,
   },
   wineCardList: {
-    paddingBottom: spacing.xs,
+    paddingBottom: spacing.sm,
+    gap: spacing.sm,
   },
   // Wine Recommend Card
   wineCard: {
-    width: 180,
-    height: 240,
+    width: 140,
+    height: 200,
     borderRadius: radii.md,
     overflow: 'hidden',
-    marginRight: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
     position: 'relative',
   },
   wineCardImage: {
     width: '100%',
-    height: '100%',
-    position: 'absolute',
+    height: 100,
   },
   wineCardOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(26, 10, 15, 0.65)',
+    backgroundColor: 'rgba(26, 10, 15, 0.5)',
   },
   wineCardContent: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: spacing.sm,
-    backgroundColor: 'rgba(26, 10, 15, 0.8)',
+    top: 90,
+    padding: 8,
+    backgroundColor: 'rgba(26, 10, 15, 0.92)',
+    justifyContent: 'space-between',
   },
   wineCardName: {
     color: colors.text,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
+    lineHeight: 16,
     marginBottom: 2,
   },
   wineCardWinery: {
     color: colors.textMuted,
-    fontSize: 11,
-    marginBottom: 4,
+    fontSize: 10,
+    marginBottom: 3,
   },
   wineCardMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 4,
+    alignItems: 'center',
+    marginBottom: 2,
   },
   wineCardVintage: {
     color: colors.textMuted,
-    fontSize: 11,
+    fontSize: 10,
   },
   wineCardPrice: {
     color: colors.accent,
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '700',
   },
   wineCardRating: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
-    marginBottom: spacing.sm,
+    marginBottom: 6,
   },
   ratingText: {
     color: colors.accent,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '600',
   },
   cartButton: {
     backgroundColor: colors.accent,
     borderRadius: radii.sm,
-    paddingVertical: 6,
-    flexDirection: 'row',
+    paddingVertical: 5,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 5,
-  },
-  cartButtonText: {
-    color: colors.background,
-    fontSize: 11,
-    fontWeight: '700',
   },
   // Sections
   section: {
