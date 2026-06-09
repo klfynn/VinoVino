@@ -17,57 +17,64 @@ interface CoachMarkDef {
   hole: HoleRect;
   title: string;
   text: string;
+  // true = tooltip below hole (element near top), false = tooltip above hole (element near bottom)
   tooltipBelow: boolean;
 }
 
-const TAB_H = 84;
-const TAB_W = SW / 4;
-const HEADER_TOP = 50;
+const TAB_W = SW / 5;
+const TAB_H = 60;
+const TAB_Y = SH - TAB_H;
 
 const COACH_MARKS: CoachMarkDef[] = [
   {
-    hole: { x: SW * 0.05, y: SH * 0.17, w: SW * 0.9, h: SH * 0.52, radius: 16 },
+    hole: { x: 20, y: 150, w: SW - 40, h: SH - 350, radius: 16 },
     title: 'Weine entdecken',
     text: 'Wische die Karte um Weine zu entdecken',
     tooltipBelow: false,
   },
   {
-    hole: { x: SW - 68, y: HEADER_TOP + 36, w: 48, h: 48, radius: 24 },
+    hole: { x: SW - 60, y: 50, w: 40, h: 40, radius: 20 },
     title: 'Nach Geschmack filtern',
     text: 'Hier kannst du nach deinem Geschmack filtern',
     tooltipBelow: true,
   },
   {
-    hole: { x: 0, y: SH - TAB_H, w: TAB_W, h: TAB_H, radius: 0 },
+    hole: { x: 0, y: TAB_Y, w: TAB_W, h: TAB_H, radius: 0 },
     title: 'Weinetikett scannen',
     text: 'Scanne ein Weinetikett für sofortige Infos',
     tooltipBelow: false,
   },
   {
-    hole: { x: TAB_W * 2, y: SH - TAB_H, w: TAB_W, h: TAB_H, radius: 0 },
+    hole: { x: TAB_W, y: TAB_Y, w: TAB_W, h: TAB_H, radius: 0 },
     title: 'Deine Sammlung',
     text: 'Deine Merkliste und dein Weinkeller',
     tooltipBelow: false,
   },
   {
-    hole: { x: TAB_W * 3, y: SH - TAB_H, w: TAB_W, h: TAB_H, radius: 0 },
+    hole: { x: TAB_W * 3, y: TAB_Y, w: TAB_W, h: TAB_H, radius: 0 },
+    title: 'Rezepte & Pairings',
+    text: 'Entdecke Rezepte mit passenden Weinempfehlungen',
+    tooltipBelow: false,
+  },
+  {
+    hole: { x: TAB_W * 4, y: TAB_Y, w: TAB_W, h: TAB_H, radius: 0 },
     title: 'Warenkorb',
     text: 'Hier findest du deine ausgewählten Weine',
     tooltipBelow: false,
   },
 ];
 
+const TOOLTIP_HEIGHT = 160;
+
 export default function CoachMarkOverlay() {
   const { coachMarkStep, nextCoachMark, finishCoachMarks } = useTutorial();
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const prevStep = useRef<number | null>(null);
 
   useEffect(() => {
     if (coachMarkStep !== null) {
       fadeAnim.setValue(0);
       Animated.timing(fadeAnim, { toValue: 1, duration: 250, useNativeDriver: true }).start();
     }
-    prevStep.current = coachMarkStep;
   }, [coachMarkStep, fadeAnim]);
 
   if (coachMarkStep === null) return null;
@@ -78,8 +85,11 @@ export default function CoachMarkOverlay() {
   const { hole, title, text, tooltipBelow } = mark;
   const isLast = coachMarkStep === COACH_MARKS.length - 1;
 
-  const tooltipTop = tooltipBelow ? hole.y + hole.h + 12 : hole.y - 140;
-  const clampedTooltipTop = Math.max(8, Math.min(tooltipTop, SH - 160));
+  // Tooltip appears below hole when element is near top, above hole when element is near bottom
+  const rawTooltipTop = tooltipBelow
+    ? hole.y + hole.h + 12
+    : hole.y - TOOLTIP_HEIGHT - 12;
+  const tooltipTop = Math.max(8, Math.min(rawTooltipTop, SH - TOOLTIP_HEIGHT - 8));
 
   const handleNext = () => {
     if (isLast) {
@@ -130,9 +140,8 @@ export default function CoachMarkOverlay() {
       {/* Tooltip */}
       <View
         pointerEvents="auto"
-        style={[styles.tooltip, { top: clampedTooltipTop, left: spacing.lg, right: spacing.lg }]}
+        style={[styles.tooltip, { top: tooltipTop, left: spacing.lg, right: spacing.lg }]}
       >
-        {/* Step indicator */}
         <Text style={styles.stepIndicator}>{coachMarkStep + 1} / {COACH_MARKS.length}</Text>
         <Text style={styles.tooltipTitle}>{title}</Text>
         <Text style={styles.tooltipText}>{text}</Text>
