@@ -18,9 +18,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
 import { useCellar, CellarWine } from '../../context/CellarContext';
+import { useAuth } from '../../context/AuthContext';
 import { QuantityModal } from '../../components/QuantityModal';
 import { wines as ALL_WINES } from '../../data/wines';
-import { Wine, WineType } from '../../types';
+import { Wine, WineType, Review } from '../../types';
 import { colors, radii, spacing } from '../../theme';
 
 // ── Sorting helpers ───────────────────────────────────────────────────────────
@@ -144,10 +145,14 @@ function CellarCard({
   item,
   onEditQty,
   onRemove,
+  onReview,
+  hasReviewed,
 }: {
   item: CellarWine;
   onEditQty: () => void;
   onRemove: () => void;
+  onReview: () => void;
+  hasReviewed: boolean;
 }) {
   return (
     <View style={styles.wCard}>
@@ -176,6 +181,16 @@ function CellarCard({
             <Ionicons name="trash-outline" size={18} color={colors.skip} />
           </TouchableOpacity>
         </View>
+        <TouchableOpacity style={styles.reviewLink} onPress={onReview}>
+          <Ionicons
+            name={hasReviewed ? 'create-outline' : 'star-outline'}
+            size={12}
+            color={colors.accent}
+          />
+          <Text style={styles.reviewLinkText}>
+            {hasReviewed ? 'Bewertung bearbeiten' : 'Bewerten'}
+          </Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -541,18 +556,175 @@ function AddToCellarModal({
   );
 }
 
+// ── Review modal ─────────────────────────────────────────────────────────────
+
+function ReviewModal({
+  visible,
+  wine,
+  existingReview,
+  onClose,
+  onSubmit,
+}: {
+  visible: boolean;
+  wine: Wine | null;
+  existingReview?: Review;
+  onClose: () => void;
+  onSubmit: (rating: number, comment: string) => void;
+}) {
+  const [rating, setRating] = React.useState(0);
+  const [comment, setComment] = React.useState('');
+  const [success, setSuccess] = React.useState(false);
+
+  React.useEffect(() => {
+    if (visible) {
+      setRating(existingReview?.rating ?? 0);
+      setComment(existingReview?.comment ?? '');
+      setSuccess(false);
+    }
+  }, [visible, existingReview]);
+
+  function handleSubmit() {
+    if (rating === 0) {
+      Alert.alert('Bitte Sterne vergeben', 'Wähle mindestens 1 Stern aus.');
+      return;
+    }
+    onSubmit(rating, comment.trim());
+    setSuccess(true);
+    setTimeout(() => {
+      setSuccess(false);
+      onClose();
+    }, 1500);
+  }
+
+  if (!wine) return null;
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <View style={rvStyles.backdrop}>
+          <View style={rvStyles.sheet}>
+            {success ? (
+              <View style={rvStyles.successContent}>
+                <Ionicons name="checkmark-circle" size={56} color={colors.accent} />
+                <Text style={rvStyles.successTitle}>Danke für deine Bewertung!</Text>
+              </View>
+            ) : (
+              <>
+                <Text style={rvStyles.title}>Wein bewerten</Text>
+                <Text style={rvStyles.wineName} numberOfLines={2}>{wine.name}</Text>
+
+                <View style={rvStyles.starsRow}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <TouchableOpacity
+                      key={star}
+                      onPress={() => setRating(star)}
+                      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    >
+                      <Text style={[rvStyles.star, star <= rating && rvStyles.starActive]}>
+                        {star <= rating ? '★' : '☆'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                <TextInput
+                  style={rvStyles.commentInput}
+                  value={comment}
+                  onChangeText={setComment}
+                  placeholder="Wie hat dir der Wein geschmeckt?"
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                />
+
+                <View style={rvStyles.actions}>
+                  <TouchableOpacity style={rvStyles.cancelBtn} onPress={onClose}>
+                    <Text style={rvStyles.cancelText}>Abbrechen</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={rvStyles.submitBtn} onPress={handleSubmit}>
+                    <Text style={rvStyles.submitText}>Absenden</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const rvStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(26,10,15,0.85)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  sheet: {
+    backgroundColor: colors.card,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    width: '100%',
+    maxWidth: 360,
+  },
+  successContent: { alignItems: 'center', paddingVertical: spacing.xl },
+  successTitle: { color: colors.accent, fontSize: 17, fontWeight: '700', marginTop: spacing.md, textAlign: 'center' },
+  title: { color: colors.accent, fontSize: 15, fontWeight: '700', letterSpacing: 1.5, textAlign: 'center', marginBottom: spacing.xs },
+  wineName: { color: colors.textMuted, fontSize: 13, fontStyle: 'italic', textAlign: 'center', marginBottom: spacing.lg },
+  starsRow: { flexDirection: 'row', justifyContent: 'center', gap: spacing.sm, marginBottom: spacing.lg },
+  star: { fontSize: 38, color: colors.border },
+  starActive: { color: colors.accent },
+  commentInput: {
+    backgroundColor: colors.background,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.text,
+    fontSize: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    minHeight: 80,
+    marginBottom: spacing.lg,
+  },
+  actions: { flexDirection: 'row', gap: spacing.sm },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  cancelText: { color: colors.textMuted, fontWeight: '600' },
+  submitBtn: {
+    flex: 1.5,
+    paddingVertical: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+  },
+  submitText: { color: colors.background, fontWeight: '700' },
+});
+
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 type Tab = 'merkliste' | 'weinkeller';
 
 export default function SammlungScreen() {
-  const { watchlist, removeFromWatchlist, addToCart } = useApp();
+  const { watchlist, removeFromWatchlist, addToCart, myReviews, submitReview } = useApp();
   const { cellarWines, addToCellar, removeFromCellar, updateQuantity } = useCellar();
+  const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('merkliste');
   const [qtyWine, setQtyWine] = useState<Wine | null>(null);
   const [editCellarItem, setEditCellarItem] = useState<CellarWine | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [reviewCellarWine, setReviewCellarWine] = useState<CellarWine | null>(null);
 
   const watchlistSections = useMemo(() => groupWines(watchlist), [watchlist]);
   const cellarSections = useMemo(() => groupCellarWines(cellarWines), [cellarWines]);
@@ -686,6 +858,8 @@ export default function SammlungScreen() {
                   <CellarCard
                     item={item.item}
                     onEditQty={() => setEditCellarItem(item.item)}
+                    onReview={() => setReviewCellarWine(item.item)}
+                    hasReviewed={!!myReviews[item.item.wine.id]}
                     onRemove={() =>
                       Alert.alert(
                         'Wein entfernen',
@@ -742,6 +916,26 @@ export default function SammlungScreen() {
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onAdd={(wine, qty) => addToCellar(wine, qty, 'manual')}
+      />
+
+      {/* Review modal */}
+      <ReviewModal
+        visible={!!reviewCellarWine}
+        wine={reviewCellarWine?.wine ?? null}
+        existingReview={reviewCellarWine ? myReviews[reviewCellarWine.wine.id] : undefined}
+        onClose={() => setReviewCellarWine(null)}
+        onSubmit={(rating, comment) => {
+          if (!reviewCellarWine) return;
+          const wine = reviewCellarWine.wine;
+          const review: Review = {
+            id: `user_${wine.id}_${Date.now()}`,
+            userName: user ? `${user.firstName} ${user.lastName[0]}.` : 'Anonym',
+            rating,
+            comment,
+            date: new Date().toISOString().slice(0, 10),
+          };
+          submitReview(wine.id, review);
+        }}
       />
     </SafeAreaView>
   );
@@ -867,6 +1061,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  reviewLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: spacing.sm,
+    alignSelf: 'flex-start',
+  },
+  reviewLinkText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
 
   // Cellar header
   cellarHeader: {
