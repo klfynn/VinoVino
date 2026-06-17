@@ -20,6 +20,13 @@ interface Props {
   onAddToCellar?: (wine: Wine) => void;
 }
 
+const BIO_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
+  Bio: 'leaf-outline',
+  Natur: 'earth-outline',
+  Vegan: 'nutrition-outline',
+  Vegetarisch: 'leaf',
+};
+
 export function WineDetailModal({
   visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted, onAddToCellar,
 }: Props) {
@@ -62,6 +69,10 @@ export function WineDetailModal({
 
   if (!wine) return null;
 
+  const hasBio = (wine.bioNaturVegan?.length ?? 0) > 0;
+  const hasAnlass = (wine.anlass?.length ?? 0) > 0;
+  const hasPasstZu = (wine.passtZu?.length ?? 0) > 0;
+
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={close}>
       <View style={styles.backdrop}>
@@ -88,20 +99,67 @@ export function WineDetailModal({
               <Text style={styles.name}>{wine.name}</Text>
               <Text style={styles.winery}>{wine.winery}</Text>
 
+              {/* Bio / Natur / Vegan Badges */}
+              {hasBio && (
+                <View style={styles.badgeRow}>
+                  {wine.bioNaturVegan!.map((b) => (
+                    <View key={b} style={styles.bioBadge}>
+                      <Ionicons
+                        name={BIO_ICONS[b] ?? 'leaf-outline'}
+                        size={11}
+                        color={colors.accent}
+                        style={styles.badgeIcon}
+                      />
+                      <Text style={styles.bioBadgeText}>{b}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {/* Kompakte Info-Grid */}
               <View style={styles.metaGrid}>
                 <Meta label="Jahrgang" value={String(wine.vintage)} />
-                <Meta label="Herkunft" value={`${wine.region}, ${wine.country}`} />
+                <Meta label="Herkunft & Region" value={`${wine.country}, ${wine.region}`} />
                 <Meta label="Rebsorte" value={wine.grape} />
+                <Meta label="Flaschengröße" value="0,75 l" />
               </View>
 
+              {/* Geschmack */}
               <Section title="Geschmack">
-                <View style={styles.tasteRow}>
+                <View style={styles.pillRow}>
                   {wine.taste.map((t) => (
                     <View key={t} style={styles.chip}><Text style={styles.chipText}>{t}</Text></View>
                   ))}
                 </View>
               </Section>
 
+              {/* Perfekt für (Anlass) */}
+              {hasAnlass && (
+                <Section title="Perfekt für">
+                  <View style={styles.pillRow}>
+                    {wine.anlass!.map((a) => (
+                      <View key={a} style={styles.anlassPill}>
+                        <Text style={styles.anlassPillText}>{a}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </Section>
+              )}
+
+              {/* Passt zu */}
+              {hasPasstZu && (
+                <Section title="Passt zu">
+                  <View style={styles.pillRow}>
+                    {wine.passtZu!.map((p) => (
+                      <View key={p} style={styles.passtZuPill}>
+                        <Text style={styles.passtZuPillText}>{p}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </Section>
+              )}
+
+              {/* Tasting Notes */}
               <Section title="Tasting Notes">
                 <Text style={styles.description}>{wine.description}</Text>
               </Section>
@@ -191,6 +249,18 @@ const styles = StyleSheet.create({
   eyebrow: { color: colors.accent, letterSpacing: 3, fontSize: 11, fontWeight: '700' },
   name: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: spacing.sm, lineHeight: 36 },
   winery: { color: colors.textMuted, fontStyle: 'italic', fontSize: 16, marginTop: 4 },
+
+  // Bio / Natur / Vegan badges
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
+  bioBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 8, paddingVertical: 4,
+    borderRadius: radii.sm, borderWidth: 1, borderColor: colors.accent,
+  },
+  badgeIcon: { marginRight: 4 },
+  bioBadgeText: { color: colors.accent, fontSize: 11, fontWeight: '600', letterSpacing: 0.5 },
+
+  // Info-Grid
   metaGrid: {
     flexDirection: 'row', flexWrap: 'wrap', marginTop: spacing.lg,
     backgroundColor: colors.cardElevated, borderRadius: radii.lg,
@@ -200,14 +270,33 @@ const styles = StyleSheet.create({
   metaItem: { minWidth: '45%', flexGrow: 1 },
   metaLabel: { color: colors.textMuted, fontSize: 11, letterSpacing: 2, marginBottom: 2 },
   metaValue: { color: colors.text, fontSize: 15, fontWeight: '600' },
+
   section: { marginTop: spacing.lg },
   sectionTitle: { color: colors.accent, fontSize: 12, letterSpacing: 3, fontWeight: '700', marginBottom: spacing.sm },
-  tasteRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+
+  pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+
+  // Geschmack chips (existing style, kept neutral)
   chip: {
     paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.md,
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardElevated,
   },
   chipText: { color: colors.text, fontSize: 13 },
+
+  // Anlass pills — warme Goldfarbe, dezent
+  anlassPill: {
+    paddingHorizontal: spacing.md, paddingVertical: 5,
+    borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border,
+  },
+  anlassPillText: { color: colors.text, fontSize: 13 },
+
+  // Passt-zu pills — Akzentfarbe für Food-Pairing
+  passtZuPill: {
+    paddingHorizontal: spacing.md, paddingVertical: 5,
+    borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border,
+  },
+  passtZuPillText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
+
   description: { color: colors.text, fontSize: 15, lineHeight: 22, opacity: 0.9 },
   priceCard: {
     marginTop: spacing.lg, padding: spacing.lg, borderRadius: radii.lg,
