@@ -1,5 +1,13 @@
 export type WineType = 'Rotwein' | 'Weißwein' | 'Roséwein' | 'Schaumwein' | 'Süßwein';
 
+export interface Review {
+  id: string;
+  userName: string;
+  rating: number; // 1–5
+  comment: string;
+  date: string; // ISO date string
+}
+
 export interface Wine {
   id: string;
   name: string;
@@ -17,6 +25,8 @@ export interface Wine {
   anlass?: string[];
   passtZu?: string[];
   bioNaturVegan?: string[];
+  reviews?: Review[];
+  averageRating?: number;
 }
 
 export interface CartItem {

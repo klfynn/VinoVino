@@ -1,14 +1,22 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import {
   Modal, View, Text, StyleSheet, Image, ScrollView, Dimensions, TouchableOpacity,
   Animated, PanResponder, Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { Wine } from '../types';
+import { Wine, Review } from '../types';
+import { useApp } from '../context/AppContext';
 import { colors, radii, spacing } from '../theme';
 
 const { height: SCREEN_H } = Dimensions.get('window');
+
+const BIO_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
+  Bio: 'leaf-outline',
+  Natur: 'earth-outline',
+  Vegan: 'nutrition-outline',
+  Vegetarisch: 'leaf',
+};
 
 interface Props {
   visible: boolean;
@@ -20,16 +28,10 @@ interface Props {
   onAddToCellar?: (wine: Wine) => void;
 }
 
-const BIO_ICONS: Record<string, React.ComponentProps<typeof Ionicons>['name']> = {
-  Bio: 'leaf-outline',
-  Natur: 'earth-outline',
-  Vegan: 'nutrition-outline',
-  Vegetarisch: 'leaf',
-};
-
 export function WineDetailModal({
   visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted, onAddToCellar,
 }: Props) {
+  const { myReviews } = useApp();
   const ty = useRef(new Animated.Value(SCREEN_H)).current;
 
   useEffect(() => {
@@ -67,11 +69,26 @@ export function WineDetailModal({
     })
   ).current;
 
+  // Merge static mock reviews with any review the current user submitted this session
+  const allReviews = useMemo<Review[]>(() => {
+    if (!wine) return [];
+    const base = wine.reviews ?? [];
+    const mine = myReviews[wine.id];
+    return mine ? [...base, mine] : base;
+  }, [wine, myReviews]);
+
+  const avgRating = useMemo(() => {
+    if (allReviews.length === 0) return undefined;
+    const sum = allReviews.reduce((s, r) => s + r.rating, 0);
+    return Math.round((sum / allReviews.length) * 10) / 10;
+  }, [allReviews]);
+
   if (!wine) return null;
 
   const hasBio = (wine.bioNaturVegan?.length ?? 0) > 0;
   const hasAnlass = (wine.anlass?.length ?? 0) > 0;
   const hasPasstZu = (wine.passtZu?.length ?? 0) > 0;
+  const hasReviews = allReviews.length > 0;
 
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={close}>
@@ -159,6 +176,30 @@ export function WineDetailModal({
                 </Section>
               )}
 
+              {/* Bewertungen */}
+              {hasReviews && (
+                <Section title="Bewertungen">
+                  {/* Durchschnittsbewertung */}
+                  {avgRating !== undefined && (
+                    <View style={styles.avgRow}>
+                      <StarRow rating={Math.round(avgRating)} size={18} />
+                      <Text style={styles.avgNumber}>{avgRating.toFixed(1)}</Text>
+                      <Text style={styles.avgCount}>
+                        ({allReviews.length} {allReviews.length === 1 ? 'Bewertung' : 'Bewertungen'})
+                      </Text>
+                    </View>
+                  )}
+                  {/* Review-Liste (max. 4) */}
+                  {allReviews.slice(0, 4).map((review, idx) => (
+                    <ReviewRow
+                      key={review.id}
+                      review={review}
+                      showDivider={idx < Math.min(allReviews.length, 4) - 1}
+                    />
+                  ))}
+                </Section>
+              )}
+
               {/* Tasting Notes */}
               <Section title="Tasting Notes">
                 <Text style={styles.description}>{wine.description}</Text>
@@ -197,6 +238,38 @@ export function WineDetailModal({
   );
 }
 
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+function StarRow({ rating, size = 14 }: { rating: number; size?: number }) {
+  return (
+    <View style={{ flexDirection: 'row', gap: 2 }}>
+      {Array.from({ length: 5 }, (_, i) => (
+        <Text key={i} style={{ color: i < rating ? colors.accent : colors.border, fontSize: size }}>
+          {i < rating ? '★' : '☆'}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+function ReviewRow({ review, showDivider }: { review: Review; showDivider: boolean }) {
+  return (
+    <>
+      <View style={styles.reviewRow}>
+        <View style={styles.reviewHeader}>
+          <StarRow rating={review.rating} size={13} />
+          <Text style={styles.reviewDate}>{review.date}</Text>
+        </View>
+        <Text style={styles.reviewUser}>{review.userName}</Text>
+        {review.comment.length > 0 && (
+          <Text style={styles.reviewComment}>{review.comment}</Text>
+        )}
+      </View>
+      {showDivider && <View style={styles.reviewDivider} />}
+    </>
+  );
+}
+
 function Meta({ label, value }: { label: string; value: string }) {
   return (
     <View style={styles.metaItem}>
@@ -214,6 +287,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </View>
   );
 }
+
+// ── Styles ────────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: colors.overlay },
@@ -250,7 +325,7 @@ const styles = StyleSheet.create({
   name: { color: colors.text, fontSize: 30, fontWeight: '700', marginTop: spacing.sm, lineHeight: 36 },
   winery: { color: colors.textMuted, fontStyle: 'italic', fontSize: 16, marginTop: 4 },
 
-  // Bio / Natur / Vegan badges
+  // Bio badges
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
   bioBadge: {
     flexDirection: 'row', alignItems: 'center',
@@ -273,29 +348,37 @@ const styles = StyleSheet.create({
 
   section: { marginTop: spacing.lg },
   sectionTitle: { color: colors.accent, fontSize: 12, letterSpacing: 3, fontWeight: '700', marginBottom: spacing.sm },
-
   pillRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 
-  // Geschmack chips (existing style, kept neutral)
   chip: {
     paddingHorizontal: spacing.md, paddingVertical: 6, borderRadius: radii.md,
     borderWidth: 1, borderColor: colors.border, backgroundColor: colors.cardElevated,
   },
   chipText: { color: colors.text, fontSize: 13 },
 
-  // Anlass pills — warme Goldfarbe, dezent
   anlassPill: {
     paddingHorizontal: spacing.md, paddingVertical: 5,
     borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border,
   },
   anlassPillText: { color: colors.text, fontSize: 13 },
 
-  // Passt-zu pills — Akzentfarbe für Food-Pairing
   passtZuPill: {
     paddingHorizontal: spacing.md, paddingVertical: 5,
     borderRadius: radii.lg, borderWidth: 1, borderColor: colors.border,
   },
   passtZuPillText: { color: colors.accent, fontSize: 13, fontWeight: '600' },
+
+  // Review section
+  avgRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  avgNumber: { color: colors.accent, fontSize: 16, fontWeight: '700' },
+  avgCount: { color: colors.textMuted, fontSize: 13 },
+
+  reviewRow: { paddingVertical: spacing.sm },
+  reviewHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  reviewDate: { color: colors.textMuted, fontSize: 11 },
+  reviewUser: { color: colors.text, fontSize: 14, fontWeight: '700', marginBottom: 3 },
+  reviewComment: { color: colors.text, fontSize: 14, opacity: 0.85, lineHeight: 20 },
+  reviewDivider: { height: 1, backgroundColor: colors.border, opacity: 0.4 },
 
   description: { color: colors.text, fontSize: 15, lineHeight: 22, opacity: 0.9 },
   priceCard: {

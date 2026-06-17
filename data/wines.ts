@@ -20,6 +20,12 @@ export const wines: Wine[] = [
     anlass: ['Romantisches Dinner', 'Festliche Anlässe'],
     passtZu: ['Rind', 'Käse'],
     bioNaturVegan: [],
+    reviews: [
+      { id: 'r1_1', userName: 'Thomas M.', rating: 5, comment: 'Außergewöhnlicher Barolo mit unglaublicher Tiefe. Perfekt zu geschmorter Lammkeule!', date: '2024-11-15' },
+      { id: 'r1_2', userName: 'Sabine K.', rating: 5, comment: 'Eines der besten Exemplare, die ich je getrunken habe. Die samtigen Tannine sind ein Gedicht.', date: '2024-10-03' },
+      { id: 'r1_3', userName: 'Peter H.', rating: 4, comment: 'Toller Wein, aber noch sehr jung. Am besten noch 2–3 Jahre lagern.', date: '2024-09-22' },
+    ],
+    averageRating: 4.7,
   },
   {
     id: 'w2',
@@ -40,6 +46,12 @@ export const wines: Wine[] = [
     anlass: ['Romantisches Dinner', 'Festliche Anlässe', 'Geburtstag'],
     passtZu: ['Rind', 'Käse'],
     bioNaturVegan: [],
+    reviews: [
+      { id: 'r2_1', userName: 'Julia B.', rating: 5, comment: 'Ein Traum von einem Wein. Die Eleganz ist unvergleichlich.', date: '2024-12-01' },
+      { id: 'r2_2', userName: 'Markus F.', rating: 4, comment: 'Sehr fein und komplex, für den Preis allerdings etwas enttäuschend.', date: '2024-11-08' },
+      { id: 'r2_3', userName: 'Anna W.', rating: 4, comment: 'Klar ein Spitzenwein, aber ich bevorzuge etwas mehr Frucht.', date: '2024-10-20' },
+    ],
+    averageRating: 4.3,
   },
   {
     id: 'w3',
@@ -60,6 +72,12 @@ export const wines: Wine[] = [
     anlass: ['Feierabend', 'Picknick'],
     passtZu: ['Fisch', 'Geflügel'],
     bioNaturVegan: ['Bio'],
+    reviews: [
+      { id: 'r3_1', userName: 'Klaus D.', rating: 5, comment: 'Traumhafter Riesling! Die Mineralität ist atemberaubend. Perfekt zu Sushi.', date: '2024-11-28' },
+      { id: 'r3_2', userName: 'Lena S.', rating: 4, comment: 'Sehr frisch und lebendig – toller Essensbegleiter für den Sommer.', date: '2024-10-14' },
+      { id: 'r3_3', userName: 'Georg P.', rating: 5, comment: 'Einer der besten deutschen Weißweine, die ich kenne. Grandios!', date: '2024-09-05' },
+    ],
+    averageRating: 4.7,
   },
   {
     id: 'w4',
@@ -100,6 +118,13 @@ export const wines: Wine[] = [
     anlass: ['Festliche Anlässe', 'Geburtstag', 'Romantisches Dinner'],
     passtZu: ['Fisch', 'Käse', 'Dessert'],
     bioNaturVegan: [],
+    reviews: [
+      { id: 'r5_1', userName: 'Marie H.', rating: 5, comment: 'Absoluter Champagner-Genuss. Feinste Perlage und ein endloses Finish!', date: '2024-12-24' },
+      { id: 'r5_2', userName: 'Robert C.', rating: 5, comment: 'Der Preis ist mehr als gerechtfertigt – ein legendärer Tropfen.', date: '2024-11-30' },
+      { id: 'r5_3', userName: 'Franziska M.', rating: 5, comment: 'Für besondere Anlässe unübertroffen. Pure Eleganz in jedem Schluck.', date: '2024-10-15' },
+      { id: 'r5_4', userName: 'Stefan B.', rating: 4, comment: 'Grandios, aber fast zu komplex für mich persönlich. Eher was für echte Kenner.', date: '2024-09-10' },
+    ],
+    averageRating: 4.8,
   },
   {
     id: 'w6',
@@ -140,6 +165,12 @@ export const wines: Wine[] = [
     anlass: ['Feierabend', 'Picknick'],
     passtZu: ['Fisch', 'Geflügel', 'Vegetarisch'],
     bioNaturVegan: ['Bio', 'Natur'],
+    reviews: [
+      { id: 'r7_1', userName: 'Christine V.', rating: 5, comment: 'Wachau vom Feinsten! Der Pfeffercharakter ist typisch und toll.', date: '2024-10-22' },
+      { id: 'r7_2', userName: 'Hans O.', rating: 4, comment: 'Sehr gut, aber mir persönlich etwas zu mineralisch. Toller Spargel-Begleiter.', date: '2024-09-18' },
+      { id: 'r7_3', userName: 'Irene L.', rating: 3, comment: 'Solider Wein, aber für den Preis erwarte ich mehr Komplexität.', date: '2024-08-30' },
+    ],
+    averageRating: 4.0,
   },
   {
     id: 'w8',
@@ -160,6 +191,12 @@ export const wines: Wine[] = [
     anlass: ['Picknick', 'Feierabend', 'Romantisches Dinner'],
     passtZu: ['Fisch', 'Geflügel', 'Vegetarisch'],
     bioNaturVegan: ['Vegan', 'Vegetarisch'],
+    reviews: [
+      { id: 'r8_1', userName: 'Sophie R.', rating: 5, comment: 'Der perfekte Sommerrosé. Frisch, fruchtig und einfach wunderschön!', date: '2024-07-15' },
+      { id: 'r8_2', userName: 'David N.', rating: 4, comment: 'Schöner Provence-Stil, angenehm trocken und elegant. Gerne wieder.', date: '2024-07-01' },
+      { id: 'r8_3', userName: 'Eva K.', rating: 4, comment: 'Ideal für ein Picknick oder als Aperitif. Klare Empfehlung!', date: '2024-06-20' },
+    ],
+    averageRating: 4.3,
   },
   {
     id: 'w9',
@@ -200,6 +237,13 @@ export const wines: Wine[] = [
     anlass: ['Romantisches Dinner', 'Feierabend'],
     passtZu: ['Fisch', 'Käse'],
     bioNaturVegan: ['Natur'],
+    reviews: [
+      { id: 'r10_1', userName: 'Frank M.', rating: 5, comment: 'Außergewöhnliches Chablis. Die Oyster-Shell-Mineralität ist einzigartig.', date: '2024-11-10' },
+      { id: 'r10_2', userName: 'Helene D.', rating: 5, comment: 'Grandios! Perfekt zu Austern und Meeresfrüchten.', date: '2024-10-25' },
+      { id: 'r10_3', userName: 'Bernd K.', rating: 4, comment: 'Sehr gut gemacht, schöne Frische. Für den Stil allerdings etwas teuer.', date: '2024-09-14' },
+      { id: 'r10_4', userName: 'Nina S.', rating: 4, comment: 'Klasse Weißwein. Die Mineralität überzeugt mich total.', date: '2024-08-22' },
+    ],
+    averageRating: 4.5,
   },
   {
     id: 'w11',
@@ -280,6 +324,13 @@ export const wines: Wine[] = [
     anlass: ['Festliche Anlässe', 'Geburtstag'],
     passtZu: ['Rind', 'Geflügel'],
     bioNaturVegan: [],
+    reviews: [
+      { id: 'r14_1', userName: 'Carlos M.', rating: 5, comment: 'Ein Monument aus Ribera del Duero. Komplexität ohne Ende – beeindruckend!', date: '2024-11-20' },
+      { id: 'r14_2', userName: 'Laura F.', rating: 5, comment: 'Beeindruckender Wein. Die Tanninstruktur ist meisterhaft ausbalanciert.', date: '2024-10-30' },
+      { id: 'r14_3', userName: 'Felix H.', rating: 4, comment: 'Sehr gut, braucht aber noch Zeit zum Öffnen. In 5 Jahren ein Traum.', date: '2024-09-28' },
+      { id: 'r14_4', userName: 'Andrea P.', rating: 5, comment: 'Einer der besten Rotweine, die ich je hatte. Absolute Empfehlung!', date: '2024-08-15' },
+    ],
+    averageRating: 4.8,
   },
   {
     id: 'w15',
@@ -420,6 +471,12 @@ export const wines: Wine[] = [
     anlass: ['Picknick', 'Feierabend'],
     passtZu: ['Fisch', 'Käse', 'Vegetarisch'],
     bioNaturVegan: ['Bio', 'Vegan', 'Vegetarisch'],
+    reviews: [
+      { id: 'r21_1', userName: 'Emma S.', rating: 5, comment: 'Der Klassiker schlechthin! Aromatisch und frisch wie kaum ein anderer Sauvignon Blanc.', date: '2024-12-05' },
+      { id: 'r21_2', userName: 'Tom K.', rating: 4, comment: 'Sehr lecker und trinkfreudig. Der perfekte Sommerwein.', date: '2024-11-18' },
+      { id: 'r21_3', userName: 'Lisa M.', rating: 4, comment: 'Gut für den Preis. Fruchtig und frisch, wie man es erwartet.', date: '2024-10-07' },
+    ],
+    averageRating: 4.3,
   },
   {
     id: 'w22',
@@ -460,6 +517,12 @@ export const wines: Wine[] = [
     anlass: ['Feierabend', 'Grillabend'],
     passtZu: ['Rind', 'Pasta', 'Käse'],
     bioNaturVegan: ['Natur'],
+    reviews: [
+      { id: 'r23_1', userName: 'Kai B.', rating: 4, comment: 'Ehrlicher Côtes du Rhône mit schöner provenzalischer Note. Toller Alltagswein.', date: '2024-10-12' },
+      { id: 'r23_2', userName: 'Monika E.', rating: 3, comment: 'Ok, aber ich finde ihn etwas eindimensional. Etwas zu trocken für meinen Geschmack.', date: '2024-09-29' },
+      { id: 'r23_3', userName: 'Paul R.', rating: 4, comment: 'Super Preis-Leistung. Zu Pasta oder Gegrilltem eine klare Empfehlung!', date: '2024-09-01' },
+    ],
+    averageRating: 3.7,
   },
   {
     id: 'w24',
