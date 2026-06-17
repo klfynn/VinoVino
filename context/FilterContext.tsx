@@ -1,17 +1,27 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-export type Weinart = 'Rot' | 'Weiß' | 'Rosé' | 'Schaumwein' | 'Port';
+export type Weinart = 'Rotwein' | 'Weißwein' | 'Rosé' | 'Schaumwein' | 'Dessert- und Likörwein';
 export type Geschmack = 'Trocken' | 'Halbtrocken' | 'Lieblich';
-export type Anlass = 'Dinner' | 'Geschenk' | 'Party' | 'Apéritif' | 'Zum Kochen';
+export type Anlass =
+  | 'Romantisches Dinner'
+  | 'Grillabend'
+  | 'Geburtstag'
+  | 'Feierabend'
+  | 'Festliche Anlässe'
+  | 'Picknick';
+export type BioNaturVeganOption = 'Bio' | 'Natur' | 'Vegan' | 'Vegetarisch';
 
 export interface FilterState {
   weinart: Weinart[];
   geschmack: Geschmack[];
   herkunft: string[];
+  region: string[];
+  rebsorte: string[];
   jahrgang: { min: number; max: number };
   preis: { min: number; max: number };
   anlass: Anlass[];
-  bio: boolean;
+  bioNaturVegan: BioNaturVeganOption[];
+  passtZu: string[];
   bewertungMin: number;
 }
 
@@ -25,10 +35,13 @@ export const DEFAULT_FILTER: FilterState = {
   weinart: [],
   geschmack: [],
   herkunft: [],
+  region: [],
+  rebsorte: [],
   jahrgang: { min: 1990, max: 2024 },
   preis: { min: 5, max: 500 },
   anlass: [],
-  bio: false,
+  bioNaturVegan: [],
+  passtZu: [],
   bewertungMin: 1,
 };
 
@@ -48,6 +61,8 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
     if (filters.weinart.length > 0) count++;
     if (filters.geschmack.length > 0) count++;
     if (filters.herkunft.length > 0) count++;
+    if (filters.region.length > 0) count++;
+    if (filters.rebsorte.length > 0) count++;
     if (
       filters.jahrgang.min > DEFAULT_FILTER.jahrgang.min ||
       filters.jahrgang.max < DEFAULT_FILTER.jahrgang.max
@@ -57,7 +72,8 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
       filters.preis.max < DEFAULT_FILTER.preis.max
     ) count++;
     if (filters.anlass.length > 0) count++;
-    if (filters.bio) count++;
+    if (filters.bioNaturVegan.length > 0) count++;
+    if (filters.passtZu.length > 0) count++;
     if (filters.bewertungMin > 1) count++;
     return count;
   }, [filters]);

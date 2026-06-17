@@ -17,6 +17,9 @@ export const wines: Wine[] = [
     price: 79.9,
     image:
       'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Festliche Anlässe'],
+    passtZu: ['Rind', 'Käse'],
+    bioNaturVegan: [],
   },
   {
     id: 'w2',
@@ -34,6 +37,9 @@ export const wines: Wine[] = [
     price: 145.0,
     image:
       'https://images.unsplash.com/photo-1568213816046-0ee1c42bd559?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Festliche Anlässe', 'Geburtstag'],
+    passtZu: ['Rind', 'Käse'],
+    bioNaturVegan: [],
   },
   {
     id: 'w3',
@@ -51,6 +57,9 @@ export const wines: Wine[] = [
     price: 42.5,
     image:
       'https://images.unsplash.com/photo-1474722883778-792e7990302f?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Feierabend', 'Picknick'],
+    passtZu: ['Fisch', 'Geflügel'],
+    bioNaturVegan: ['Bio'],
   },
   {
     id: 'w4',
@@ -68,6 +77,9 @@ export const wines: Wine[] = [
     price: 64.0,
     image:
       'https://images.unsplash.com/photo-1547595628-c61a29f496f0?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Festliche Anlässe'],
+    passtZu: ['Rind', 'Pasta'],
+    bioNaturVegan: [],
   },
   {
     id: 'w5',
@@ -85,6 +97,9 @@ export const wines: Wine[] = [
     price: 289.0,
     image:
       'https://images.unsplash.com/photo-1592486058517-36236ba24827?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Festliche Anlässe', 'Geburtstag', 'Romantisches Dinner'],
+    passtZu: ['Fisch', 'Käse', 'Dessert'],
+    bioNaturVegan: [],
   },
   {
     id: 'w6',
@@ -102,6 +117,9 @@ export const wines: Wine[] = [
     price: 38.5,
     image:
       'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Grillabend', 'Romantisches Dinner'],
+    passtZu: ['Rind', 'Geflügel'],
+    bioNaturVegan: [],
   },
   {
     id: 'w7',
@@ -119,6 +137,9 @@ export const wines: Wine[] = [
     price: 55.0,
     image:
       'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Feierabend', 'Picknick'],
+    passtZu: ['Fisch', 'Geflügel', 'Vegetarisch'],
+    bioNaturVegan: ['Bio', 'Natur'],
   },
   {
     id: 'w8',
@@ -136,6 +157,9 @@ export const wines: Wine[] = [
     price: 22.0,
     image:
       'https://images.unsplash.com/photo-1586370434639-0fe43b2d32e6?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Picknick', 'Feierabend', 'Romantisches Dinner'],
+    passtZu: ['Fisch', 'Geflügel', 'Vegetarisch'],
+    bioNaturVegan: ['Vegan', 'Vegetarisch'],
   },
   {
     id: 'w9',
@@ -153,6 +177,9 @@ export const wines: Wine[] = [
     price: 28.0,
     image:
       'https://images.unsplash.com/photo-1569213816046-0ee1c42bd559?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Festliche Anlässe'],
+    passtZu: ['Käse', 'Dessert'],
+    bioNaturVegan: [],
   },
   {
     id: 'w10',
@@ -170,6 +197,9 @@ export const wines: Wine[] = [
     price: 68.0,
     image:
       'https://images.unsplash.com/photo-1474722883778-792e7990302f?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Feierabend'],
+    passtZu: ['Fisch', 'Käse'],
+    bioNaturVegan: ['Natur'],
   },
   {
     id: 'w11',
@@ -187,6 +217,9 @@ export const wines: Wine[] = [
     price: 24.5,
     image:
       'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Grillabend', 'Geburtstag'],
+    passtZu: ['Rind', 'Geflügel'],
+    bioNaturVegan: [],
   },
   {
     id: 'w12',
@@ -204,6 +237,9 @@ export const wines: Wine[] = [
     price: 32.0,
     image:
       'https://images.unsplash.com/photo-1547595628-c61a29f496f0?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Feierabend', 'Grillabend'],
+    passtZu: ['Geflügel', 'Pasta', 'Käse'],
+    bioNaturVegan: ['Bio'],
   },
   {
     id: 'w13',
@@ -221,6 +257,9 @@ export const wines: Wine[] = [
     price: 18.0,
     image:
       'https://images.unsplash.com/photo-1592486058517-36236ba24827?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Geburtstag', 'Feierabend', 'Picknick'],
+    passtZu: ['Fisch', 'Vegetarisch', 'Dessert'],
+    bioNaturVegan: ['Vegan', 'Vegetarisch'],
   },
   {
     id: 'w14',
@@ -238,6 +277,9 @@ export const wines: Wine[] = [
     price: 195.0,
     image:
       'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Festliche Anlässe', 'Geburtstag'],
+    passtZu: ['Rind', 'Geflügel'],
+    bioNaturVegan: [],
   },
   {
     id: 'w15',
@@ -255,6 +297,9 @@ export const wines: Wine[] = [
     price: 78.0,
     image:
       'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Festliche Anlässe'],
+    passtZu: ['Käse', 'Dessert', 'Fisch'],
+    bioNaturVegan: ['Bio', 'Natur'],
   },
   {
     id: 'w16',
@@ -272,6 +317,9 @@ export const wines: Wine[] = [
     price: 29.5,
     image:
       'https://images.unsplash.com/photo-1568213816046-0ee1c42bd559?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Grillabend', 'Geburtstag'],
+    passtZu: ['Rind', 'Geflügel'],
+    bioNaturVegan: [],
   },
   {
     id: 'w17',
@@ -289,6 +337,9 @@ export const wines: Wine[] = [
     price: 19.5,
     image:
       'https://images.unsplash.com/photo-1474722883778-792e7990302f?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Picknick', 'Feierabend'],
+    passtZu: ['Fisch', 'Vegetarisch'],
+    bioNaturVegan: ['Vegan', 'Vegetarisch'],
   },
   {
     id: 'w18',
@@ -306,6 +357,9 @@ export const wines: Wine[] = [
     price: 10.5,
     image:
       'https://images.unsplash.com/photo-1586370434639-0fe43b2d32e6?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Feierabend', 'Picknick', 'Grillabend'],
+    passtZu: ['Geflügel', 'Vegetarisch', 'Pasta'],
+    bioNaturVegan: [],
   },
   {
     id: 'w19',
@@ -323,6 +377,9 @@ export const wines: Wine[] = [
     price: 145.0,
     image:
       'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Festliche Anlässe'],
+    passtZu: ['Käse', 'Dessert'],
+    bioNaturVegan: ['Natur'],
   },
   {
     id: 'w20',
@@ -340,6 +397,9 @@ export const wines: Wine[] = [
     price: 16.5,
     image:
       'https://images.unsplash.com/photo-1547595628-c61a29f496f0?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Grillabend', 'Feierabend'],
+    passtZu: ['Pasta', 'Rind'],
+    bioNaturVegan: [],
   },
   {
     id: 'w21',
@@ -357,6 +417,9 @@ export const wines: Wine[] = [
     price: 22.0,
     image:
       'https://images.unsplash.com/photo-1474722883778-792e7990302f?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Picknick', 'Feierabend'],
+    passtZu: ['Fisch', 'Käse', 'Vegetarisch'],
+    bioNaturVegan: ['Bio', 'Vegan', 'Vegetarisch'],
   },
   {
     id: 'w22',
@@ -374,6 +437,9 @@ export const wines: Wine[] = [
     price: 34.0,
     image:
       'https://images.unsplash.com/photo-1592486058517-36236ba24827?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Geburtstag', 'Festliche Anlässe'],
+    passtZu: ['Fisch', 'Käse', 'Dessert'],
+    bioNaturVegan: [],
   },
   {
     id: 'w23',
@@ -391,6 +457,9 @@ export const wines: Wine[] = [
     price: 15.0,
     image:
       'https://images.unsplash.com/photo-1568213816046-0ee1c42bd559?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Feierabend', 'Grillabend'],
+    passtZu: ['Rind', 'Pasta', 'Käse'],
+    bioNaturVegan: ['Natur'],
   },
   {
     id: 'w24',
@@ -408,6 +477,9 @@ export const wines: Wine[] = [
     price: 24.0,
     image:
       'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Feierabend', 'Picknick'],
+    passtZu: ['Geflügel', 'Pasta', 'Fisch'],
+    bioNaturVegan: ['Bio'],
   },
   {
     id: 'w25',
@@ -425,5 +497,8 @@ export const wines: Wine[] = [
     price: 52.0,
     image:
       'https://images.unsplash.com/photo-1569213816046-0ee1c42bd559?auto=format&fit=crop&w=800&q=80',
+    anlass: ['Romantisches Dinner', 'Festliche Anlässe'],
+    passtZu: ['Käse', 'Dessert'],
+    bioNaturVegan: [],
   },
 ];
