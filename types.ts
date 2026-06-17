@@ -14,6 +14,9 @@ export interface Wine {
   rating: number;
   price: number;
   image: string;
+  anlass?: string[];
+  passtZu?: string[];
+  bioNaturVegan?: string[];
 }
 
 export interface CartItem {

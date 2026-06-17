@@ -1,21 +1,21 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  Switch,
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import {
   useFilter,
   Weinart,
   Geschmack,
   Anlass,
+  BioNaturVeganOption,
 } from '../context/FilterContext';
+import { wines as ALL_WINES } from '../data/wines';
 import { colors, radii, spacing } from '../theme';
 
 // ── Simple custom slider using the touch responder system ─────────────────────
@@ -43,9 +43,7 @@ function SimpleSlider({ value, min, max, step = 1, onValueChange }: SliderProps)
     onValueChange(Math.min(max, Math.max(min, stepped)));
   };
 
-  // Thumb x: proportional to value, clamped so thumb stays fully in track
   const thumbSize = 22;
-  const thumbX = (tw: number) => Math.max(0, Math.min(pct * (tw - thumbSize), tw - thumbSize));
 
   return (
     <View
@@ -61,11 +59,9 @@ function SimpleSlider({ value, min, max, step = 1, onValueChange }: SliderProps)
       onResponderGrant={(e) => update(e.nativeEvent.pageX)}
       onResponderMove={(e) => update(e.nativeEvent.pageX)}
     >
-      {/* Background track */}
       <View style={sliderStyles.track}>
         <View style={[sliderStyles.fill, { width: `${pct * 100}%` as any }]} />
       </View>
-      {/* Thumb — position computed once layout is known; falls back to percentage */}
       <View
         style={[
           sliderStyles.thumb,
@@ -156,18 +152,59 @@ function toggle<T>(arr: T[], item: T): T[] {
   return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item];
 }
 
-// ── Filter Screen ─────────────────────────────────────────────────────────────
+// ── Filter data ───────────────────────────────────────────────────────────────
 
-const WEINARTEN: Weinart[] = ['Rot', 'Weiß', 'Rosé', 'Schaumwein', 'Port'];
+const WEINARTEN: Weinart[] = ['Rotwein', 'Weißwein', 'Rosé', 'Schaumwein', 'Dessert- und Likörwein'];
 const GESCHMAECKER: Geschmack[] = ['Trocken', 'Halbtrocken', 'Lieblich'];
 const HERKUENFTE = ['Frankreich', 'Italien', 'Spanien', 'Deutschland', 'Österreich', 'Neue Welt'];
-const ANLAESSE: [Anlass, string][] = [
-  ['Dinner', '🍽️'],
-  ['Geschenk', '🎁'],
-  ['Party', '🎉'],
-  ['Apéritif', '🥂'],
-  ['Zum Kochen', '🍳'],
+
+const REGIONEN_BY_HERKUNFT: Record<string, string[]> = {
+  Frankreich: ['Bordeaux', 'Burgund', 'Champagne', 'Loire', 'Rhône', 'Provence', 'Elsass'],
+  Italien: ['Piemont', 'Toskana', 'Veneto', 'Apulien', 'Sizilien'],
+  Spanien: ['Rioja', 'Kastilien-León', 'Penedès', 'Galicien', 'Priorat'],
+  Deutschland: ['Mosel', 'Rheingau', 'Pfalz', 'Baden', 'Franken'],
+  Österreich: ['Wachau', 'Neusiedlersee', 'Burgenland', 'Niederösterreich'],
+};
+
+const REBSORTEN = [
+  'Cabernet Sauvignon',
+  'Merlot',
+  'Pinot Noir',
+  'Riesling',
+  'Chardonnay',
+  'Grüner Veltliner',
+  'Sangiovese',
+  'Tempranillo',
+  'Syrah',
+  'Sauvignon Blanc',
 ];
+
+const ANLAESSE: [Anlass, string][] = [
+  ['Romantisches Dinner', '🕯️'],
+  ['Grillabend', '🔥'],
+  ['Geburtstag', '🎂'],
+  ['Feierabend', '🛋️'],
+  ['Festliche Anlässe', '🥂'],
+  ['Picknick', '🧺'],
+];
+
+const BIO_NATUR_VEGAN: BioNaturVeganOption[] = ['Bio', 'Natur', 'Vegan', 'Vegetarisch'];
+
+const PASST_ZU = ['Rind', 'Geflügel', 'Fisch', 'Käse', 'Vegetarisch', 'Pasta', 'Dessert'];
+
+// ── Filter logic (mirrored from index.tsx) ────────────────────────────────────
+
+const WEINART_MAP: Record<string, string> = {
+  Rotwein: 'Rotwein',
+  Weißwein: 'Weißwein',
+  Rosé: 'Roséwein',
+  Schaumwein: 'Schaumwein',
+  'Dessert- und Likörwein': 'Süßwein',
+};
+const NEUE_WELT = ['USA', 'Australien', 'Neuseeland', 'Chile', 'Argentinien', 'Südafrika'];
+const STAR_MIN = [0, 0, 85, 88, 90, 95];
+
+// ── Filter Screen ─────────────────────────────────────────────────────────────
 
 export default function FilterScreen() {
   const router = useRouter();
@@ -175,15 +212,67 @@ export default function FilterScreen() {
     weinart,
     geschmack,
     herkunft,
+    region,
+    rebsorte,
     jahrgang,
     preis,
     anlass,
-    bio,
+    bioNaturVegan,
+    passtZu,
     bewertungMin,
     setFilter,
     resetFilters,
     activeFilterCount,
   } = useFilter();
+
+  // Compute available region chips based on selected herkunft
+  const availableRegionen = useMemo(() => {
+    const regions: string[] = [];
+    herkunft.forEach((h) => {
+      const r = REGIONEN_BY_HERKUNFT[h];
+      if (r) r.forEach((reg) => { if (!regions.includes(reg)) regions.push(reg); });
+    });
+    return regions;
+  }, [herkunft]);
+
+  // Live count of wines matching current filters
+  const filteredCount = useMemo(() => {
+    return ALL_WINES.filter((w) => {
+      if (weinart.length > 0) {
+        const mapped = weinart.map((wa) => WEINART_MAP[wa]);
+        if (!mapped.includes(w.type)) return false;
+      }
+      if (geschmack.length > 0) {
+        const mapped = geschmack.map((g) => g.toLowerCase());
+        if (!mapped.some((g) => w.taste.includes(g))) return false;
+      }
+      if (herkunft.length > 0) {
+        const matches = herkunft.some((h) =>
+          h === 'Neue Welt' ? NEUE_WELT.includes(w.country) : w.country === h,
+        );
+        if (!matches) return false;
+      }
+      if (region.length > 0) {
+        if (!region.some((r) => w.region === r)) return false;
+      }
+      if (rebsorte.length > 0) {
+        if (!rebsorte.some((r) => w.grape.includes(r))) return false;
+      }
+      if (w.vintage < jahrgang.min || w.vintage > jahrgang.max) return false;
+      if (w.price < preis.min || w.price > preis.max) return false;
+      if (anlass.length > 0) {
+        if (!anlass.some((a) => w.anlass?.includes(a))) return false;
+      }
+      if (bioNaturVegan.length > 0) {
+        if (!bioNaturVegan.some((b) => w.bioNaturVegan?.includes(b))) return false;
+      }
+      if (passtZu.length > 0) {
+        if (!passtZu.some((p) => w.passtZu?.includes(p))) return false;
+      }
+      if (w.rating < STAR_MIN[bewertungMin]) return false;
+      return true;
+    }).length;
+  }, [weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -278,7 +367,43 @@ export default function FilterScreen() {
               key={h}
               label={h}
               active={herkunft.includes(h)}
-              onPress={() => setFilter('herkunft', toggle(herkunft, h))}
+              onPress={() => {
+                const next = toggle(herkunft, h);
+                setFilter('herkunft', next);
+                // Remove region selections that are no longer valid
+                const validRegions = next.flatMap((c) => REGIONEN_BY_HERKUNFT[c] ?? []);
+                setFilter('region', region.filter((r) => validRegions.includes(r)));
+              }}
+            />
+          ))}
+        </View>
+
+        {/* Region — nur wenn Herkunft mit Regionen gewählt */}
+        {availableRegionen.length > 0 && (
+          <>
+            <Section title="Region" />
+            <View style={styles.chips}>
+              {availableRegionen.map((r) => (
+                <Chip
+                  key={r}
+                  label={r}
+                  active={region.includes(r)}
+                  onPress={() => setFilter('region', toggle(region, r))}
+                />
+              ))}
+            </View>
+          </>
+        )}
+
+        {/* Rebsorte */}
+        <Section title="Rebsorte" />
+        <View style={styles.chips}>
+          {REBSORTEN.map((r) => (
+            <Chip
+              key={r}
+              label={r}
+              active={rebsorte.includes(r)}
+              onPress={() => setFilter('rebsorte', toggle(rebsorte, r))}
             />
           ))}
         </View>
@@ -296,17 +421,30 @@ export default function FilterScreen() {
           ))}
         </View>
 
-        {/* Bio / Natur / Vegan */}
+        {/* Passt zu */}
+        <Section title="Passt zu" />
+        <View style={styles.chips}>
+          {PASST_ZU.map((p) => (
+            <Chip
+              key={p}
+              label={p}
+              active={passtZu.includes(p)}
+              onPress={() => setFilter('passtZu', toggle(passtZu, p))}
+            />
+          ))}
+        </View>
+
+        {/* Bio / Natur / Vegan / Vegetarisch */}
         <Section title="Bio / Natur / Vegan" />
-        <View style={styles.toggleRow}>
-          <Text style={styles.toggleLabel}>Nur Bio-Weine anzeigen</Text>
-          {/* TODO: filter against wine.bio field once API supports it */}
-          <Switch
-            value={bio}
-            onValueChange={(v) => setFilter('bio', v)}
-            trackColor={{ false: colors.border, true: colors.accent }}
-            thumbColor={bio ? colors.background : colors.textMuted}
-          />
+        <View style={styles.chips}>
+          {BIO_NATUR_VEGAN.map((b) => (
+            <Chip
+              key={b}
+              label={b}
+              active={bioNaturVegan.includes(b)}
+              onPress={() => setFilter('bioNaturVegan', toggle(bioNaturVegan, b))}
+            />
+          ))}
         </View>
 
         {/* Mindestbewertung */}
@@ -318,12 +456,7 @@ export default function FilterScreen() {
               onPress={() => setFilter('bewertungMin', star)}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             >
-              <Ionicons
-                name={star <= bewertungMin ? 'star' : 'star-outline'}
-                size={34}
-                color={colors.accent}
-                style={{ marginRight: spacing.sm }}
-              />
+              <Text style={[styles.star, star <= bewertungMin && styles.starActive]}>★</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -334,7 +467,9 @@ export default function FilterScreen() {
       {/* ── Footer ── */}
       <View style={styles.footer}>
         <TouchableOpacity style={styles.applyBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          <Text style={styles.applyText}>Weine anzeigen</Text>
+          <Text style={styles.applyText}>
+            {filteredCount} {filteredCount === 1 ? 'Wein' : 'Weine'} anzeigen
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -369,17 +504,9 @@ const styles = StyleSheet.create({
   },
   rangeLabel: { color: colors.textMuted, fontSize: 13 },
 
-  toggleRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  toggleLabel: { color: colors.text, fontSize: 14, flex: 1 },
-
-  stars: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm },
+  stars: { flexDirection: 'row', alignItems: 'center', paddingVertical: spacing.sm, gap: spacing.sm },
+  star: { fontSize: 32, color: colors.border },
+  starActive: { color: colors.accent },
 
   footer: {
     paddingHorizontal: spacing.lg,
