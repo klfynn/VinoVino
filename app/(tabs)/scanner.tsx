@@ -31,6 +31,7 @@ const CORNER_W = 3;
 export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [analyzing, setAnalyzing] = useState(false);
+  const [scanError, setScanError] = useState<string | null>(null);
   const [scannedWine, setScannedWine] = useState<Wine | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
   const cameraRef = useRef<CameraView>(null);
@@ -63,19 +64,25 @@ export default function ScannerScreen() {
   const watchlisted =
     scannedWine != null && watchlist.some((w) => w.id === scannedWine.id);
 
-  async function handleCapture() {
-    if (!cameraRef.current || analyzing) return;
+  async function runRecognition(b64: string) {
+    setScanError(null);
     setAnalyzing(true);
     try {
-      const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
-      const wine = await recognizeWineLabel(photo?.base64 ?? '');
+      const wine = await recognizeWineLabel(b64);
       setScannedWine(wine);
       setModalVisible(true);
-    } catch {
-      // silent
+    } catch (err) {
+      console.error('Weinetikett-Erkennung fehlgeschlagen:', err);
+      setScanError('Erkennung fehlgeschlagen. Bitte erneut versuchen.');
     } finally {
       setAnalyzing(false);
     }
+  }
+
+  async function handleCapture() {
+    if (!cameraRef.current || analyzing) return;
+    const photo = await cameraRef.current.takePictureAsync({ base64: true, quality: 0.7 });
+    await runRecognition(photo?.base64 ?? '');
   }
 
   async function handleGallery() {
@@ -86,23 +93,14 @@ export default function ScannerScreen() {
       quality: 0.7,
     });
     if (result.canceled || !result.assets[0]) return;
-    setAnalyzing(true);
-    try {
-      const asset = result.assets[0];
-      let b64 = asset.base64 ?? '';
-      if (!b64 && asset.uri) {
-        b64 = await FileSystem.readAsStringAsync(asset.uri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-      }
-      const wine = await recognizeWineLabel(b64);
-      setScannedWine(wine);
-      setModalVisible(true);
-    } catch {
-      // silent
-    } finally {
-      setAnalyzing(false);
+    const asset = result.assets[0];
+    let b64 = asset.base64 ?? '';
+    if (!b64 && asset.uri) {
+      b64 = await FileSystem.readAsStringAsync(asset.uri, {
+        encoding: FileSystem.EncodingType.Base64,
+      });
     }
+    await runRecognition(b64);
   }
 
   if (!permission) return <View style={styles.container} />;
@@ -202,6 +200,19 @@ export default function ScannerScreen() {
           <View style={styles.loadingCard}>
             <ActivityIndicator size="large" color={colors.accent} />
             <Text style={styles.loadingText}>KI analysiert Etikett…</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Error overlay */}
+      {scanError != null && (
+        <View style={styles.loadingOverlay}>
+          <View style={styles.loadingCard}>
+            <Ionicons name="alert-circle-outline" size={40} color={colors.accent} />
+            <Text style={styles.errorText}>{scanError}</Text>
+            <TouchableOpacity style={styles.retryBtn} onPress={() => setScanError(null)}>
+              <Text style={styles.retryBtnText}>OK</Text>
+            </TouchableOpacity>
           </View>
         </View>
       )}
@@ -352,6 +363,27 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     letterSpacing: 0.5,
     marginTop: spacing.sm,
+  },
+  errorText: {
+    color: colors.text,
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    marginTop: spacing.sm,
+    textAlign: 'center',
+  },
+  retryBtn: {
+    marginTop: spacing.md,
+    backgroundColor: colors.accent,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.md,
+  },
+  retryBtnText: {
+    color: colors.background,
+    fontWeight: '700',
+    fontSize: 14,
+    letterSpacing: 1,
   },
   permBox: {
     flex: 1,
