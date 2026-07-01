@@ -56,14 +56,15 @@ export default function SwipeScreen() {
 
   const [allWines, setAllWines] = useState<Wine[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [index, setIndex] = useState(0);
   const [qtyWine, setQtyWine] = useState<Wine | null>(null);
   const [detailWine, setDetailWine] = useState<Wine | null>(null);
 
   useEffect(() => {
     fetchActiveWines()
-      .then(setAllWines)
-      .catch(() => setAllWines([]))
+      .then((wines) => { setAllWines(wines); setLoadError(false); })
+      .catch(() => { setLoadError(true); setAllWines([]); })
       .finally(() => setLoading(false));
   }, []);
 
@@ -133,9 +134,9 @@ export default function SwipeScreen() {
 
   const isWatchlisted = (w: Wine | null) => !!w && watchlist.some((x) => x.id === w.id);
 
-  const noWinesAvailable = !loading && allWines.length === 0;
-  const noResults = !loading && allWines.length > 0 && filteredWines.length === 0;
-  const allDiscovered = !loading && !noResults && !noWinesAvailable && !current;
+  const noWinesAvailable = !loading && !loadError && allWines.length === 0;
+  const noResults = !loading && !loadError && allWines.length > 0 && filteredWines.length === 0;
+  const allDiscovered = !loading && !loadError && !noResults && !noWinesAvailable && !current;
 
   return (
     <View style={styles.container}>
@@ -144,6 +145,25 @@ export default function SwipeScreen() {
         {loading ? (
           <View style={styles.empty}>
             <ActivityIndicator size="large" color={colors.accent} />
+          </View>
+        ) : loadError ? (
+          <View style={styles.empty}>
+            <Ionicons name="cloud-offline-outline" size={64} color={colors.accent} />
+            <Text style={styles.emptyTitle}>Verbindung fehlgeschlagen</Text>
+            <Text style={styles.emptySub}>Bitte überprüfe deine Internetverbindung und versuche es erneut.</Text>
+            <TouchableOpacity
+              style={styles.resetBtn}
+              onPress={() => {
+                setLoading(true);
+                setLoadError(false);
+                fetchActiveWines()
+                  .then((wines) => { setAllWines(wines); setLoadError(false); })
+                  .catch(() => setLoadError(true))
+                  .finally(() => setLoading(false));
+              }}
+            >
+              <Text style={styles.resetText}>Erneut versuchen</Text>
+            </TouchableOpacity>
           </View>
         ) : noWinesAvailable ? (
           <View style={styles.empty}>

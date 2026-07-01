@@ -1,7 +1,5 @@
+import { supabase } from '../lib/supabase';
 import { Wine, WineType } from '../types';
-
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const SUPABASE_ANON_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 
 const WEINART_MAP: Record<string, WineType> = {
   Rotwein: 'Rotwein',
@@ -13,7 +11,8 @@ const WEINART_MAP: Record<string, WineType> = {
 
 function toArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter(Boolean);
-  if (typeof value === 'string' && value.trim()) return value.split(',').map((s) => s.trim()).filter(Boolean);
+  if (typeof value === 'string' && value.trim())
+    return value.split(',').map((s) => s.trim()).filter(Boolean);
   return [];
 }
 
@@ -39,18 +38,13 @@ function mapRow(row: Record<string, unknown>): Wine {
 }
 
 export async function fetchActiveWines(): Promise<Wine[]> {
-  const url = `${SUPABASE_URL}/rest/v1/wines?status=eq.active&select=*`;
-  const response = await fetch(url, {
-    headers: {
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-    },
-  });
+  const { data, error } = await supabase
+    .from('wines')
+    .select('*')
+    .eq('status', 'active');
 
-  if (!response.ok) {
-    throw new Error(`Supabase error: ${response.status}`);
-  }
+  if (error) throw new Error(error.message);
+  if (!data) return [];
 
-  const rows: Record<string, unknown>[] = await response.json();
-  return rows.map(mapRow);
+  return data.map(mapRow);
 }
