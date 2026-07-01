@@ -1,8 +1,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { wines as ALL_WINES } from '../../data/wines';
+import { fetchActiveWines } from '../../services/supabase';
 import { useApp } from '../../context/AppContext';
 import { useFilter } from '../../context/FilterContext';
 import { SwipeableCard } from '../../components/SwipeableCard';
@@ -54,12 +54,21 @@ export default function SwipeScreen() {
     activeFilterCount,
   } = useFilter();
 
+  const [allWines, setAllWines] = useState<Wine[]>([]);
+  const [loading, setLoading] = useState(true);
   const [index, setIndex] = useState(0);
   const [qtyWine, setQtyWine] = useState<Wine | null>(null);
   const [detailWine, setDetailWine] = useState<Wine | null>(null);
 
+  useEffect(() => {
+    fetchActiveWines()
+      .then(setAllWines)
+      .catch(() => setAllWines([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   const filteredWines = useMemo(() => {
-    return ALL_WINES.filter((w) => {
+    return allWines.filter((w) => {
       if (weinart.length > 0) {
         const mapped = weinart.map((wa) => WEINART_MAP[wa]);
         if (!mapped.includes(w.type)) return false;
@@ -94,7 +103,7 @@ export default function SwipeScreen() {
       if (w.rating < STAR_MIN[bewertungMin]) return false;
       return true;
     });
-  }, [weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin]);
+  }, [allWines, weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin]);
 
   useEffect(() => {
     setIndex(0);
@@ -124,14 +133,24 @@ export default function SwipeScreen() {
 
   const isWatchlisted = (w: Wine | null) => !!w && watchlist.some((x) => x.id === w.id);
 
-  const noResults = filteredWines.length === 0;
-  const allDiscovered = !noResults && !current;
+  const noWinesAvailable = !loading && allWines.length === 0;
+  const noResults = !loading && allWines.length > 0 && filteredWines.length === 0;
+  const allDiscovered = !loading && !noResults && !noWinesAvailable && !current;
 
   return (
     <View style={styles.container}>
       {/* Card deck – fills screen from top edge to action buttons */}
       <View style={styles.deck}>
-        {noResults ? (
+        {loading ? (
+          <View style={styles.empty}>
+            <ActivityIndicator size="large" color={colors.accent} />
+          </View>
+        ) : noWinesAvailable ? (
+          <View style={styles.empty}>
+            <Ionicons name="wine-outline" size={64} color={colors.accent} />
+            <Text style={styles.emptyTitle}>Keine Weine verfügbar</Text>
+          </View>
+        ) : noResults ? (
           <View style={styles.empty}>
             <Ionicons name="funnel-outline" size={64} color={colors.accent} />
             <Text style={styles.emptyTitle}>Keine Weine gefunden</Text>
