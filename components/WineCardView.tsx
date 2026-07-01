@@ -43,8 +43,10 @@ export function WineCardView({ wine }: Props) {
         </Text>
 
         <View style={styles.bottomRow}>
-          <Text style={styles.winery} numberOfLines={1}>
-            {wine.winery}
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {[wine.grape, wine.region, wine.vintage || null]
+              .filter(Boolean)
+              .join(' · ')}
           </Text>
           <Text style={styles.price}>€ {wine.price.toFixed(2)}</Text>
         </View>
@@ -115,7 +117,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: spacing.sm,
   },
-  winery: {
+  subtitle: {
     color: colors.accent,
     fontSize: 14,
     fontStyle: 'italic',
