@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -7,7 +7,7 @@ import { useApp } from '../../context/AppContext';
 import { colors, radii, spacing } from '../../theme';
 
 export default function CartScreen() {
-  const { cart, updateCartQuantity, removeFromCart, cartTotal, cartCount } = useApp();
+  const { cart, cartLoading, cartError, updateCartQuantity, removeFromCart, cartTotal, cartCount } = useApp();
   const router = useRouter();
 
   function handleCheckout() {
@@ -33,7 +33,17 @@ export default function CartScreen() {
         </TouchableOpacity>
       </View>
 
-      {cart.length === 0 ? (
+      {cartLoading ? (
+        <View style={styles.empty}>
+          <ActivityIndicator size="large" color={colors.accent} />
+        </View>
+      ) : cartError ? (
+        <View style={styles.empty}>
+          <Ionicons name="cloud-offline-outline" size={64} color={colors.accent} />
+          <Text style={styles.emptyTitle}>Fehler beim Laden</Text>
+          <Text style={styles.emptySub}>{cartError}</Text>
+        </View>
+      ) : cart.length === 0 ? (
         <View style={styles.empty}>
           <Ionicons name="cart-outline" size={64} color={colors.accent} />
           <Text style={styles.emptyTitle}>Dein Warenkorb ist leer</Text>

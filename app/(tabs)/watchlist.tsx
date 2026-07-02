@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Image,
@@ -716,7 +717,7 @@ const rvStyles = StyleSheet.create({
 type Tab = 'merkliste' | 'weinkeller';
 
 export default function SammlungScreen() {
-  const { watchlist, removeFromWatchlist, addToCart, myReviews, submitReview } = useApp();
+  const { watchlist, watchlistLoading, watchlistError, removeFromWatchlist, addToCart, myReviews, submitReview } = useApp();
   const { cellarWines, addToCellar, removeFromCellar, updateQuantity } = useCellar();
   const { user } = useAuth();
   const router = useRouter();
@@ -786,7 +787,17 @@ export default function SammlungScreen() {
       {/* ── MERKLISTE ── */}
       {activeTab === 'merkliste' && (
         <>
-          {watchlist.length === 0 ? (
+          {watchlistLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator size="large" color={colors.accent} />
+            </View>
+          ) : watchlistError ? (
+            <View style={styles.empty}>
+              <Ionicons name="cloud-offline-outline" size={64} color={colors.accent} />
+              <Text style={styles.emptyTitle}>Fehler beim Laden</Text>
+              <Text style={styles.emptySub}>{watchlistError}</Text>
+            </View>
+          ) : watchlist.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="bookmark-outline" size={64} color={colors.accent} />
               <Text style={styles.emptyTitle}>Noch nichts gemerkt</Text>
