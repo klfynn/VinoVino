@@ -16,7 +16,7 @@ function toArray(value: unknown): string[] {
   return [];
 }
 
-function mapRow(row: Record<string, unknown>): Wine {
+export function mapRow(row: Record<string, unknown>): Wine {
   return {
     id: String(row.id),
     name: String(row.name ?? ''),
