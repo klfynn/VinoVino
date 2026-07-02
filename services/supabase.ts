@@ -20,7 +20,9 @@ function mapRow(row: Record<string, unknown>): Wine {
   return {
     id: String(row.id),
     name: String(row.name ?? ''),
-    winery: String(row.merchant_id ?? ''),
+    winery: [row.rebsorte, row.region, Number(row.jahrgang) || null]
+      .filter(Boolean)
+      .join(' · '),
     vintage: Number(row.jahrgang) || 0,
     type: WEINART_MAP[String(row.weinart)] ?? 'Rotwein',
     region: String(row.region ?? ''),
