@@ -21,7 +21,7 @@ import { useApp } from '../../context/AppContext';
 import { useCellar, CellarWine } from '../../context/CellarContext';
 import { useAuth } from '../../context/AuthContext';
 import { QuantityModal } from '../../components/QuantityModal';
-import { wines as ALL_WINES } from '../../data/wines';
+import { fetchActiveWines } from '../../services/supabase';
 import { Wine, WineType, Review } from '../../types';
 import { colors, radii, spacing } from '../../theme';
 
@@ -159,7 +159,14 @@ function CellarCard({
     <View style={styles.wCard}>
       <Image source={{ uri: item.wine.image }} style={styles.wImg} resizeMode="cover" />
       <View style={styles.wInfo}>
-        <Text style={styles.wType}>{item.wine.type.toUpperCase()}</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+          <Text style={styles.wType}>{item.wine.type.toUpperCase()}</Text>
+          <View style={[styles.sourceBadge, item.source === 'purchase' ? styles.sourceBadgePurchase : styles.sourceBadgeManual]}>
+            <Text style={styles.sourceBadgeText}>
+              {item.source === 'purchase' ? 'GEKAUFT' : item.source === 'scanner' ? 'SCANNER' : 'MANUELL'}
+            </Text>
+          </View>
+        </View>
         <Text style={styles.wName} numberOfLines={2}>{item.wine.name}</Text>
         <Text style={styles.wWinery}>{item.wine.winery} · {item.wine.vintage}</Text>
         <View style={styles.wRow}>
@@ -293,6 +300,8 @@ function AddToCellarModal({
   const [search, setSearch] = useState('');
   const [selQty, setSelQty] = useState(1);
   const [selWine, setSelWine] = useState<Wine | null>(null);
+  const [catalogWines, setCatalogWines] = useState<Wine[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
 
   // Manual form state
   const [fName, setFName] = useState('');
@@ -304,14 +313,24 @@ function AddToCellarModal({
   const [fPreis, setFPreis] = useState('');
   const [fHerkunft, setFHerkunft] = useState('');
 
+  React.useEffect(() => {
+    if (visible && catalogWines.length === 0) {
+      setCatalogLoading(true);
+      fetchActiveWines().then((wines) => {
+        setCatalogWines(wines);
+        setCatalogLoading(false);
+      }).catch(() => setCatalogLoading(false));
+    }
+  }, [visible]);
+
   const filtered = useMemo(
     () =>
-      ALL_WINES.filter(
+      catalogWines.filter(
         (w) =>
           w.name.toLowerCase().includes(search.toLowerCase()) ||
           w.winery.toLowerCase().includes(search.toLowerCase()),
       ),
-    [search],
+    [search, catalogWines],
   );
 
   function resetAndClose() {
@@ -409,6 +428,12 @@ function AddToCellarModal({
                   returnKeyType="search"
                 />
               </View>
+              {catalogLoading ? (
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  <ActivityIndicator size="large" color={colors.accent} />
+                </View>
+              ) : (
+              <>
               <FlatList
                 data={filtered}
                 keyExtractor={(w) => w.id}
@@ -451,6 +476,8 @@ function AddToCellarModal({
                     <Text style={styles.addConfirmText}>Zum Weinkeller hinzufügen</Text>
                   </TouchableOpacity>
                 </View>
+              )}
+              </>
               )}
             </View>
           )}
@@ -718,7 +745,7 @@ type Tab = 'merkliste' | 'weinkeller';
 
 export default function SammlungScreen() {
   const { watchlist, watchlistLoading, watchlistError, removeFromWatchlist, addToCart, myReviews, submitReview } = useApp();
-  const { cellarWines, addToCellar, removeFromCellar, updateQuantity } = useCellar();
+  const { cellarWines, cellarLoading, cellarError, addToCellar, removeFromCellar, updateQuantity } = useCellar();
   const { user } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('merkliste');
@@ -848,7 +875,17 @@ export default function SammlungScreen() {
             </TouchableOpacity>
           </View>
 
-          {cellarWines.length === 0 ? (
+          {cellarLoading ? (
+            <View style={styles.empty}>
+              <ActivityIndicator size="large" color={colors.accent} />
+            </View>
+          ) : cellarError ? (
+            <View style={styles.empty}>
+              <Ionicons name="cloud-offline-outline" size={64} color={colors.accent} />
+              <Text style={styles.emptyTitle}>Fehler beim Laden</Text>
+              <Text style={styles.emptySub}>{cellarError}</Text>
+            </View>
+          ) : cellarWines.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="library-outline" size={64} color={colors.accent} />
               <Text style={styles.emptyTitle}>Dein Weinkeller ist leer</Text>
@@ -1093,6 +1130,15 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   cellarStats: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },
+  sourceBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+  },
+  sourceBadgePurchase: { borderColor: colors.accent, backgroundColor: 'rgba(186,136,84,0.12)' },
+  sourceBadgeManual: { borderColor: colors.border, backgroundColor: 'transparent' },
+  sourceBadgeText: { fontSize: 8, fontWeight: '700', letterSpacing: 1, color: colors.textMuted },
   scannerBtn: {
     width: 38,
     height: 38,

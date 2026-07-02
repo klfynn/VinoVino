@@ -509,7 +509,7 @@ function SuccessScreen({ orderNumber }: { orderNumber: string }) {
 // Main checkout screen
 export default function CheckoutScreen() {
   const router = useRouter();
-  const { cart, cartTotal, removeFromCart, addToPurchased } = useApp();
+  const { cart, cartTotal, removeFromCart } = useApp();
   const { addToCellar } = useCellar();
   const { user, updateAddress } = useAuth();
 
@@ -541,17 +541,17 @@ export default function CheckoutScreen() {
 
   const handleBuy = useCallback(async () => {
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 2000));
-    // Process order
-    cart.forEach((item) => {
-      addToCellar(item.wine, item.quantity, 'purchase');
-      addToPurchased(item.wine);
-    });
-    cart.forEach((item) => removeFromCart(item.wine.id));
+    await new Promise((r) => setTimeout(r, 1500));
+    for (const item of cart) {
+      await addToCellar(item.wine, item.quantity, 'purchase');
+    }
+    for (const item of cart) {
+      removeFromCart(item.wine.id);
+    }
     setOrderNumber(generateOrderNumber());
     setIsLoading(false);
     setIsSuccess(true);
-  }, [cart, addToCellar, addToPurchased, removeFromCart]);
+  }, [cart, addToCellar, removeFromCart]);
 
   const handleBack = useCallback(() => {
     if (step === 1) {

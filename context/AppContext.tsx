@@ -34,7 +34,7 @@ interface AppContextValue {
   myReviews: Record<string, Review>;
   addToPurchased: (wine: Wine) => void;
   updatePurchasedRating: (id: string, rating: number | null, note: string) => void;
-  submitReview: (wineId: string, review: Review) => void;
+  submitReview: (wineId: string, review: Review) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextValue | undefined>(undefined);
@@ -63,7 +63,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const wines: Wine[] = (data ?? [])
       .map((row) => {
-        const wineData = row.wines as Record<string, unknown> | null;
+        const wineData = (row.wines as unknown) as Record<string, unknown> | null;
         return wineData ? mapRow(wineData) : null;
       })
       .filter((w): w is Wine => w !== null);
@@ -90,12 +90,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const items: CartItem[] = (data ?? [])
       .map((row) => {
-        const wineData = row.wines as Record<string, unknown> | null;
+        const wineData = (row.wines as unknown) as Record<string, unknown> | null;
         if (!wineData) return null;
         return { wine: mapRow(wineData), quantity: row.quantity as number };
       })
       .filter((item): item is CartItem => item !== null);
     setCart(items);
+  }, []);
+
+  // ── Reviews state (declared before useEffect so loadReviews is in scope) ──
+
+  const [purchasedWines, setPurchasedWines] = useState<PurchasedWine[]>([]);
+  const [myReviews, setMyReviews] = useState<Record<string, Review>>({});
+
+  const loadReviews = useCallback(async (uid: string) => {
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('id, wine_id, rating, comment, created_at')
+      .eq('user_id', uid);
+    if (error || !data) return;
+    const map: Record<string, Review> = {};
+    for (const row of data) {
+      map[String(row.wine_id)] = {
+        id: String(row.id),
+        userName: '',
+        rating: Number(row.rating),
+        comment: String(row.comment ?? ''),
+        date: String(row.created_at ?? '').slice(0, 10),
+      };
+    }
+    setMyReviews(map);
   }, []);
 
   // ── Load on login / clear on logout ───────────────────────────────────────
@@ -104,13 +128,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (userId) {
       loadWatchlist(userId);
       loadCart(userId);
+      loadReviews(userId);
     } else {
       setWatchlist([]);
       setCart([]);
+      setMyReviews({});
       setWatchlistError(null);
       setCartError(null);
     }
-  }, [userId, loadWatchlist, loadCart]);
+  }, [userId, loadWatchlist, loadCart, loadReviews]);
 
   // ── Watchlist actions ──────────────────────────────────────────────────────
 
@@ -222,17 +248,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [userId, cart]);
 
-  // ── Purchased / reviews (local, connected in next step) ───────────────────
-
-  const [purchasedWines, setPurchasedWines] = useState<PurchasedWine[]>([]);
-  const [myReviews, setMyReviews] = useState<Record<string, Review>>({});
-
-  const addToPurchased = useCallback((wine: Wine) => {
-    setPurchasedWines((prev) => {
-      if (prev.find((p) => p.wine.id === wine.id)) return prev;
-      return [{ wine, purchasedAt: new Date(), myRating: null, myNote: '' }, ...prev];
-    });
-  }, []);
+  const addToPurchased = useCallback((_wine: Wine) => {}, []);
 
   const updatePurchasedRating = useCallback((id: string, rating: number | null, note: string) => {
     setPurchasedWines((prev) =>
@@ -240,9 +256,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const submitReview = useCallback((wineId: string, review: Review) => {
-    setMyReviews((prev) => ({ ...prev, [wineId]: review }));
-  }, []);
+  const submitReview = useCallback(
+    async (wineId: string, review: Review) => {
+      setMyReviews((prev) => ({ ...prev, [wineId]: review }));
+      if (!userId) return;
+      await supabase.from('reviews').upsert(
+        {
+          user_id: userId,
+          wine_id: wineId,
+          rating: review.rating,
+          comment: review.comment,
+          created_at: new Date().toISOString(),
+        },
+        { onConflict: 'user_id,wine_id' },
+      );
+    },
+    [userId],
+  );
 
   // ── Derived ────────────────────────────────────────────────────────────────
 
