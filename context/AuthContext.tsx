@@ -6,10 +6,8 @@ import React, {
   useMemo,
   useState,
 } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const SESSION_KEY = '@vinovino_session';
-const USERS_KEY = '@vinovino_users';
+import type { Session } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 export interface Address {
   street: string;
@@ -24,10 +22,6 @@ export interface User {
   lastName: string;
   email: string;
   address?: Address;
-}
-
-interface StoredUser extends User {
-  password: string;
 }
 
 interface RegisterInput {
@@ -50,18 +44,40 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-async function loadUsers(): Promise<StoredUser[]> {
-  const raw = await AsyncStorage.getItem(USERS_KEY);
-  if (!raw) return [];
-  try {
-    return JSON.parse(raw) as StoredUser[];
-  } catch {
-    return [];
+// Map common Supabase error messages to friendly German strings.
+function mapAuthError(message: string): string {
+  const m = message.toLowerCase();
+  if (m.includes('invalid login credentials') || m.includes('invalid email or password')) {
+    return 'E-Mail oder Passwort ist ungültig.';
   }
+  if (m.includes('email already') || m.includes('user already registered') || m.includes('already been registered')) {
+    return 'Diese E-Mail ist bereits registriert.';
+  }
+  if (m.includes('invalid email') || m.includes('unable to validate email')) {
+    return 'Bitte eine gültige E-Mail-Adresse eingeben.';
+  }
+  if (m.includes('rate limit') || m.includes('too many requests')) {
+    return 'Zu viele Versuche. Bitte warte einen Moment und versuche es erneut.';
+  }
+  if (m.includes('network') || m.includes('fetch') || m.includes('connection')) {
+    return 'Keine Internetverbindung. Bitte überprüfe deine Verbindung und versuche es erneut.';
+  }
+  if (m.includes('password') && (m.includes('short') || m.includes('weak') || m.includes('6'))) {
+    return 'Das Passwort muss mindestens 6 Zeichen haben.';
+  }
+  return message;
 }
 
-async function saveUsers(users: StoredUser[]): Promise<void> {
-  await AsyncStorage.setItem(USERS_KEY, JSON.stringify(users));
+function sessionToUser(session: Session | null): User | null {
+  if (!session?.user) return null;
+  const { id, email, user_metadata } = session.user;
+  return {
+    id,
+    email: email ?? '',
+    firstName: user_metadata?.first_name ?? '',
+    lastName: user_metadata?.last_name ?? '',
+    address: user_metadata?.address,
+  };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -69,98 +85,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const raw = await AsyncStorage.getItem(SESSION_KEY);
-        if (raw) setUser(JSON.parse(raw) as User);
-      } finally {
-        setIsLoading(false);
-      }
-    })();
+    // Restore persisted session on startup.
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(sessionToUser(session));
+      setIsLoading(false);
+    });
+
+    // React to sign-in / sign-out / token-refresh events.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(sessionToUser(session));
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
-  const persistSession = useCallback(async (sessionUser: User | null) => {
-    if (sessionUser) {
-      await AsyncStorage.setItem(SESSION_KEY, JSON.stringify(sessionUser));
-    } else {
-      await AsyncStorage.removeItem(SESSION_KEY);
+  const login = useCallback(async (email: string, password: string) => {
+    const trimmed = email.trim().toLowerCase();
+    if (!trimmed || !password) {
+      throw new Error('Bitte E-Mail und Passwort eingeben.');
     }
-    setUser(sessionUser);
+
+    const { error } = await supabase.auth.signInWithPassword({ email: trimmed, password });
+    if (error) throw new Error(mapAuthError(error.message));
   }, []);
 
-  const login = useCallback(
-    async (email: string, password: string) => {
-      const normalizedEmail = email.trim().toLowerCase();
-      if (!normalizedEmail || !password) {
-        throw new Error('Bitte E-Mail und Passwort eingeben.');
-      }
+  const register = useCallback(async (input: RegisterInput) => {
+    const firstName = input.firstName.trim();
+    const lastName = input.lastName.trim();
+    const email = input.email.trim().toLowerCase();
+    const { password, address } = input;
 
-      const users = await loadUsers();
-      const match = users.find((u) => u.email === normalizedEmail);
-      if (!match || match.password !== password) {
-        throw new Error('E-Mail oder Passwort ist ungültig.');
-      }
+    if (!firstName || !email || !password) {
+      throw new Error('Bitte alle Felder ausfüllen.');
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new Error('Bitte eine gültige E-Mail-Adresse eingeben.');
+    }
+    if (password.length < 6) {
+      throw new Error('Das Passwort muss mindestens 6 Zeichen haben.');
+    }
 
-      const { password: _, ...sessionUser } = match;
-      await persistSession(sessionUser);
-    },
-    [persistSession],
-  );
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          first_name: firstName,
+          last_name: lastName,
+          ...(address ? { address } : {}),
+        },
+      },
+    });
 
-  const register = useCallback(
-    async (input: RegisterInput) => {
-      const firstName = input.firstName.trim();
-      const lastName = input.lastName.trim();
-      const email = input.email.trim().toLowerCase();
-      const password = input.password;
-
-      if (!firstName || !email || !password) {
-        throw new Error('Bitte alle Felder ausfüllen.');
-      }
-      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-        throw new Error('Bitte eine gültige E-Mail-Adresse eingeben.');
-      }
-      if (password.length < 6) {
-        throw new Error('Das Passwort muss mindestens 6 Zeichen haben.');
-      }
-
-      const users = await loadUsers();
-      if (users.some((u) => u.email === email)) {
-        throw new Error('Diese E-Mail ist bereits registriert.');
-      }
-
-      const newUser: StoredUser = {
-        id: Date.now().toString(),
-        firstName,
-        lastName,
-        email,
-        password,
-      };
-
-      await saveUsers([...users, newUser]);
-      const { password: _, ...sessionUser } = newUser;
-      await persistSession(sessionUser);
-    },
-    [persistSession],
-  );
+    if (error) throw new Error(mapAuthError(error.message));
+  }, []);
 
   const logout = useCallback(async () => {
-    await persistSession(null);
-  }, [persistSession]);
+    await supabase.auth.signOut();
+  }, []);
 
-  const updateAddress = useCallback(
-    async (address: Address) => {
-      if (!user) return;
-      const updatedUser: User = { ...user, address };
-      const users = await loadUsers();
-      const updatedUsers = users.map((u) =>
-        u.id === user.id ? { ...u, address } : u,
-      );
-      await saveUsers(updatedUsers);
-      await persistSession(updatedUser);
-    },
-    [user, persistSession],
-  );
+  const updateAddress = useCallback(async (address: Address) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: { address },
+    });
+    if (error) throw new Error(mapAuthError(error.message));
+    if (data.user) {
+      setUser((prev) => prev ? { ...prev, address } : prev);
+    }
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
