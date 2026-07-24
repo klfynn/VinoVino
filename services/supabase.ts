@@ -48,5 +48,17 @@ export async function fetchActiveWines(): Promise<Wine[]> {
   if (error) throw new Error(error.message);
   if (!data) return [];
 
-  return data.map(mapRow);
+  return data.flatMap((row) => {
+    try {
+      return [mapRow(row)];
+    } catch (err) {
+      const id = row?.id ?? '(unbekannt)';
+      const name = row?.name ?? '(kein Name)';
+      console.error(
+        `[VinoVino] mapRow fehlgeschlagen für Wein "${name}" (ID: ${id}):`,
+        err,
+      );
+      return [];
+    }
+  });
 }
