@@ -42,7 +42,7 @@ export const DEFAULT_FILTER: FilterState = {
   anlass: [],
   bioNaturVegan: [],
   passtZu: [],
-  bewertungMin: 1,
+  bewertungMin: 0,
 };
 
 const FilterContext = createContext<FilterContextValue | undefined>(undefined);
@@ -74,7 +74,7 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
     if (filters.anlass.length > 0) count++;
     if (filters.bioNaturVegan.length > 0) count++;
     if (filters.passtZu.length > 0) count++;
-    if (filters.bewertungMin > 1) count++;
+    if (filters.bewertungMin > 0) count++;
     return count;
   }, [filters]);
 

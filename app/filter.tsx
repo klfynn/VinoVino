@@ -453,7 +453,7 @@ export default function FilterScreen() {
           {[1, 2, 3, 4, 5].map((star) => (
             <TouchableOpacity
               key={star}
-              onPress={() => setFilter('bewertungMin', star)}
+              onPress={() => setFilter('bewertungMin', star === bewertungMin ? 0 : star)}
               hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             >
               <Text style={[styles.star, star <= bewertungMin && styles.starActive]}>★</Text>
