@@ -1,0 +1,1677 @@
+{
+  "tier": null,
+  "key": "bonus",
+  "name": "Bonus",
+  "beschreibung": "Zwei Zusatzlektionen über den Wein hinaus: Spirituosen und Sake. Von Anfang an frei zugänglich.",
+  "freigeschaltet_von_anfang": true,
+  "lektionen": [
+    {
+      "id": "bonus-1",
+      "nummer": 1,
+      "bonus": true,
+      "optional": false,
+      "titel": "Spirituosen — die Grundlagen",
+      "lernziel": "Verstehen, was Spirituosen von Wein unterscheidet, wie Destillation und Fassreife funktionieren, die wichtigsten Kategorien (Whisky, Brandy, Rum, Gin, Vodka, Agavenbrände, Liköre) kennen, Etiketten lesen und Spirituosen richtig verkosten und verantwortungsvoll genießen.",
+      "slides": [
+        {
+          "nr": 1,
+          "titel": "Der Grundunterschied zu Wein",
+          "text": "Wein entsteht durch reine Gärung. Spirituosen entstehen durch **Destillation** eines bereits vergorenen Grundprodukts. Dabei wird der Alkohol vom Wasser getrennt und konzentriert. Wein erreicht meist 11 bis 15 % vol., Spirituosen liegen in der EU mindestens bei etwa **37,5 % vol.** und meist zwischen 40 und 50 %. Die Grundfrage ist dieselbe wie beim Wein: **Welcher Rohstoff, welche Verarbeitung, welche Reife?**",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Wein entsteht durch reine Gärung. Spirituosen entstehen durch "
+                },
+                {
+                  "t": "Destillation",
+                  "b": true
+                },
+                {
+                  "t": " eines bereits vergorenen Grundprodukts. Dabei wird der Alkohol vom Wasser getrennt und konzentriert. Wein erreicht meist 11 bis 15 % vol., Spirituosen liegen in der EU mindestens bei etwa "
+                },
+                {
+                  "t": "37,5 % vol.",
+                  "b": true
+                },
+                {
+                  "t": " und meist zwischen 40 und 50 %. Die Grundfrage ist dieselbe wie beim Wein: "
+                },
+                {
+                  "t": "Welcher Rohstoff, welche Verarbeitung, welche Reife?",
+                  "b": true
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 2,
+          "titel": "Wie Destillation funktioniert",
+          "text": "Alkohol verdampft bei niedrigerer Temperatur (etwa **78 °C**) als Wasser (100 °C). Erhitzt man eine vergorene Flüssigkeit (Maische oder „Wash“), verdampft der Alkohol zuerst. Der Dampf wird abgekühlt und kondensiert wieder zu einer **konzentrierteren Flüssigkeit**. Je öfter destilliert wird, desto **reiner, aber auch charakterärmer** wird das Ergebnis, weil Aromastoffe zurückbleiben.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Alkohol verdampft bei niedrigerer Temperatur (etwa "
+                },
+                {
+                  "t": "78 °C",
+                  "b": true
+                },
+                {
+                  "t": ") als Wasser (100 °C). Erhitzt man eine vergorene Flüssigkeit (Maische oder „Wash“), verdampft der Alkohol zuerst. Der Dampf wird abgekühlt und kondensiert wieder zu einer "
+                },
+                {
+                  "t": "konzentrierteren Flüssigkeit",
+                  "b": true
+                },
+                {
+                  "t": ". Je öfter destilliert wird, desto "
+                },
+                {
+                  "t": "reiner, aber auch charakterärmer",
+                  "b": true
+                },
+                {
+                  "t": " wird das Ergebnis, weil Aromastoffe zurückbleiben."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 3,
+          "titel": "Vorlauf, Mittellauf, Nachlauf",
+          "text": "Beim Brennen wird der Destillatstrom in drei Teile getrennt:\n- **Vorlauf:** die ersten, leichtflüchtigen Bestandteile, unangenehm im Geruch und **gesundheitsschädlich**, er wird verworfen\n- **Mittellauf („Herz“):** der saubere, aromatische Kern, er wird zum eigentlichen Produkt\n- **Nachlauf:** schwere, fuselige Bestandteile, sie werden verworfen oder erneut destilliert\nDas Können des Brenners zeigt sich im **richtigen „Schnitt“** zwischen diesen Phasen. Deshalb ist Selbstbrennen ohne Genehmigung und Fachwissen nicht nur verboten, sondern gefährlich.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Beim Brennen wird der Destillatstrom in drei Teile getrennt:"
+                }
+              ]
+            },
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Vorlauf:",
+                    "b": true
+                  },
+                  {
+                    "t": " die ersten, leichtflüchtigen Bestandteile, unangenehm im Geruch und "
+                  },
+                  {
+                    "t": "gesundheitsschädlich",
+                    "b": true
+                  },
+                  {
+                    "t": ", er wird verworfen"
+                  }
+                ],
+                [
+                  {
+                    "t": "Mittellauf („Herz“):",
+                    "b": true
+                  },
+                  {
+                    "t": " der saubere, aromatische Kern, er wird zum eigentlichen Produkt"
+                  }
+                ],
+                [
+                  {
+                    "t": "Nachlauf:",
+                    "b": true
+                  },
+                  {
+                    "t": " schwere, fuselige Bestandteile, sie werden verworfen oder erneut destilliert"
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Das Können des Brenners zeigt sich im "
+                },
+                {
+                  "t": "richtigen „Schnitt“",
+                  "b": true
+                },
+                {
+                  "t": " zwischen diesen Phasen. Deshalb ist Selbstbrennen ohne Genehmigung und Fachwissen nicht nur verboten, sondern gefährlich."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 4,
+          "titel": "Zwei Grundtypen von Brennanlagen",
+          "text": "- **Pot Still (Brennblase):** traditioneller Kessel, meist ein- oder zweifache Destillation (Batch-Verfahren). Sie erhält **mehr Charakter und Rohstoffaromen**, typisch für Malt Whisky, Cognac und viele Rums.\n- **Column Still (Kolonnenbrennanlage):** kontinuierliches, mehrfaches Destillieren in einer Säule. Sie liefert **reineren, neutraleren Alkohol**, typisch für Vodka, viele Grain Whiskys und den Grundalkohol für Gin.\nViele Brennereien nutzen beide Typen für verschiedene Produkte.",
+          "blocks": [
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Pot Still (Brennblase):",
+                    "b": true
+                  },
+                  {
+                    "t": " traditioneller Kessel, meist ein- oder zweifache Destillation (Batch-Verfahren). Sie erhält "
+                  },
+                  {
+                    "t": "mehr Charakter und Rohstoffaromen",
+                    "b": true
+                  },
+                  {
+                    "t": ", typisch für Malt Whisky, Cognac und viele Rums."
+                  }
+                ],
+                [
+                  {
+                    "t": "Column Still (Kolonnenbrennanlage):",
+                    "b": true
+                  },
+                  {
+                    "t": " kontinuierliches, mehrfaches Destillieren in einer Säule. Sie liefert "
+                  },
+                  {
+                    "t": "reineren, neutraleren Alkohol",
+                    "b": true
+                  },
+                  {
+                    "t": ", typisch für Vodka, viele Grain Whiskys und den Grundalkohol für Gin."
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Viele Brennereien nutzen beide Typen für verschiedene Produkte."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 5,
+          "titel": "Whisky: Getreide, Fass, Herkunft",
+          "text": "Whisky entsteht aus vergorenem Getreide (Gerste, Mais, Roggen oder Weizen) und **reift im Holzfass**. Wichtige Stile:\n- **Scotch (Schottland):** gesetzlich mindestens **drei Jahre Fassreife** in Eichenfässern. **Single Malt** stammt aus einer einzigen Brennerei und besteht aus Malzgerste. Islay-Whiskys sind oft **rauchig-torfig**, weil das Malz über Torffeuer getrocknet wird.\n- **Bourbon (USA):** mindestens **51 % Mais**, Reifung in **neuen, innen ausgebrannten Eichenfässern**, süßlich mit Vanille und Karamell\n- **Irish Whiskey:** oft dreifach destilliert, meist milder und weicher\n- **Japanischer Whisky:** von der schottischen Tradition inspiriert, fein und ausbalanciert, teils mit **Mizunara-Eiche** (Sandelholz, Räucherstäbchen)",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Whisky entsteht aus vergorenem Getreide (Gerste, Mais, Roggen oder Weizen) und "
+                },
+                {
+                  "t": "reift im Holzfass",
+                  "b": true
+                },
+                {
+                  "t": ". Wichtige Stile:"
+                }
+              ]
+            },
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Scotch (Schottland):",
+                    "b": true
+                  },
+                  {
+                    "t": " gesetzlich mindestens "
+                  },
+                  {
+                    "t": "drei Jahre Fassreife",
+                    "b": true
+                  },
+                  {
+                    "t": " in Eichenfässern. "
+                  },
+                  {
+                    "t": "Single Malt",
+                    "b": true
+                  },
+                  {
+                    "t": " stammt aus einer einzigen Brennerei und besteht aus Malzgerste. Islay-Whiskys sind oft "
+                  },
+                  {
+                    "t": "rauchig-torfig",
+                    "b": true
+                  },
+                  {
+                    "t": ", weil das Malz über Torffeuer getrocknet wird."
+                  }
+                ],
+                [
+                  {
+                    "t": "Bourbon (USA):",
+                    "b": true
+                  },
+                  {
+                    "t": " mindestens "
+                  },
+                  {
+                    "t": "51 % Mais",
+                    "b": true
+                  },
+                  {
+                    "t": ", Reifung in "
+                  },
+                  {
+                    "t": "neuen, innen ausgebrannten Eichenfässern",
+                    "b": true
+                  },
+                  {
+                    "t": ", süßlich mit Vanille und Karamell"
+                  }
+                ],
+                [
+                  {
+                    "t": "Irish Whiskey:",
+                    "b": true
+                  },
+                  {
+                    "t": " oft dreifach destilliert, meist milder und weicher"
+                  }
+                ],
+                [
+                  {
+                    "t": "Japanischer Whisky:",
+                    "b": true
+                  },
+                  {
+                    "t": " von der schottischen Tradition inspiriert, fein und ausbalanciert, teils mit "
+                  },
+                  {
+                    "t": "Mizunara-Eiche",
+                    "b": true
+                  },
+                  {
+                    "t": " (Sandelholz, Räucherstäbchen)"
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 6,
+          "titel": "Das Fass: halber Geschmack",
+          "text": "Beim Whisky und Brandy kommt ein großer Teil des Aromas aus dem **Fass**. Das Holz gibt Farbe, Vanille, Gewürze und Röstaromen ab und lässt winzige Mengen Sauerstoff durch (Verbindung zu Lektion 13). Durch die Verdunstung verliert das Fass jedes Jahr einen Teil des Inhalts, den man poetisch **„Angels’ Share“** (Anteil der Engel) nennt. Fassgröße, Alter und Vorbelegung (Bourbon-, Sherry-, Weinfass) prägen den Stil stark.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Beim Whisky und Brandy kommt ein großer Teil des Aromas aus dem "
+                },
+                {
+                  "t": "Fass",
+                  "b": true
+                },
+                {
+                  "t": ". Das Holz gibt Farbe, Vanille, Gewürze und Röstaromen ab und lässt winzige Mengen Sauerstoff durch (Verbindung zu Lektion 13). Durch die Verdunstung verliert das Fass jedes Jahr einen Teil des Inhalts, den man poetisch "
+                },
+                {
+                  "t": "„Angels’ Share“",
+                  "b": true
+                },
+                {
+                  "t": " (Anteil der Engel) nennt. Fassgröße, Alter und Vorbelegung (Bourbon-, Sherry-, Weinfass) prägen den Stil stark."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 7,
+          "titel": "Finishing: die Verbindung zur Weinwelt",
+          "text": "Viele Whiskys werden nach der Hauptreifung einige Monate in einem **zweiten, andersartigen Fass** nachgereift (Finishing), zum Beispiel in ehemaligen **Sherry-, Port-, Madeira- oder Rotweinfässern** (Lektion 40). Sie geben zusätzliche Frucht-, Nuss- oder Gewürznoten. Das verbindet Whisky und Wein direkt: Das Fass erzählt die Geschichte des Weins, der darin lag.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Viele Whiskys werden nach der Hauptreifung einige Monate in einem "
+                },
+                {
+                  "t": "zweiten, andersartigen Fass",
+                  "b": true
+                },
+                {
+                  "t": " nachgereift (Finishing), zum Beispiel in ehemaligen "
+                },
+                {
+                  "t": "Sherry-, Port-, Madeira- oder Rotweinfässern",
+                  "b": true
+                },
+                {
+                  "t": " (Lektion 40). Sie geben zusätzliche Frucht-, Nuss- oder Gewürznoten. Das verbindet Whisky und Wein direkt: Das Fass erzählt die Geschichte des Weins, der darin lag."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 8,
+          "titel": "Brandy, Cognac, Armagnac, Grappa",
+          "text": "**Brandy** wird aus vergorenem Obst destilliert, meist aus Trauben.\n- **Cognac:** geschützte Herkunft in Frankreich, meist aus **Ugni Blanc**, **zweifach in der Charentais-Brennblase** destilliert. Altersstufen: **VS** (mindestens 2 Jahre), **VSOP** (mindestens 4 Jahre), **XO** (mindestens 10 Jahre). Es zählt jeweils die jüngste Komponente im Verschnitt.\n- **Armagnac:** Südfrankreich, älter als Cognac, traditionell **einfach destilliert**, rustikaler und charaktervoller\n- **Grappa (Italien) und Marc (Frankreich):** aus **Trester**, den festen Rückständen (Schalen, Kerne, Stiele) nach dem Pressen. Ein klassisches Nebenprodukt der Weinherstellung.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Brandy",
+                  "b": true
+                },
+                {
+                  "t": " wird aus vergorenem Obst destilliert, meist aus Trauben."
+                }
+              ]
+            },
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Cognac:",
+                    "b": true
+                  },
+                  {
+                    "t": " geschützte Herkunft in Frankreich, meist aus "
+                  },
+                  {
+                    "t": "Ugni Blanc",
+                    "b": true
+                  },
+                  {
+                    "t": ", "
+                  },
+                  {
+                    "t": "zweifach in der Charentais-Brennblase",
+                    "b": true
+                  },
+                  {
+                    "t": " destilliert. Altersstufen: "
+                  },
+                  {
+                    "t": "VS",
+                    "b": true
+                  },
+                  {
+                    "t": " (mindestens 2 Jahre), "
+                  },
+                  {
+                    "t": "VSOP",
+                    "b": true
+                  },
+                  {
+                    "t": " (mindestens 4 Jahre), "
+                  },
+                  {
+                    "t": "XO",
+                    "b": true
+                  },
+                  {
+                    "t": " (mindestens 10 Jahre). Es zählt jeweils die jüngste Komponente im Verschnitt."
+                  }
+                ],
+                [
+                  {
+                    "t": "Armagnac:",
+                    "b": true
+                  },
+                  {
+                    "t": " Südfrankreich, älter als Cognac, traditionell "
+                  },
+                  {
+                    "t": "einfach destilliert",
+                    "b": true
+                  },
+                  {
+                    "t": ", rustikaler und charaktervoller"
+                  }
+                ],
+                [
+                  {
+                    "t": "Grappa (Italien) und Marc (Frankreich):",
+                    "b": true
+                  },
+                  {
+                    "t": " aus "
+                  },
+                  {
+                    "t": "Trester",
+                    "b": true
+                  },
+                  {
+                    "t": ", den festen Rückständen (Schalen, Kerne, Stiele) nach dem Pressen. Ein klassisches Nebenprodukt der Weinherstellung."
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 9,
+          "titel": "Rum, Gin, Vodka, Tequila und Mezcal",
+          "text": "- **Rum:** aus **Zuckerrohrsaft oder Melasse**, mit oder ohne Fassreife (weiß, golden, dunkel, gereift)\n- **Gin:** neutraler Grundalkohol, mit **Botanicals** aromatisiert, **Wacholder ist Pflicht**\n- **Vodka:** möglichst neutral, meist gefiltert, aus Getreide oder Kartoffeln\n- **Tequila:** aus der **Blauen Agave**, nur aus bestimmten Regionen Mexikos (vor allem Jalisco). **Mezcal:** aus verschiedenen Agavenarten, oft in Erdgruben gegart und daher **rauchig**\nAlle werden zu Cocktails oder pur genossen, je nach Qualität.",
+          "blocks": [
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Rum:",
+                    "b": true
+                  },
+                  {
+                    "t": " aus "
+                  },
+                  {
+                    "t": "Zuckerrohrsaft oder Melasse",
+                    "b": true
+                  },
+                  {
+                    "t": ", mit oder ohne Fassreife (weiß, golden, dunkel, gereift)"
+                  }
+                ],
+                [
+                  {
+                    "t": "Gin:",
+                    "b": true
+                  },
+                  {
+                    "t": " neutraler Grundalkohol, mit "
+                  },
+                  {
+                    "t": "Botanicals",
+                    "b": true
+                  },
+                  {
+                    "t": " aromatisiert, "
+                  },
+                  {
+                    "t": "Wacholder ist Pflicht",
+                    "b": true
+                  }
+                ],
+                [
+                  {
+                    "t": "Vodka:",
+                    "b": true
+                  },
+                  {
+                    "t": " möglichst neutral, meist gefiltert, aus Getreide oder Kartoffeln"
+                  }
+                ],
+                [
+                  {
+                    "t": "Tequila:",
+                    "b": true
+                  },
+                  {
+                    "t": " aus der "
+                  },
+                  {
+                    "t": "Blauen Agave",
+                    "b": true
+                  },
+                  {
+                    "t": ", nur aus bestimmten Regionen Mexikos (vor allem Jalisco). "
+                  },
+                  {
+                    "t": "Mezcal:",
+                    "b": true
+                  },
+                  {
+                    "t": " aus verschiedenen Agavenarten, oft in Erdgruben gegart und daher "
+                  },
+                  {
+                    "t": "rauchig",
+                    "b": true
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Alle werden zu Cocktails oder pur genossen, je nach Qualität."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 10,
+          "titel": "Liköre: die gesüßte Kategorie",
+          "text": "Liköre sind Spirituosen mit **zugesetztem Zucker** und Aromen (Kräuter, Früchte, Nüsse, Sahne) und meist **15 bis 30 % vol.** Beispiele: **Amaretto** (Mandel oder Aprikosenkern), **Cointreau** (Orange), **Chartreuse** (Kräuterlikör nach Klosterrezept). Man trinkt sie als Digestif, im Cocktail oder zum Dessert. Bitterliköre (Amaro) werden oft als Verdauungsspirituose getrunken.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Liköre sind Spirituosen mit "
+                },
+                {
+                  "t": "zugesetztem Zucker",
+                  "b": true
+                },
+                {
+                  "t": " und Aromen (Kräuter, Früchte, Nüsse, Sahne) und meist "
+                },
+                {
+                  "t": "15 bis 30 % vol.",
+                  "b": true
+                },
+                {
+                  "t": " Beispiele: "
+                },
+                {
+                  "t": "Amaretto",
+                  "b": true
+                },
+                {
+                  "t": " (Mandel oder Aprikosenkern), "
+                },
+                {
+                  "t": "Cointreau",
+                  "b": true
+                },
+                {
+                  "t": " (Orange), "
+                },
+                {
+                  "t": "Chartreuse",
+                  "b": true
+                },
+                {
+                  "t": " (Kräuterlikör nach Klosterrezept). Man trinkt sie als Digestif, im Cocktail oder zum Dessert. Bitterliköre (Amaro) werden oft als Verdauungsspirituose getrunken."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 11,
+          "titel": "Etiketten lesen",
+          "text": "Wichtige Angaben auf Spirituosenetiketten:\n- **Alkoholgehalt (% vol.)**, **Herkunft**, **Kategorie** (zum Beispiel „Single Malt“, „Blended“, „Straight Bourbon“)\n- **Altersangabe:** meist das **jüngste Fass** im Verschnitt (Age Statement). Fehlt sie, spricht man von „NAS“ (No Age Statement).\n- **Fassstärke (Cask Strength):** unverdünnt abgefüllt, oft 55 bis 65 % vol.\n- **Kühlfiltration und Farbstoff (E150a):** manche Hersteller kennzeichnen „nicht kühlgefiltert“ oder „ohne Farbstoff“\nEin hohes Alter ist **nicht automatisch besser**, es kommt auf Fass und Brenner an.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Wichtige Angaben auf Spirituosenetiketten:"
+                }
+              ]
+            },
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Alkoholgehalt (% vol.)",
+                    "b": true
+                  },
+                  {
+                    "t": ", "
+                  },
+                  {
+                    "t": "Herkunft",
+                    "b": true
+                  },
+                  {
+                    "t": ", "
+                  },
+                  {
+                    "t": "Kategorie",
+                    "b": true
+                  },
+                  {
+                    "t": " (zum Beispiel „Single Malt“, „Blended“, „Straight Bourbon“)"
+                  }
+                ],
+                [
+                  {
+                    "t": "Altersangabe:",
+                    "b": true
+                  },
+                  {
+                    "t": " meist das "
+                  },
+                  {
+                    "t": "jüngste Fass",
+                    "b": true
+                  },
+                  {
+                    "t": " im Verschnitt (Age Statement). Fehlt sie, spricht man von „NAS“ (No Age Statement)."
+                  }
+                ],
+                [
+                  {
+                    "t": "Fassstärke (Cask Strength):",
+                    "b": true
+                  },
+                  {
+                    "t": " unverdünnt abgefüllt, oft 55 bis 65 % vol."
+                  }
+                ],
+                [
+                  {
+                    "t": "Kühlfiltration und Farbstoff (E150a):",
+                    "b": true
+                  },
+                  {
+                    "t": " manche Hersteller kennzeichnen „nicht kühlgefiltert“ oder „ohne Farbstoff“"
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Ein hohes Alter ist "
+                },
+                {
+                  "t": "nicht automatisch besser",
+                  "b": true
+                },
+                {
+                  "t": ", es kommt auf Fass und Brenner an."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 12,
+          "titel": "Verkosten, Servieren und Maß halten",
+          "text": "Spirituosen werden in kleinen Mengen (**2 bis 4 cl**) und in geeigneten Gläsern verkostet, zum Beispiel im **Glencairn-Glas** für Whisky oder im **Schwenker/Tulpenglas** für Brandy. Ein **paar Tropfen Wasser** können Aromen öffnen. Erst riechen, dann kleine Schlucke, dazwischen Wasser. Wegen des hohen Alkoholgehalts gilt besonders: **langsam, in Maßen, nicht vor dem Fahren** (Lektion 21).",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Spirituosen werden in kleinen Mengen ("
+                },
+                {
+                  "t": "2 bis 4 cl",
+                  "b": true
+                },
+                {
+                  "t": ") und in geeigneten Gläsern verkostet, zum Beispiel im "
+                },
+                {
+                  "t": "Glencairn-Glas",
+                  "b": true
+                },
+                {
+                  "t": " für Whisky oder im "
+                },
+                {
+                  "t": "Schwenker/Tulpenglas",
+                  "b": true
+                },
+                {
+                  "t": " für Brandy. Ein "
+                },
+                {
+                  "t": "paar Tropfen Wasser",
+                  "b": true
+                },
+                {
+                  "t": " können Aromen öffnen. Erst riechen, dann kleine Schlucke, dazwischen Wasser. Wegen des hohen Alkoholgehalts gilt besonders: "
+                },
+                {
+                  "t": "langsam, in Maßen, nicht vor dem Fahren",
+                  "b": true
+                },
+                {
+                  "t": " (Lektion 21)."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "quiz": [
+        {
+          "frage": "Was unterscheidet Spirituosen grundlegend von Wein?",
+          "optionen": [
+            "Sie werden aus anderen Rohstoffen hergestellt",
+            "Sie durchlaufen zusätzlich eine Destillation nach der Gärung",
+            "Sie enthalten keinen Alkohol aus Gärung"
+          ],
+          "richtig": 1,
+          "erklaerung": "Die Destillation trennt Alkohol vom Wasser und konzentriert ihn. Ausgangspunkt ist aber auch hier ein vergorenes Produkt."
+        },
+        {
+          "frage": "Welcher Teil des Destillats wird zum eigentlichen Produkt?",
+          "optionen": [
+            "Der Nachlauf",
+            "Der Mittellauf („Herz“)",
+            "Der Vorlauf"
+          ],
+          "richtig": 1,
+          "erklaerung": "Vor- und Nachlauf enthalten unerwünschte oder schädliche Stoffe. Der richtige Schnitt ist eine Kernkompetenz des Brenners."
+        },
+        {
+          "frage": "Woraus wird Grappa beziehungsweise Marc destilliert?",
+          "optionen": [
+            "Aus dem Trester nach dem Pressen",
+            "Aus reinem Traubenwein",
+            "Aus Zuckerrohr"
+          ],
+          "richtig": 0,
+          "erklaerung": "Trester besteht aus Schalen, Kernen und Stielen. Grappa ist damit ein Nebenprodukt der Weinherstellung."
+        },
+        {
+          "frage": "Welche Altersstufe eines Cognacs verlangt mindestens 10 Jahre Reife der jüngsten Verschnittkomponente?",
+          "optionen": [
+            "VSOP",
+            "VS",
+            "XO"
+          ],
+          "richtig": 2,
+          "erklaerung": "VS braucht mindestens 2 Jahre, VSOP mindestens 4 Jahre, XO mindestens 10 Jahre."
+        },
+        {
+          "frage": "Was bewirkt ein „Finishing“ in einem Sherry- oder Portfass bei Whisky?",
+          "optionen": [
+            "Es entfernt alle Fassaromen wieder",
+            "Es senkt den Alkoholgehalt",
+            "Es fügt zusätzliche Frucht-, Nuss- oder Gewürznoten hinzu"
+          ],
+          "richtig": 2,
+          "erklaerung": "Das zweite Fass gibt dem Whisky eine weitere Aromenebene und verbindet ihn mit der Weinwelt."
+        }
+      ],
+      "praxisaufgabe": "Vergleiche einen ungetorften Whisky (zum Beispiel einen Speyside-Scotch) mit einem getorften (zum Beispiel von Islay) und beschreibe den Unterschied im Raucharoma in ein bis zwei Sätzen. Gib einen Tropfen Wasser in eines der beiden Gläser und notiere, ob sich das Aroma verändert. Lies außerdem bei einer Flasche das Etikett: Welche Angaben zu Alkoholgehalt, Alter und Herkunft findest du?"
+    },
+    {
+      "id": "bonus-2",
+      "nummer": 2,
+      "bonus": true,
+      "optional": false,
+      "titel": "Sake verstehen",
+      "lernziel": "Die Herstellung von Sake im Detail, seine Qualitätsstufen, Stile, regionale Unterschiede, Serviertemperatur und Speisenbegleitung verstehen und Sake-Etiketten grob einordnen können.",
+      "slides": [
+        {
+          "nr": 1,
+          "titel": "Sake ist kein „Reiswein“ im klassischen Sinn",
+          "text": "Sake wird oft „Reiswein“ genannt, ist vom Herstellungsprozess aber **näher am Bier**. Reis enthält keinen vergärbaren Zucker (anders als Traubensaft), sondern **Stärke**. Diese muss zuerst in Zucker umgewandelt werden, bevor Hefe daraus Alkohol machen kann. Sake wird nicht destilliert, sondern ist ein **gebrautes** Getränk mit meist etwa 15 bis 16 % vol.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Sake wird oft „Reiswein“ genannt, ist vom Herstellungsprozess aber "
+                },
+                {
+                  "t": "näher am Bier",
+                  "b": true
+                },
+                {
+                  "t": ". Reis enthält keinen vergärbaren Zucker (anders als Traubensaft), sondern "
+                },
+                {
+                  "t": "Stärke",
+                  "b": true
+                },
+                {
+                  "t": ". Diese muss zuerst in Zucker umgewandelt werden, bevor Hefe daraus Alkohol machen kann. Sake wird nicht destilliert, sondern ist ein "
+                },
+                {
+                  "t": "gebrautes",
+                  "b": true
+                },
+                {
+                  "t": " Getränk mit meist etwa 15 bis 16 % vol."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 2,
+          "titel": "Die vier Zutaten",
+          "text": "Sake besteht im Kern aus nur vier Zutaten: **Reis, Wasser, Koji und Hefe**. Speziell gezüchtete **Sake-Reissorten** (zum Beispiel **Yamada Nishiki** oder **Gohyakumangoku**) haben große, stärkereiche Körner mit einem „Herz“ (Shinpaku). Das **Wasser** macht den Großteil des Sakes aus und prägt den Stil. Der Chef-Brauer heißt **Toji**.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Sake besteht im Kern aus nur vier Zutaten: "
+                },
+                {
+                  "t": "Reis, Wasser, Koji und Hefe",
+                  "b": true
+                },
+                {
+                  "t": ". Speziell gezüchtete "
+                },
+                {
+                  "t": "Sake-Reissorten",
+                  "b": true
+                },
+                {
+                  "t": " (zum Beispiel "
+                },
+                {
+                  "t": "Yamada Nishiki",
+                  "b": true
+                },
+                {
+                  "t": " oder "
+                },
+                {
+                  "t": "Gohyakumangoku",
+                  "b": true
+                },
+                {
+                  "t": ") haben große, stärkereiche Körner mit einem „Herz“ (Shinpaku). Das "
+                },
+                {
+                  "t": "Wasser",
+                  "b": true
+                },
+                {
+                  "t": " macht den Großteil des Sakes aus und prägt den Stil. Der Chef-Brauer heißt "
+                },
+                {
+                  "t": "Toji",
+                  "b": true
+                },
+                {
+                  "t": "."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 3,
+          "titel": "Koji: der entscheidende Umwandlungsschritt",
+          "text": "Die Umwandlung der Stärke übernimmt der Schimmelpilz **Koji** (*Aspergillus oryzae*), der auf gedämpftem Reis gezüchtet wird und Enzyme bildet, die **Stärke in Zucker spalten**. Das Besondere: Beim Sake laufen **Zuckerbildung (Koji) und alkoholische Gärung (Hefe) gleichzeitig im selben Tank** ab. Diese **parallele Mehrfachgärung** ist weltweit einzigartig und ermöglicht sehr hohe Alkoholgehalte durch Gärung allein.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Die Umwandlung der Stärke übernimmt der Schimmelpilz "
+                },
+                {
+                  "t": "Koji",
+                  "b": true
+                },
+                {
+                  "t": " ("
+                },
+                {
+                  "t": "Aspergillus oryzae",
+                  "i": true
+                },
+                {
+                  "t": "), der auf gedämpftem Reis gezüchtet wird und Enzyme bildet, die "
+                },
+                {
+                  "t": "Stärke in Zucker spalten",
+                  "b": true
+                },
+                {
+                  "t": ". Das Besondere: Beim Sake laufen "
+                },
+                {
+                  "t": "Zuckerbildung (Koji) und alkoholische Gärung (Hefe) gleichzeitig im selben Tank",
+                  "b": true
+                },
+                {
+                  "t": " ab. Diese "
+                },
+                {
+                  "t": "parallele Mehrfachgärung",
+                  "b": true
+                },
+                {
+                  "t": " ist weltweit einzigartig und ermöglicht sehr hohe Alkoholgehalte durch Gärung allein."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 4,
+          "titel": "Von Reis zu Sake: die Schritte",
+          "text": "- **Waschen, Einweichen, Dämpfen:** Der polierte Reis wird gewaschen, kurz eingeweicht und gedämpft.\n- **Koji-Herstellung:** Ein Teil des Reises wird mit Koji beimpft und mehrere Tage gehegt.\n- **Hefestarter (Shubo/Moto):** Eine kleine, kräftige Hefekultur wird angesetzt.\n- **Hauptmaische (Moromi):** Reis, Koji und Wasser werden in **drei Stufen über mehrere Tage** zugegeben, danach gärt die Maische oft **drei bis vier Wochen**.\n- **Pressen, Filtern, Lagern, Abfüllen:** Der Sake wird von den Feststoffen getrennt und in der Regel pasteurisiert.",
+          "blocks": [
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Waschen, Einweichen, Dämpfen:",
+                    "b": true
+                  },
+                  {
+                    "t": " Der polierte Reis wird gewaschen, kurz eingeweicht und gedämpft."
+                  }
+                ],
+                [
+                  {
+                    "t": "Koji-Herstellung:",
+                    "b": true
+                  },
+                  {
+                    "t": " Ein Teil des Reises wird mit Koji beimpft und mehrere Tage gehegt."
+                  }
+                ],
+                [
+                  {
+                    "t": "Hefestarter (Shubo/Moto):",
+                    "b": true
+                  },
+                  {
+                    "t": " Eine kleine, kräftige Hefekultur wird angesetzt."
+                  }
+                ],
+                [
+                  {
+                    "t": "Hauptmaische (Moromi):",
+                    "b": true
+                  },
+                  {
+                    "t": " Reis, Koji und Wasser werden in "
+                  },
+                  {
+                    "t": "drei Stufen über mehrere Tage",
+                    "b": true
+                  },
+                  {
+                    "t": " zugegeben, danach gärt die Maische oft "
+                  },
+                  {
+                    "t": "drei bis vier Wochen",
+                    "b": true
+                  },
+                  {
+                    "t": "."
+                  }
+                ],
+                [
+                  {
+                    "t": "Pressen, Filtern, Lagern, Abfüllen:",
+                    "b": true
+                  },
+                  {
+                    "t": " Der Sake wird von den Feststoffen getrennt und in der Regel pasteurisiert."
+                  }
+                ]
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 5,
+          "titel": "Der Polierungsgrad (Seimaibuai)",
+          "text": "Der Reis wird vor der Verarbeitung **poliert**, um die äußeren, protein- und fettreichen Schichten zu entfernen, die sonst grobe Aromen erzeugen würden. Der **Seimaibuai**-Wert zeigt, wie viel Prozent des Korns **übrig bleiben**. Je niedriger der Wert (zum Beispiel 50 %), desto **stärker poliert** und meist desto **feiner und aromatischer** der Sake. Das Polieren kostet viel Reis und Zeit und macht hochwertige Sake teuer.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Der Reis wird vor der Verarbeitung "
+                },
+                {
+                  "t": "poliert",
+                  "b": true
+                },
+                {
+                  "t": ", um die äußeren, protein- und fettreichen Schichten zu entfernen, die sonst grobe Aromen erzeugen würden. Der "
+                },
+                {
+                  "t": "Seimaibuai",
+                  "b": true
+                },
+                {
+                  "t": "-Wert zeigt, wie viel Prozent des Korns "
+                },
+                {
+                  "t": "übrig bleiben",
+                  "b": true
+                },
+                {
+                  "t": ". Je niedriger der Wert (zum Beispiel 50 %), desto "
+                },
+                {
+                  "t": "stärker poliert",
+                  "b": true
+                },
+                {
+                  "t": " und meist desto "
+                },
+                {
+                  "t": "feiner und aromatischer",
+                  "b": true
+                },
+                {
+                  "t": " der Sake. Das Polieren kostet viel Reis und Zeit und macht hochwertige Sake teuer."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 6,
+          "titel": "Die wichtigsten Qualitätsstufen",
+          "text": "- **Futsuushu (Tafel-Sake):** einfacher Alltags-Sake ohne feste Polierungsvorgabe, der Großteil der Produktion\n- **Honjozo:** Reis bis etwa **70 %** poliert, mit einer kleinen Menge **Brennereialkohol** für einen leichteren Stil\n- **Junmai („reiner Reis“):** nur Reis, Wasser, Koji, Hefe, **kein zugesetzter Alkohol**\n- **Ginjo:** Polierungsgrad **60 % oder weniger**, aromatisch und elegant\n- **Daiginjo:** Polierungsgrad **50 % oder weniger**, die aufwendigste und meist teuerste Kategorie\nDie Stufen lassen sich kombinieren: **Junmai Daiginjo** ist ein Daiginjo ganz ohne zugesetzten Alkohol.",
+          "blocks": [
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Futsuushu (Tafel-Sake):",
+                    "b": true
+                  },
+                  {
+                    "t": " einfacher Alltags-Sake ohne feste Polierungsvorgabe, der Großteil der Produktion"
+                  }
+                ],
+                [
+                  {
+                    "t": "Honjozo:",
+                    "b": true
+                  },
+                  {
+                    "t": " Reis bis etwa "
+                  },
+                  {
+                    "t": "70 %",
+                    "b": true
+                  },
+                  {
+                    "t": " poliert, mit einer kleinen Menge "
+                  },
+                  {
+                    "t": "Brennereialkohol",
+                    "b": true
+                  },
+                  {
+                    "t": " für einen leichteren Stil"
+                  }
+                ],
+                [
+                  {
+                    "t": "Junmai („reiner Reis“):",
+                    "b": true
+                  },
+                  {
+                    "t": " nur Reis, Wasser, Koji, Hefe, "
+                  },
+                  {
+                    "t": "kein zugesetzter Alkohol",
+                    "b": true
+                  }
+                ],
+                [
+                  {
+                    "t": "Ginjo:",
+                    "b": true
+                  },
+                  {
+                    "t": " Polierungsgrad "
+                  },
+                  {
+                    "t": "60 % oder weniger",
+                    "b": true
+                  },
+                  {
+                    "t": ", aromatisch und elegant"
+                  }
+                ],
+                [
+                  {
+                    "t": "Daiginjo:",
+                    "b": true
+                  },
+                  {
+                    "t": " Polierungsgrad "
+                  },
+                  {
+                    "t": "50 % oder weniger",
+                    "b": true
+                  },
+                  {
+                    "t": ", die aufwendigste und meist teuerste Kategorie"
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Die Stufen lassen sich kombinieren: "
+                },
+                {
+                  "t": "Junmai Daiginjo",
+                  "b": true
+                },
+                {
+                  "t": " ist ein Daiginjo ganz ohne zugesetzten Alkohol."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 7,
+          "titel": "Besondere Sake-Stile",
+          "text": "- **Namazake:** **unpasteurisiert**, frisch und lebendig, muss gekühlt gelagert werden\n- **Nigori:** grob filtriert, **trüb und milchig**, oft süßer und cremiger\n- **Genshu:** unverdünnt abgefüllt, mit höherem Alkoholgehalt\n- **Sparkling Sake:** perlend, leicht, oft süßlicher Aperitif\n- **Koshu:** bewusst **gereifter Sake** mit dunkler Farbe und nussig-würzigen Aromen\nDiese Begriffe findest du zusätzlich zur Qualitätsstufe auf dem Etikett.",
+          "blocks": [
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Namazake:",
+                    "b": true
+                  },
+                  {
+                    "t": " "
+                  },
+                  {
+                    "t": "unpasteurisiert",
+                    "b": true
+                  },
+                  {
+                    "t": ", frisch und lebendig, muss gekühlt gelagert werden"
+                  }
+                ],
+                [
+                  {
+                    "t": "Nigori:",
+                    "b": true
+                  },
+                  {
+                    "t": " grob filtriert, "
+                  },
+                  {
+                    "t": "trüb und milchig",
+                    "b": true
+                  },
+                  {
+                    "t": ", oft süßer und cremiger"
+                  }
+                ],
+                [
+                  {
+                    "t": "Genshu:",
+                    "b": true
+                  },
+                  {
+                    "t": " unverdünnt abgefüllt, mit höherem Alkoholgehalt"
+                  }
+                ],
+                [
+                  {
+                    "t": "Sparkling Sake:",
+                    "b": true
+                  },
+                  {
+                    "t": " perlend, leicht, oft süßlicher Aperitif"
+                  }
+                ],
+                [
+                  {
+                    "t": "Koshu:",
+                    "b": true
+                  },
+                  {
+                    "t": " bewusst "
+                  },
+                  {
+                    "t": "gereifter Sake",
+                    "b": true
+                  },
+                  {
+                    "t": " mit dunkler Farbe und nussig-würzigen Aromen"
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Diese Begriffe findest du zusätzlich zur Qualitätsstufe auf dem Etikett."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 8,
+          "titel": "Süße, Säure und Umami",
+          "text": "Auf manchen Etiketten steht der **Nihonshudo** (Sake-Meter-Wert). Als grobe Orientierung gilt: **positive Werte** deuten auf eher **trockene**, **negative** auf eher **süßere** Sake hin. Er ist aber nur ein Anhaltspunkt, denn auch **Säure** beeinflusst den Eindruck von Süße. Sake enthält viele **Aminosäuren** und besitzt eine natürliche **Umami-Komponente**, die ihm seine Fülle und Länge gibt.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Auf manchen Etiketten steht der "
+                },
+                {
+                  "t": "Nihonshudo",
+                  "b": true
+                },
+                {
+                  "t": " (Sake-Meter-Wert). Als grobe Orientierung gilt: "
+                },
+                {
+                  "t": "positive Werte",
+                  "b": true
+                },
+                {
+                  "t": " deuten auf eher "
+                },
+                {
+                  "t": "trockene",
+                  "b": true
+                },
+                {
+                  "t": ", "
+                },
+                {
+                  "t": "negative",
+                  "b": true
+                },
+                {
+                  "t": " auf eher "
+                },
+                {
+                  "t": "süßere",
+                  "b": true
+                },
+                {
+                  "t": " Sake hin. Er ist aber nur ein Anhaltspunkt, denn auch "
+                },
+                {
+                  "t": "Säure",
+                  "b": true
+                },
+                {
+                  "t": " beeinflusst den Eindruck von Süße. Sake enthält viele "
+                },
+                {
+                  "t": "Aminosäuren",
+                  "b": true
+                },
+                {
+                  "t": " und besitzt eine natürliche "
+                },
+                {
+                  "t": "Umami-Komponente",
+                  "b": true
+                },
+                {
+                  "t": ", die ihm seine Fülle und Länge gibt."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 9,
+          "titel": "Regionale Unterschiede: Wasser macht den Unterschied",
+          "text": "Weil Wasser den Hauptanteil stellt, prägt es den Stil:\n- **Niigata** (Nordwest-Japan): eher **weiches Wasser**, tendenziell leichtere, trockene, „cleane“ Stile\n- **Nada (Hyogo):** **hartes, mineralstoffreiches Wasser** („Miyamizu“), kräftigere und robustere Stile\nAuch Klima und Brautradition spielen mit. Die Idee ähnelt dem **Terroir** (Lektion 12), nur steht beim Sake das **Brauwasser** statt des Bodens im Vordergrund.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Weil Wasser den Hauptanteil stellt, prägt es den Stil:"
+                }
+              ]
+            },
+            {
+              "type": "ul",
+              "items": [
+                [
+                  {
+                    "t": "Niigata",
+                    "b": true
+                  },
+                  {
+                    "t": " (Nordwest-Japan): eher "
+                  },
+                  {
+                    "t": "weiches Wasser",
+                    "b": true
+                  },
+                  {
+                    "t": ", tendenziell leichtere, trockene, „cleane“ Stile"
+                  }
+                ],
+                [
+                  {
+                    "t": "Nada (Hyogo):",
+                    "b": true
+                  },
+                  {
+                    "t": " "
+                  },
+                  {
+                    "t": "hartes, mineralstoffreiches Wasser",
+                    "b": true
+                  },
+                  {
+                    "t": " („Miyamizu“), kräftigere und robustere Stile"
+                  }
+                ]
+              ]
+            },
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Auch Klima und Brautradition spielen mit. Die Idee ähnelt dem "
+                },
+                {
+                  "t": "Terroir",
+                  "b": true
+                },
+                {
+                  "t": " (Lektion 12), nur steht beim Sake das "
+                },
+                {
+                  "t": "Brauwasser",
+                  "b": true
+                },
+                {
+                  "t": " statt des Bodens im Vordergrund."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 10,
+          "titel": "Temperatur und Gefäße",
+          "text": "Sake wird **nicht grundsätzlich heiß** serviert. Aromatische Sake (**Ginjo, Daiginjo**) trinkt man meist **gekühlt (etwa 5 bis 15 °C)**. Warmes Servieren (**Kanzake**) war historisch bei einfacheren Qualitäten üblich, weil Wärme kleine Fehler überdeckt und den Alkohol runder wirken lässt. Auch kräftige Junmai-Sake können **warm** wunderbar sein. Traditionell trinkt man aus kleinen Karaffen (**Tokkuri**) in kleine Schalen (**Choko**). Für feine Sake setzen sich **schlanke Weingläser** durch.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Sake wird "
+                },
+                {
+                  "t": "nicht grundsätzlich heiß",
+                  "b": true
+                },
+                {
+                  "t": " serviert. Aromatische Sake ("
+                },
+                {
+                  "t": "Ginjo, Daiginjo",
+                  "b": true
+                },
+                {
+                  "t": ") trinkt man meist "
+                },
+                {
+                  "t": "gekühlt (etwa 5 bis 15 °C)",
+                  "b": true
+                },
+                {
+                  "t": ". Warmes Servieren ("
+                },
+                {
+                  "t": "Kanzake",
+                  "b": true
+                },
+                {
+                  "t": ") war historisch bei einfacheren Qualitäten üblich, weil Wärme kleine Fehler überdeckt und den Alkohol runder wirken lässt. Auch kräftige Junmai-Sake können "
+                },
+                {
+                  "t": "warm",
+                  "b": true
+                },
+                {
+                  "t": " wunderbar sein. Traditionell trinkt man aus kleinen Karaffen ("
+                },
+                {
+                  "t": "Tokkuri",
+                  "b": true
+                },
+                {
+                  "t": ") in kleine Schalen ("
+                },
+                {
+                  "t": "Choko",
+                  "b": true
+                },
+                {
+                  "t": "). Für feine Sake setzen sich "
+                },
+                {
+                  "t": "schlanke Weingläser",
+                  "b": true
+                },
+                {
+                  "t": " durch."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 11,
+          "titel": "Pairing, Lagerung und Haltbarkeit",
+          "text": "Wegen der Umami-Note harmoniert Sake mit Speisen, die dem Wein oft Probleme machen (Lektion 34): **Sushi und Sashimi**, **gegrillter Aal**, **Miso-Gerichte** und fermentierte japanische Küche. Leichte, trockene **Ginjo**-Stile passen zu zartem Fisch, kräftige **Junmai**-Stile zu gegrillten und würzigen Gerichten. Die meisten Sake sind **nicht zum langen Lagern gedacht**: kühl und dunkel aufbewahren, nach dem Öffnen im Kühlschrank und innerhalb **einiger Tage bis weniger Wochen** trinken.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Wegen der Umami-Note harmoniert Sake mit Speisen, die dem Wein oft Probleme machen (Lektion 34): "
+                },
+                {
+                  "t": "Sushi und Sashimi",
+                  "b": true
+                },
+                {
+                  "t": ", "
+                },
+                {
+                  "t": "gegrillter Aal",
+                  "b": true
+                },
+                {
+                  "t": ", "
+                },
+                {
+                  "t": "Miso-Gerichte",
+                  "b": true
+                },
+                {
+                  "t": " und fermentierte japanische Küche. Leichte, trockene "
+                },
+                {
+                  "t": "Ginjo",
+                  "b": true
+                },
+                {
+                  "t": "-Stile passen zu zartem Fisch, kräftige "
+                },
+                {
+                  "t": "Junmai",
+                  "b": true
+                },
+                {
+                  "t": "-Stile zu gegrillten und würzigen Gerichten. Die meisten Sake sind "
+                },
+                {
+                  "t": "nicht zum langen Lagern gedacht",
+                  "b": true
+                },
+                {
+                  "t": ": kühl und dunkel aufbewahren, nach dem Öffnen im Kühlschrank und innerhalb "
+                },
+                {
+                  "t": "einiger Tage bis weniger Wochen",
+                  "b": true
+                },
+                {
+                  "t": " trinken."
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "nr": 12,
+          "titel": "Merksatz",
+          "text": "Sake entsteht durch ein **Parallel-Verfahren**: **Koji** wandelt Stärke in Zucker, während **Hefe** zeitgleich vergärt. Der **Polierungsgrad** bestimmt maßgeblich die Qualitätsstufe (**Futsuushu bis Junmai Daiginjo**), **Wasser** prägt den regionalen Stil, und die **Serviertemperatur** richtet sich nach Qualität und Stil. Sake ist **frisch zu genießen**, nicht pauschal „heiß“.",
+          "blocks": [
+            {
+              "type": "p",
+              "segments": [
+                {
+                  "t": "Sake entsteht durch ein "
+                },
+                {
+                  "t": "Parallel-Verfahren",
+                  "b": true
+                },
+                {
+                  "t": ": "
+                },
+                {
+                  "t": "Koji",
+                  "b": true
+                },
+                {
+                  "t": " wandelt Stärke in Zucker, während "
+                },
+                {
+                  "t": "Hefe",
+                  "b": true
+                },
+                {
+                  "t": " zeitgleich vergärt. Der "
+                },
+                {
+                  "t": "Polierungsgrad",
+                  "b": true
+                },
+                {
+                  "t": " bestimmt maßgeblich die Qualitätsstufe ("
+                },
+                {
+                  "t": "Futsuushu bis Junmai Daiginjo",
+                  "b": true
+                },
+                {
+                  "t": "), "
+                },
+                {
+                  "t": "Wasser",
+                  "b": true
+                },
+                {
+                  "t": " prägt den regionalen Stil, und die "
+                },
+                {
+                  "t": "Serviertemperatur",
+                  "b": true
+                },
+                {
+                  "t": " richtet sich nach Qualität und Stil. Sake ist "
+                },
+                {
+                  "t": "frisch zu genießen",
+                  "b": true
+                },
+                {
+                  "t": ", nicht pauschal „heiß“."
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "quiz": [
+        {
+          "frage": "Was macht Koji im Sake-Herstellungsprozess?",
+          "optionen": [
+            "Es wandelt Reisstärke in Zucker um",
+            "Es filtert den fertigen Sake",
+            "Es vergärt Zucker zu Alkohol"
+          ],
+          "richtig": 0,
+          "erklaerung": "Hefe vergärt dann den Zucker. Beide Vorgänge laufen im Sake gleichzeitig im selben Tank ab."
+        },
+        {
+          "frage": "Was bedeutet ein niedriger Seimaibuai-Wert (zum Beispiel 50 %)?",
+          "optionen": [
+            "Der Reis wurde stark poliert, meist ein Zeichen für höhere Qualität",
+            "Der Reis wurde kaum poliert",
+            "Der Sake enthält besonders viel Alkohol"
+          ],
+          "richtig": 0,
+          "erklaerung": "Der Wert nennt den Prozentsatz, der vom Korn übrig bleibt. Je weniger, desto feiner meist der Sake."
+        },
+        {
+          "frage": "Was ist ein „Junmai“-Sake?",
+          "optionen": [
+            "Ein Sake mit zugesetztem Brennereialkohol",
+            "Ein Sake nur aus Reis, Wasser, Koji und Hefe ohne zugesetzten Alkohol",
+            "Ein unpasteurisierter Sake"
+          ],
+          "richtig": 1,
+          "erklaerung": "„Junmai“ heißt „reiner Reis“. Honjozo darf dagegen eine kleine Menge Brennereialkohol enthalten."
+        },
+        {
+          "frage": "Was ist „Nigori“-Sake?",
+          "optionen": [
+            "Grob filtrierter, trüber und oft cremiger Sake",
+            "Karbonisierter Sparkling Sake",
+            "Unpasteurisierter, frischer Sake"
+          ],
+          "richtig": 0,
+          "erklaerung": "Namazake ist unpasteurisiert, Nigori bezeichnet die Trübung durch Reisanteile."
+        },
+        {
+          "frage": "Wie wird hochwertiger Ginjo- oder Daiginjo-Sake meist serviert?",
+          "optionen": [
+            "Heiß",
+            "Gekühlt, um die feinen Aromen zu bewahren",
+            "Bei Zimmertemperatur, nie gekühlt"
+          ],
+          "richtig": 1,
+          "erklaerung": "Wärme würde die feinen Aromen überdecken. Warmer Sake ist eher bei einfacheren oder kräftigen Qualitäten üblich."
+        }
+      ],
+      "praxisaufgabe": "Probiere, falls möglich, einen Junmai- oder Ginjo-Sake gekühlt und beschreibe die Aromen. Vergleiche sie mit einem dir bekannten Weißwein. Wenn du Sushi oder ein anderes umami-reiches Gericht dazu isst, notiere, ob die Kombination besser funktioniert als mit Wein. Lies auch das Etikett: Findest du Qualitätsstufe, Polierungsgrad und Alkoholgehalt?"
+    }
+  ]
+}

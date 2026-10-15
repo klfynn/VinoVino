@@ -1,0 +1,32 @@
+[
+  {
+    "tier": 1,
+    "key": "tier1-novize",
+    "name": "Novize",
+    "lektionen": 9
+  },
+  {
+    "tier": 2,
+    "key": "tier2-entdecker",
+    "name": "Entdecker",
+    "lektionen": 12
+  },
+  {
+    "tier": 3,
+    "key": "tier3-kenner",
+    "name": "Kenner",
+    "lektionen": 13
+  },
+  {
+    "tier": 4,
+    "key": "tier4-sommelier",
+    "name": "Sommelier-Niveau",
+    "lektionen": 11
+  },
+  {
+    "tier": null,
+    "key": "bonus",
+    "name": "Bonus",
+    "lektionen": 2
+  }
+]
