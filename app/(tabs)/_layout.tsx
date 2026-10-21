@@ -65,10 +65,10 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="recipes"
+        name="academy"
         options={{
-          title: 'REZEPTE',
-          tabBarIcon: ({ color, size }) => <Ionicons name="restaurant-outline" size={size} color={color} />,
+          title: 'AKADEMIE',
+          tabBarIcon: ({ color, size }) => <Ionicons name="school-outline" size={size} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -80,6 +80,13 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="profile"
+        options={{
+          href: null,
+        }}
+      />
+      {/* Rezepte bleiben im Repo, sind aber nicht mehr in der Tab-Leiste verlinkt. */}
+      <Tabs.Screen
+        name="recipes"
         options={{
           href: null,
         }}
