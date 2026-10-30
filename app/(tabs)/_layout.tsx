@@ -21,8 +21,10 @@ function CartIcon({ color, size }: { color: string; size: number }) {
 
 export default function TabsLayout() {
   return (
+    // Die Tab-Farben sind immer Strings aus theme.ts; seit SDK 58 ist `color`
+    // als ColorValue typisiert, daher der Cast für die Icons.
+    // Der Start-Tab ergibt sich aus der Route "index" (initialRouteName gibt es nicht mehr).
     <Tabs
-      initialRouteName="index"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.accent,
@@ -46,14 +48,14 @@ export default function TabsLayout() {
         name="scanner"
         options={{
           title: 'SCANNER',
-          tabBarIcon: ({ color, size }) => <Ionicons name="scan-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="scan-outline" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
         name="watchlist"
         options={{
           title: 'SAMMLUNG',
-          tabBarIcon: ({ color, size }) => <Ionicons name="library-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="library-outline" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
@@ -61,27 +63,30 @@ export default function TabsLayout() {
         options={{
           title: 'ENTDECKEN',
           headerShown: false,
-          tabBarIcon: ({ color, size }) => <Ionicons name="wine-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="wine-outline" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
         name="academy"
         options={{
           title: 'AKADEMIE',
-          tabBarIcon: ({ color, size }) => <Ionicons name="school-outline" size={size} color={color} />,
+          tabBarIcon: ({ color, size }) => <Ionicons name="school-outline" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
         name="cart"
         options={{
           title: 'WARENKORB',
-          tabBarIcon: ({ color, size }) => <CartIcon color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => <CartIcon color={color as string} size={size} />,
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          href: null,
+          // Kein Tab-Button, aber weiter erreichbar (z. B. aus dem Warenkorb).
+          // `href: null` macht die Route ab SDK 58 unerreichbar.
+          tabBarItemStyle: { display: 'none' },
+          tabBarButton: () => null,
         }}
       />
       {/* Rezepte bleiben im Repo, sind aber nicht mehr in der Tab-Leiste verlinkt. */}

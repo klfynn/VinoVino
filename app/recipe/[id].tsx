@@ -228,7 +228,7 @@ const styles = StyleSheet.create({
     height: HEADER_HEIGHT,
   },
   heroGradient: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 10, 15, 0.45)',
   },
   backButtonWrapper: {
@@ -383,7 +383,7 @@ const styles = StyleSheet.create({
     height: 100,
   },
   wineCardOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 10, 15, 0.5)',
   },
   wineCardContent: {

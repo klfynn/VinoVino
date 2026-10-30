@@ -9,6 +9,7 @@ import {
   StyleSheet,
   StatusBar,
 } from 'react-native';
+import type { ScrollViewInstance } from 'react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useTutorial, TUTORIAL_SEEN_KEY } from '../../context/TutorialContext';
@@ -203,7 +204,7 @@ export default function OnboardingScreen() {
   const router = useRouter();
   const { startCoachMarks, finishCoachMarks } = useTutorial();
   const [currentSlide, setCurrentSlide] = useState(0);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ScrollViewInstance>(null);
 
   const goToSlide = (index: number) => {
     scrollRef.current?.scrollTo({ x: index * width, animated: true });

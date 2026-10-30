@@ -6,7 +6,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "vinovino",
-    "newArchEnabled": true,
     "splash": {
       "backgroundColor": "#1a0a0f",
       "resizeMode": "contain"
@@ -31,7 +30,9 @@
         {
           "cameraPermission": "VinoVino benötigt Kamerazugriff zum Scannen von Weinetiketten."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-status-bar"
     ]
   }
 }
