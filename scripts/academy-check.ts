@@ -251,8 +251,28 @@ eq(
   null,
 );
 eq(
-  'detectStreakEvent: Lücke von 2 Tagen ohne Freeze ist laut Regel kein Hinweis',
+  'detectStreakEvent: Abstand 2 Tage mit Freeze',
+  detectStreakEvent(snap(6, 8, '2026-10-28'), snap(7, 8, '2026-10-30')),
+  'freeze_used',
+);
+eq(
+  'detectStreakEvent: Abstand 2 Tage ohne Freeze',
   detectStreakEvent(snap(6, 8, '2026-10-28'), snap(1, 8, '2026-10-30')),
+  'reset',
+);
+eq(
+  'detectStreakEvent: Abstand 3 Tage',
+  detectStreakEvent(snap(6, 8, '2026-10-27'), snap(1, 8, '2026-10-30')),
+  'reset',
+);
+eq(
+  'detectStreakEvent: Abstand 2 Tage ohne Freeze über Monatswechsel',
+  detectStreakEvent(snap(6, 8, '2026-10-31'), snap(1, 8, '2026-11-02')),
+  'reset',
+);
+eq(
+  'detectStreakEvent: normaler Folgetag ist kein Reset',
+  detectStreakEvent(snap(2, 8, '2026-10-29'), snap(3, 8, '2026-10-30')),
   null,
 );
 eq(

@@ -31,7 +31,7 @@ export function detectStreakEvent(prev: StreakSnapshot | null, next: StreakSnaps
   const gap = daysBetween(prev.last_active_date, next.last_active_date);
   if (gap === null || gap <= 0) return null;
   if (gap === 2 && next.current_streak === prev.current_streak + 1) return 'freeze_used';
-  if (gap > 2 && prev.current_streak > 1 && next.current_streak === 1) return 'reset';
+  if (gap >= 2 && prev.current_streak > 1 && next.current_streak === 1) return 'reset';
   if (next.current_streak === next.longest_streak && next.longest_streak > prev.longest_streak) return 'record';
   return null;
 }
