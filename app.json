@@ -6,10 +6,6 @@
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "vinovino",
-    "splash": {
-      "backgroundColor": "#1a0a0f",
-      "resizeMode": "contain"
-    },
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.vinovino.app"
@@ -32,7 +28,14 @@
         }
       ],
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#1a0a0f",
+          "resizeMode": "contain"
+        }
+      ]
     ]
   }
 }

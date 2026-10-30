@@ -12,6 +12,47 @@ export function ProgressBar({ done, total, style }: { done: number; total: numbe
   );
 }
 
+export function PrimaryButton({
+  label,
+  onPress,
+  disabled,
+  variant = 'filled',
+  style,
+}: {
+  label: string;
+  onPress: () => void;
+  disabled?: boolean;
+  variant?: 'filled' | 'outline' | 'ghost';
+  style?: object;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: !!disabled }}
+      style={[
+        styles.button,
+        variant === 'filled' && styles.buttonFilled,
+        variant === 'outline' && styles.buttonOutline,
+        disabled && styles.buttonDisabled,
+        style,
+      ]}
+    >
+      <Text
+        style={[
+          styles.buttonText,
+          variant === 'filled' ? styles.buttonTextFilled : styles.buttonTextOutline,
+          variant === 'ghost' && styles.buttonTextGhost,
+        ]}
+      >
+        {label}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
 export function BackButton({ onPress }: { onPress: () => void }) {
   return (
     <TouchableOpacity
@@ -71,6 +112,37 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 2,
     backgroundColor: colors.accent,
+  },
+  button: {
+    minHeight: 48,
+    borderRadius: radii.lg,
+    paddingHorizontal: spacing.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonFilled: {
+    backgroundColor: colors.accent,
+  },
+  buttonOutline: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+  },
+  buttonDisabled: {
+    opacity: 0.35,
+  },
+  buttonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    letterSpacing: 1,
+  },
+  buttonTextFilled: {
+    color: colors.background,
+  },
+  buttonTextOutline: {
+    color: colors.accent,
+  },
+  buttonTextGhost: {
+    color: colors.textMuted,
   },
   backButton: {
     width: 40,

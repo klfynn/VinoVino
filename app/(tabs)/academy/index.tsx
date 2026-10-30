@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   Dimensions,
+  Easing,
   NativeScrollEvent,
   NativeSyntheticEvent,
   ScrollView,
@@ -27,13 +28,16 @@ import {
 import { useAcademyProgress } from '../../../lib/academy/useAcademyProgress';
 import { useAcademyStreak } from '../../../lib/academy/useAcademyStreak';
 import { ErrorState, LoadingState, ProgressBar } from '../../../components/academy/AcademyUI';
+import StreakModal, { FREEZE_COLOR } from '../../../components/academy/StreakModal';
+import { loadSeenUnlocks, markUnlocksSeen } from '../../../lib/academy/seenUnlocks';
+import { streakEventText } from '../../../lib/academy/streakEvents';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = Math.round(SCREEN_WIDTH * 0.78);
 const CARD_GAP = 14;
 const SNAP_INTERVAL = CARD_WIDTH + CARD_GAP;
 const SIDE_PADDING = (SCREEN_WIDTH - CARD_WIDTH) / 2 - CARD_GAP / 2;
-const FREEZE_COLOR = '#b8d8e8';
+const PULSE_COLOR = '#ecd6a4';
 
 function lockedHint(tier: Tier): string {
   return `Schließe zuerst alle Pflichtlektionen von Tier ${(tier.tier ?? 1) - 1} ab`;
@@ -44,14 +48,21 @@ function lockedHint(tier: Tier): string {
 function StreakBadge({
   currentStreak,
   freezeAvailable,
+  onPress,
 }: {
   currentStreak: number | null;
   freezeAvailable: boolean;
+  onPress: () => void;
 }) {
   const active = currentStreak !== null && currentStreak > 0;
   return (
-    <View
+    <TouchableOpacity
       style={styles.streak}
+      onPress={onPress}
+      activeOpacity={0.75}
+      hitSlop={8}
+      accessibilityRole="button"
+      accessibilityHint="Zeigt Details zu deinem Streak"
       accessibilityLabel={
         currentStreak === null
           ? 'Streak nicht verfügbar'
@@ -63,7 +74,7 @@ function StreakBadge({
         <Text style={styles.streakText}>{currentStreak === null ? '–' : currentStreak}</Text>
       </View>
       {freezeAvailable && <Ionicons name="snow-outline" size={16} color={FREEZE_COLOR} style={styles.freeze} />}
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -74,12 +85,14 @@ function TierCard({
   index,
   scrollX,
   completedIds,
+  pulse,
   onPress,
 }: {
   tier: Tier;
   index: number;
   scrollX: Animated.Value;
   completedIds: Set<string>;
+  pulse: Animated.Value | null;
   onPress: (tier: Tier, unlocked: boolean) => void;
 }) {
   const unlocked = isTierUnlocked(tier, completedIds);
@@ -123,6 +136,7 @@ function TierCard({
             {!unlocked && <Text style={styles.lockedHint}>{lockedHint(tier)}</Text>}
           </View>
         </View>
+        {pulse && <Animated.View pointerEvents="none" style={[styles.cardPulse, { opacity: pulse }]} />}
       </TouchableOpacity>
     </Animated.View>
   );
@@ -147,22 +161,31 @@ function Dots({ count, scrollX }: { count: number; scrollX: Animated.Value }) {
 
 export default function AcademyScreen() {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const userId = user?.id ?? null;
   const { completedIds, loading, error, refresh } = useAcademyProgress();
-  const { currentStreak, freezeAvailable } = useAcademyStreak();
+  const { currentStreak, longestStreak, freezeAvailable, notice } = useAcademyStreak();
+  const [streakOpen, setStreakOpen] = useState(false);
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const scrollRef = useRef<ScrollViewInstance>(null);
   const didInitialScroll = useRef(false);
   const isFirstFocus = useRef(true);
 
-  const [hint, setHint] = useState<string | null>(null);
+  const [hint, setHint] = useState<{ text: string; icon: keyof typeof Ionicons.glyphMap } | null>(null);
   const hintOpacity = useRef(new Animated.Value(0)).current;
   const hintTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Frisch freigeschaltete Tier-Karte pulsiert einmal (gleicher Merker wie die Überlagerung).
+  const pulse = useRef(new Animated.Value(0)).current;
+  const [pulseKey, setPulseKey] = useState<string | null>(null);
+  const pulsedKeys = useRef(new Set<string>());
+  const [focusTick, setFocusTick] = useState(0);
 
   // Fortschritt beim Zurückkehren still aktualisieren (erstes Laden macht der Hook selbst).
   useFocusEffect(
     useCallback(() => {
+      setFocusTick((t) => t + 1);
       if (isFirstFocus.current) {
         isFirstFocus.current = false;
         return;
@@ -189,18 +212,61 @@ export default function AcademyScreen() {
   }, [startIndex, loading, error, scrollX]);
 
   const showHint = useCallback(
-    (text: string) => {
-      setHint(text);
+    (text: string, icon: keyof typeof Ionicons.glyphMap = 'lock-closed-outline', duration = 2600) => {
+      setHint({ text, icon });
       if (hintTimer.current) clearTimeout(hintTimer.current);
       Animated.timing(hintOpacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
       hintTimer.current = setTimeout(() => {
         Animated.timing(hintOpacity, { toValue: 0, duration: 260, useNativeDriver: true }).start(() =>
           setHint(null),
         );
-      }, 2600);
+      }, duration);
     },
     [hintOpacity],
   );
+
+  // Streak-Ereignis (Freeze verbraucht, Reset, Rekord): einmal pro Öffnen ein dezenter Hinweis.
+  useEffect(() => {
+    if (!notice) return;
+    const icon =
+      notice.event === 'freeze_used' ? 'snow-outline' : notice.event === 'record' ? 'trophy-outline' : 'flame-outline';
+    showHint(streakEventText(notice.event, notice.streak), icon, 4000);
+  }, [notice, showHint]);
+
+  useEffect(() => {
+    if (loading || error) return;
+    let active = true;
+    (async () => {
+      const seen = await loadSeenUnlocks(userId);
+      if (!active) return;
+      const due = TIERS.filter(
+        (t) =>
+          seen.overlay.includes(t.key) &&
+          !seen.pulse.includes(t.key) &&
+          !pulsedKeys.current.has(t.key) &&
+          isTierUnlocked(t, completedIds),
+      );
+      if (due.length === 0) return;
+      due.forEach((t) => pulsedKeys.current.add(t.key));
+      markUnlocksSeen(userId, 'pulse', due.map((t) => t.key));
+
+      const target = due[0];
+      // Ist die Startposition schon gesetzt, sanft zur Karte scrollen; sonst springt jumpToStart dorthin.
+      if (didInitialScroll.current) {
+        scrollRef.current?.scrollTo({ x: TIERS.indexOf(target) * SNAP_INTERVAL, animated: true });
+      }
+      setPulseKey(target.key);
+      pulse.setValue(0);
+      Animated.sequence([
+        Animated.delay(450),
+        Animated.timing(pulse, { toValue: 1, duration: 450, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 0, duration: 700, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ]).start(() => setPulseKey(null));
+    })();
+    return () => {
+      active = false;
+    };
+  }, [focusTick, loading, error, completedIds, userId, pulse]);
 
   const handleCardPress = useCallback(
     (tier: Tier, unlocked: boolean) => {
@@ -232,7 +298,11 @@ export default function AcademyScreen() {
           <Text style={styles.headerTitle}>Wein-Akademie</Text>
           <Text style={styles.headerSub}>Vom Novizen zum Sommelier-Niveau</Text>
         </View>
-        <StreakBadge currentStreak={currentStreak} freezeAvailable={freezeAvailable} />
+        <StreakBadge
+          currentStreak={currentStreak}
+          freezeAvailable={freezeAvailable}
+          onPress={() => setStreakOpen(true)}
+        />
       </View>
 
       {loading ? (
@@ -260,6 +330,7 @@ export default function AcademyScreen() {
                 index={i}
                 scrollX={scrollX}
                 completedIds={completedIds}
+                pulse={pulseKey === tier.key ? pulse : null}
                 onPress={handleCardPress}
               />
             ))}
@@ -270,13 +341,21 @@ export default function AcademyScreen() {
           <View style={styles.hintArea}>
             {hint && (
               <Animated.View style={[styles.hint, { opacity: hintOpacity }]}>
-                <Ionicons name="lock-closed-outline" size={14} color={colors.accent} />
-                <Text style={styles.hintText}>{hint}</Text>
+                <Ionicons name={hint.icon} size={14} color={colors.accent} />
+                <Text style={styles.hintText}>{hint.text}</Text>
               </Animated.View>
             )}
           </View>
         </View>
       )}
+
+      <StreakModal
+        visible={streakOpen}
+        currentStreak={currentStreak}
+        longestStreak={longestStreak}
+        freezeAvailable={freezeAvailable}
+        onClose={() => setStreakOpen(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -362,6 +441,16 @@ const styles = StyleSheet.create({
   },
   cardLocked: {
     borderColor: colors.border,
+  },
+  cardPulse: {
+    position: 'absolute',
+    top: -1,
+    left: -1,
+    right: -1,
+    bottom: -1,
+    borderRadius: radii.xl,
+    borderWidth: 2,
+    borderColor: PULSE_COLOR,
   },
   cardContent: {
     flex: 1,
