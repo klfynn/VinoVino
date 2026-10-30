@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "noEmit": false,
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "customConditions": null,
+    "outDir": "../node_modules/.cache/academy-check",
+    "rootDir": ".."
+  },
+  "include": ["academy-check.ts"]
+}

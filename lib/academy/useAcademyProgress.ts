@@ -51,7 +51,7 @@ export function useAcademyProgress() {
   /**
    * Speichert eine abgeschlossene Lektion (Upsert auf user_id + lesson_id).
    * best_score = Maximum aus altem und neuem Wert, attempts + 1.
-   * Wird erst in Teil 2 (Quiz) aufgerufen.
+   * completed_at wird nur beim ersten Abschluss gesetzt und danach beibehalten.
    */
   const markCompleted = useCallback(
     async (lessonId: string, score: number): Promise<{ ok: boolean; error?: string }> => {
@@ -59,19 +59,19 @@ export function useAcademyProgress() {
       try {
         const { data: existing, error: readError } = await supabase
           .from('academy_progress')
-          .select('lesson_id, best_score, attempts')
+          .select('lesson_id, best_score, attempts, completed_at')
           .eq('user_id', userId)
           .eq('lesson_id', lessonId)
           .maybeSingle();
         if (readError) throw readError;
 
-        const prev = existing as ProgressRow | null;
+        const prev = existing as (ProgressRow & { completed_at: string | null }) | null;
         const next = {
           user_id: userId,
           lesson_id: lessonId,
           best_score: Math.max(prev?.best_score ?? 0, score),
           attempts: prev ? prev.attempts + 1 : 1,
-          completed_at: new Date().toISOString(),
+          completed_at: prev?.completed_at ?? new Date().toISOString(),
         };
 
         const { error: writeError } = await supabase

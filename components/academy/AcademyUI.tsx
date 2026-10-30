@@ -26,6 +26,20 @@ export function BackButton({ onPress }: { onPress: () => void }) {
   );
 }
 
+export function CloseButton({ onPress }: { onPress: () => void }) {
+  return (
+    <TouchableOpacity
+      style={styles.backButton}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Schließen"
+      hitSlop={8}
+    >
+      <Ionicons name="close" size={22} color={colors.text} />
+    </TouchableOpacity>
+  );
+}
+
 export function LoadingState() {
   return (
     <View style={styles.center}>
