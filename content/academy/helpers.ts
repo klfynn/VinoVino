@@ -17,6 +17,14 @@ export function getTierOfLektion(id: string): Tier | undefined {
   return LEKTION_INDEX.get(id)?.tier;
 }
 
+/** Nächste Lektion im selben Tier (Reihenfolge der Datei), sonst `undefined`. */
+export function nextLektion(id: string): Lektion | undefined {
+  const tier = getTierOfLektion(id);
+  if (!tier) return undefined;
+  const index = tier.lektionen.findIndex((l) => l.id === id);
+  return index >= 0 ? tier.lektionen[index + 1] : undefined;
+}
+
 /** Alle Lektionen eines Tiers mit `optional === false`. */
 export function pflichtLektionen(tier: Tier): Lektion[] {
   return tier.lektionen.filter((l) => l.optional === false);

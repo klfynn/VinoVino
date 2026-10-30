@@ -13,11 +13,13 @@ import { BackButton, ErrorState, LoadingState, ProgressBar } from '../../../../c
 function LessonRow({
   lektion,
   completed,
+  score,
   disabled,
   onPress,
 }: {
   lektion: Lektion;
   completed: boolean;
+  score?: number;
   disabled: boolean;
   onPress: () => void;
 }) {
@@ -42,7 +44,14 @@ function LessonRow({
         <Text style={styles.rowTitle}>{lektion.titel}</Text>
       </View>
       {completed ? (
-        <Ionicons name="checkmark-circle" size={22} color={colors.like} />
+        <View style={styles.rowDone}>
+          {score !== undefined && (
+            <Text style={styles.rowScore}>
+              {score}/{lektion.quiz.length}
+            </Text>
+          )}
+          <Ionicons name="checkmark-circle" size={22} color={colors.like} />
+        </View>
       ) : (
         <Ionicons name="chevron-forward" size={18} color={colors.accentMuted} />
       )}
@@ -54,7 +63,7 @@ export default function TierDetailScreen() {
   const { key } = useLocalSearchParams<{ key: string }>();
   const router = useRouter();
   const tier = key ? getTier(key) : undefined;
-  const { completedIds, loading, error, refresh } = useAcademyProgress();
+  const { completedIds, scores, loading, error, refresh } = useAcademyProgress();
 
   const isFirstFocus = useRef(true);
   useFocusEffect(
@@ -126,6 +135,7 @@ export default function TierDetailScreen() {
             <LessonRow
               lektion={item}
               completed={completedIds.has(item.id)}
+              score={scores[item.id]}
               disabled={!unlocked}
               onPress={() => router.push({ pathname: '/academy/lesson/[id]', params: { id: item.id } })}
             />
@@ -228,6 +238,16 @@ const styles = StyleSheet.create({
   optionalText: {
     color: colors.accentMuted,
     fontSize: 10,
+    letterSpacing: 0.5,
+  },
+  rowDone: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  rowScore: {
+    color: colors.textMuted,
+    fontSize: 13,
     letterSpacing: 0.5,
   },
   rowTitle: {
