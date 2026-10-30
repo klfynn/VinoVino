@@ -23,8 +23,12 @@ import { getLektion, getTierOfLektion, lektionLabel, nextLektion } from '../../.
 import { isTierUnlocked } from '../../../../lib/academy/unlock';
 import { useAcademyProgress } from '../../../../lib/academy/useAcademyProgress';
 import { ergebnisText, newlyUnlockedTiers, QuizErgebnis, scoreQuiz } from '../../../../lib/academy/lesson';
-import { CloseButton, ErrorState, LoadingState, ProgressBar } from '../../../../components/academy/AcademyUI';
+import { CloseButton, ErrorState, LoadingState, PrimaryButton, ProgressBar } from '../../../../components/academy/AcademyUI';
 import RichText, { InlineText } from '../../../../components/academy/RichText';
+import UnlockModal from '../../../../components/academy/UnlockModal';
+import { useQuizDraft } from '../../../../lib/academy/useQuizDraft';
+import { resumeIndex } from '../../../../lib/academy/quizDraft';
+import { loadSeenUnlocks, markUnlocksSeen } from '../../../../lib/academy/seenUnlocks';
 
 type Phase = 'slides' | 'quiz' | 'ergebnis';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'anonym';
@@ -75,47 +79,6 @@ function Header({
   );
 }
 
-function PrimaryButton({
-  label,
-  onPress,
-  disabled,
-  variant = 'filled',
-  style,
-}: {
-  label: string;
-  onPress: () => void;
-  disabled?: boolean;
-  variant?: 'filled' | 'outline' | 'ghost';
-  style?: object;
-}) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      disabled={disabled}
-      activeOpacity={0.8}
-      accessibilityRole="button"
-      accessibilityState={{ disabled: !!disabled }}
-      style={[
-        styles.button,
-        variant === 'filled' && styles.buttonFilled,
-        variant === 'outline' && styles.buttonOutline,
-        disabled && styles.buttonDisabled,
-        style,
-      ]}
-    >
-      <Text
-        style={[
-          styles.buttonText,
-          variant === 'filled' ? styles.buttonTextFilled : styles.buttonTextOutline,
-          variant === 'ghost' && styles.buttonTextGhost,
-        ]}
-      >
-        {label}
-      </Text>
-    </TouchableOpacity>
-  );
-}
-
 function Notice({ icon, text, onBack }: { icon: keyof typeof Ionicons.glyphMap; text: string; onBack: () => void }) {
   return (
     <View style={styles.notice}>
@@ -135,7 +98,9 @@ function SlideCard({
   scrollX,
   lektion,
   bestScore,
+  resumeAt,
   onStartQuiz,
+  onResumeQuiz,
 }: {
   page: Page;
   index: number;
@@ -143,7 +108,9 @@ function SlideCard({
   scrollX: Animated.Value;
   lektion: Lektion;
   bestScore: number | null;
+  resumeAt: number | null;
   onStartQuiz: () => void;
+  onResumeQuiz: () => void;
 }) {
   const inputRange = [(index - 1) * size.width, index * size.width, (index + 1) * size.width];
   const opacity = scrollX.interpolate({ inputRange, outputRange: [0.35, 1, 0.35], extrapolate: 'clamp' });
@@ -181,7 +148,18 @@ function SlideCard({
                 Bestwert: {bestScore} / {lektion.quiz.length}
               </Text>
             )}
-            <PrimaryButton label="Quiz starten" onPress={onStartQuiz} style={styles.introButton} />
+            {resumeAt !== null ? (
+              <>
+                <PrimaryButton
+                  label={`Quiz fortsetzen (Frage ${resumeAt} von ${lektion.quiz.length})`}
+                  onPress={onResumeQuiz}
+                  style={styles.introButton}
+                />
+                <PrimaryButton label="Neu beginnen" variant="ghost" onPress={onStartQuiz} style={styles.introSecondary} />
+              </>
+            ) : (
+              <PrimaryButton label="Quiz starten" onPress={onStartQuiz} style={styles.introButton} />
+            )}
           </View>
         )}
       </Animated.View>
@@ -194,13 +172,17 @@ function SlidesPhase({
   index,
   onIndexChange,
   bestScore,
+  resumeAt,
   onStartQuiz,
+  onResumeQuiz,
 }: {
   lektion: Lektion;
   index: number;
   onIndexChange: (index: number) => void;
   bestScore: number | null;
+  resumeAt: number | null;
   onStartQuiz: () => void;
+  onResumeQuiz: () => void;
 }) {
   const pages = useMemo<Page[]>(
     () => [...lektion.slides.map((slide) => ({ kind: 'slide' as const, slide })), { kind: 'intro' as const }],
@@ -280,7 +262,9 @@ function SlidesPhase({
                 scrollX={scrollX}
                 lektion={lektion}
                 bestScore={bestScore}
+                resumeAt={resumeAt}
                 onStartQuiz={onStartQuiz}
+                onResumeQuiz={onResumeQuiz}
               />
             )}
           />
@@ -499,8 +483,10 @@ function LessonFlow({
   goToOverview: () => void;
 }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  const userId = user?.id ?? null;
   const { completedIds, scores, markCompleted } = progress;
+  const { draft, save: saveDraft, clear: clearDraft } = useQuizDraft(lektion.id, lektion.quiz);
   const fragenCount = lektion.quiz.length;
 
   const [phase, setPhase] = useState<Phase>('slides');
@@ -510,19 +496,27 @@ function LessonFlow({
   const [ergebnis, setErgebnis] = useState<QuizErgebnis | null>(null);
   const [saveState, setSaveState] = useState<SaveState>('idle');
   const [unlocked, setUnlocked] = useState<Tier[]>([]);
+  const [unlockModal, setUnlockModal] = useState<Tier | null>(null);
   const saving = useRef(false);
+  // Spiegel der Antworten für synchrone Prüfungen (Doppeltipp) und den Zwischenspeicher.
+  const answersRef = useRef(answers);
+
+  const setAllAnswers = useCallback((next: (number | null)[]) => {
+    answersRef.current = next;
+    setAnswers(next);
+  }, []);
 
   const completed = completedIds.has(lektion.id);
   const bestScore = completed ? scores[lektion.id] ?? 0 : null;
   const next = useMemo(() => nextLektion(lektion.id), [lektion.id]);
 
   // Verlassen mitten im Quiz (X, Zurück-Geste, Android-Zurück) nur nach Bestätigung.
+  // Der Zwischenstand liegt bereits lokal; die Datenbank wird hier nicht verändert.
   usePreventRemove(phase === 'quiz', ({ repeat }) => {
-    Alert.alert('Quiz abbrechen?', 'Dein Fortschritt in diesem Durchlauf geht verloren.', [
+    Alert.alert('Quiz pausieren?', 'Dein Zwischenstand bleibt gespeichert.', [
       { text: 'Weiter üben', style: 'cancel' },
       {
-        text: 'Abbrechen',
-        style: 'destructive',
+        text: 'Pausieren',
         onPress: () => {
           setPhase('slides');
           repeat();
@@ -531,14 +525,29 @@ function LessonFlow({
     ]);
   });
 
+  const enterQuiz = useCallback(
+    (initial: (number | null)[], index: number) => {
+      setAllAnswers(initial);
+      setQuizIndex(index);
+      setErgebnis(null);
+      setUnlocked([]);
+      setSaveState('idle');
+      setPhase('quiz');
+    },
+    [setAllAnswers],
+  );
+
+  // Neuer Durchlauf ab Frage 1 („Quiz starten", „Neu beginnen", „Quiz wiederholen").
   const startQuiz = useCallback(() => {
-    setAnswers(lektion.quiz.map(() => null));
-    setQuizIndex(0);
-    setErgebnis(null);
-    setUnlocked([]);
-    setSaveState('idle');
-    setPhase('quiz');
-  }, [lektion]);
+    clearDraft();
+    enterQuiz(lektion.quiz.map(() => null), 0);
+  }, [lektion, clearDraft, enterQuiz]);
+
+  // Fortsetzen ab der ersten unbeantworteten Frage; bisherige Antworten zählen mit.
+  const resumeQuiz = useCallback(() => {
+    if (!draft) return startQuiz();
+    enterQuiz([...draft.answers], resumeIndex(draft.answers));
+  }, [draft, startQuiz, enterQuiz]);
 
   const save = useCallback(
     async (score: number) => {
@@ -553,25 +562,35 @@ function LessonFlow({
       const result = await markCompleted(lektion.id, score);
       saving.current = false;
       if (result.ok) {
-        setUnlocked(newlyUnlockedTiers(before, new Set([...before, lektion.id])));
+        const fresh = newlyUnlockedTiers(before, new Set([...before, lektion.id]));
+        setUnlocked(fresh);
         setSaveState('saved');
+        if (fresh.length > 0) {
+          // Überlagerung nur einmal je Tier; danach genügt die Textzeile.
+          const seen = await loadSeenUnlocks(userId);
+          const first = fresh.find((t) => !seen.overlay.includes(t.key));
+          if (first) {
+            setUnlockModal(first);
+            markUnlocksSeen(userId, 'overlay', [first.key]);
+          }
+        }
       } else {
         setSaveState('error');
       }
     },
-    [isAuthenticated, completedIds, markCompleted, lektion.id],
+    [isAuthenticated, completedIds, markCompleted, lektion.id, userId],
   );
 
   const answer = useCallback(
     (option: number) => {
-      setAnswers((current) => {
-        if (current[quizIndex] !== null) return current; // gesperrt nach der ersten Auswahl
-        const copy = [...current];
-        copy[quizIndex] = option;
-        return copy;
-      });
+      const current = answersRef.current;
+      if (current[quizIndex] !== null) return; // gesperrt nach der ersten Auswahl
+      const copy = [...current];
+      copy[quizIndex] = option;
+      setAllAnswers(copy);
+      saveDraft(copy);
     },
-    [quizIndex],
+    [quizIndex, setAllAnswers, saveDraft],
   );
 
   const nextQuestion = useCallback(() => {
@@ -579,11 +598,12 @@ function LessonFlow({
       setQuizIndex(quizIndex + 1);
       return;
     }
-    const result = scoreQuiz(lektion.quiz, answers);
+    const result = scoreQuiz(lektion.quiz, answersRef.current);
+    clearDraft();
     setErgebnis(result);
     setPhase('ergebnis');
     save(result.richtig);
-  }, [quizIndex, fragenCount, lektion.quiz, answers, save]);
+  }, [quizIndex, fragenCount, lektion.quiz, clearDraft, save]);
 
   const handleClose = useCallback(() => {
     // Im Quiz greift usePreventRemove und fragt nach.
@@ -607,7 +627,9 @@ function LessonFlow({
           index={slideIndex}
           onIndexChange={setSlideIndex}
           bestScore={bestScore}
+          resumeAt={draft ? resumeIndex(draft.answers) + 1 : null}
           onStartQuiz={startQuiz}
+          onResumeQuiz={resumeQuiz}
         />
       )}
 
@@ -636,6 +658,15 @@ function LessonFlow({
           onOverview={goToOverview}
         />
       )}
+
+      <UnlockModal
+        tier={unlockModal}
+        onClose={() => setUnlockModal(null)}
+        onOpenTier={(t) => {
+          setUnlockModal(null);
+          router.replace({ pathname: '/academy/tier/[key]', params: { key: t.key } });
+        }}
+      />
     </>
   );
 }
@@ -752,39 +783,6 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xs,
   },
 
-  // Buttons
-  button: {
-    minHeight: 48,
-    borderRadius: radii.lg,
-    paddingHorizontal: spacing.lg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  buttonFilled: {
-    backgroundColor: colors.accent,
-  },
-  buttonOutline: {
-    borderWidth: 1,
-    borderColor: colors.accent,
-  },
-  buttonDisabled: {
-    opacity: 0.35,
-  },
-  buttonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    letterSpacing: 1,
-  },
-  buttonTextFilled: {
-    color: colors.background,
-  },
-  buttonTextOutline: {
-    color: colors.accent,
-  },
-  buttonTextGhost: {
-    color: colors.textMuted,
-  },
-
   // Hinweise (nicht gefunden / gesperrt)
   notice: {
     flex: 1,
@@ -871,6 +869,10 @@ const styles = StyleSheet.create({
   },
   introButton: {
     marginTop: spacing.xl,
+    alignSelf: 'stretch',
+  },
+  introSecondary: {
+    marginTop: spacing.sm,
     alignSelf: 'stretch',
   },
   slideFooter: {
