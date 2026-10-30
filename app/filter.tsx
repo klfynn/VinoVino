@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
+import type { HostInstance } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import {
@@ -29,7 +30,7 @@ interface SliderProps {
 }
 
 function SimpleSlider({ value, min, max, step = 1, onValueChange }: SliderProps) {
-  const trackRef = React.useRef<View>(null);
+  const trackRef = React.useRef<HostInstance>(null);
   const metrics = React.useRef({ width: 1, pageX: 0 });
 
   const pct = (value - min) / (max - min);
