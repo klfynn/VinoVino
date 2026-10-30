@@ -1,11 +1,11 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ColorValue } from 'react-native';
 import { colors } from '../../theme';
 import { useApp } from '../../context/AppContext';
 
-function CartIcon({ color, size }: { color: string; size: number }) {
+function CartIcon({ color, size }: { color: ColorValue; size: number }) {
   const { cartCount } = useApp();
   return (
     <View>

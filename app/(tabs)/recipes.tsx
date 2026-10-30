@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
   },
   cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(26, 10, 15, 0.55)',
   },
   cardContent: {
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
   },
   // Filter Modal
   modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   filterSheet: {

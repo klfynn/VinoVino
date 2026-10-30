@@ -30,7 +30,9 @@
         {
           "cameraPermission": "VinoVino benötigt Kamerazugriff zum Scannen von Weinetiketten."
         }
-      ]
+      ],
+      "expo-font",
+      "expo-status-bar"
     ]
   }
 }

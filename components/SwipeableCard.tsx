@@ -173,7 +173,7 @@ export function SwipeableCard({
 
 const styles = StyleSheet.create({
   card: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: radii.xl,
     overflow: 'hidden',
   },
