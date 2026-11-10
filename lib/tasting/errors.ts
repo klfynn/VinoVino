@@ -7,7 +7,9 @@ export const TABLE_MISSING_MESSAGE =
 export const NO_PERMISSION_MESSAGE =
   'Keine Berechtigung für diese Verkostung. Bitte melde dich erneut an.';
 export const WINE_NOT_IN_DB_MESSAGE =
-  'Dieser Wein ist nicht im Weinkatalog der Datenbank gespeichert. Verkostungen können bisher nur für Katalogweine gespeichert werden.';
+  'Dieser Wein ist nicht in der Datenbank gespeichert. Verkostungen gibt es für Weine aus dem Shop und für eigene Weine im Weinkeller.';
+export const MIGRATION_CUSTOM_WINES_MESSAGE =
+  'Die eigenen Weine sind in der Datenbank noch nicht eingerichtet. Bitte die Migration „custom_wines“ in Supabase ausführen.';
 export const INVALID_DATA_MESSAGE = 'Die Verkostung enthält ungültige Werte und wurde nicht gespeichert.';
 
 function errorCode(err: unknown): string {
@@ -31,11 +33,15 @@ export function tastingErrorMessage(err: unknown, fallback: string): string {
   if (code === '42P01' || code === 'PGRST205' || (text.includes('tasting_notes') && text.includes('does not exist'))) {
     return TABLE_MISSING_MESSAGE;
   }
+  // Spalte custom_wine_id fehlt (Migration custom_wines nicht ausgeführt)
+  if (code === '42703' || code === 'PGRST204' || text.includes('custom_wine_id')) {
+    return MIGRATION_CUSTOM_WINES_MESSAGE;
+  }
   // RLS oder fehlende Rechte
   if (code === '42501' || text.includes('row-level security') || text.includes('permission denied')) {
     return NO_PERMISSION_MESSAGE;
   }
-  // Fremdschlüssel: Wein oder Weinkeller-Eintrag existiert nicht
+  // Fremdschlüssel: Wein, eigener Wein oder Weinkeller-Eintrag existiert nicht
   if (code === '23503') return WINE_NOT_IN_DB_MESSAGE;
   // Check-Constraint (zum Beispiel Stufe oder Größe von data)
   if (code === '23514' || code === '22P02') return INVALID_DATA_MESSAGE;

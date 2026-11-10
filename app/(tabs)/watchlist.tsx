@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,16 +19,25 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
 import { useCellar, CellarWine } from '../../context/CellarContext';
-import { useAuth } from '../../context/AuthContext';
 import { QuantityModal } from '../../components/QuantityModal';
+import {
+  CustomWineFields,
+  CustomWineFormState,
+  EditCustomWineModal,
+  EMPTY_CUSTOM_WINE_FORM,
+} from '../../components/CustomWineForm';
+import { cellarSubtitle } from '../../lib/cellar/merge';
+import type { CellarResult } from '../../lib/cellar/types';
+// Hinweis: Die Katalogauswahl im „+“-Dialog stammt weiterhin aus der lokalen Testliste.
 import { wines as ALL_WINES } from '../../data/wines';
-import { Wine, WineType, Review } from '../../types';
+import { Wine, WineType } from '../../types';
 import { colors, radii, spacing } from '../../theme';
 
 // ── Sorting helpers ───────────────────────────────────────────────────────────
 
 const WINE_TYPE_ORDER: WineType[] = ['Rotwein', 'Weißwein', 'Roséwein', 'Schaumwein', 'Süßwein'];
-const TASTE_ORDER = ['Trocken', 'Halbtrocken', 'Lieblich'];
+// '' = ohne Geschmacksangabe (z. B. eigene Weine); Abschnitt nur mit der Weinart.
+const TASTE_ORDER = ['Trocken', 'Halbtrocken', 'Lieblich', ''];
 
 const WINE_TYPE_EMOJI: Record<string, string> = {
   Rotwein: '🍷',
@@ -39,10 +48,15 @@ const WINE_TYPE_EMOJI: Record<string, string> = {
 };
 
 function getTasteGroup(taste: string[]): string {
+  if (taste.length === 0) return '';
   const lower = taste.map((t) => t.toLowerCase());
   if (lower.some((t) => ['lieblich', 'süß', 'süßlich'].includes(t))) return 'Lieblich';
   if (lower.some((t) => ['halbtrocken', 'feinherb', 'mild'].includes(t))) return 'Halbtrocken';
   return 'Trocken';
+}
+
+function sectionLabel(type: WineType, taste: string): string {
+  return `${WINE_TYPE_EMOJI[type] || '🍷'} ${type}${taste ? ` · ${taste}` : ''}`;
 }
 
 type WineSection = { key: string; label: string; data: Wine[] };
@@ -62,7 +76,7 @@ function groupWines(wines: Wine[]): WineSection[] {
       const key = `${type}__${taste}`;
       const data = grouped.get(key);
       if (data && data.length > 0) {
-        sections.push({ key, label: `${WINE_TYPE_EMOJI[type] || '🍷'} ${type} · ${taste}`, data });
+        sections.push({ key, label: sectionLabel(type, taste), data });
       }
     }
   }
@@ -83,7 +97,7 @@ function groupCellarWines(cellarWines: CellarWine[]): CellarSection[] {
       const key = `${type}__${taste}`;
       const data = grouped.get(key);
       if (data && data.length > 0) {
-        sections.push({ key, label: `${WINE_TYPE_EMOJI[type] || '🍷'} ${type} · ${taste}`, data });
+        sections.push({ key, label: sectionLabel(type, taste), data });
       }
     }
   }
@@ -147,21 +161,42 @@ function CellarCard({
   onEditQty,
   onRemove,
   onReview,
+  onEdit,
   hasReviewed,
+  showTemporary,
 }: {
   item: CellarWine;
   onEditQty: () => void;
   onRemove: () => void;
   onReview: () => void;
+  onEdit?: () => void;
   hasReviewed: boolean;
+  /** Hinweis „nur vorübergehend“ für Einträge, die trotz Anmeldung nicht gespeichert werden */
+  showTemporary: boolean;
 }) {
+  const isCustom = item.ref.kind === 'custom';
+  const subtitle = isCustom ? cellarSubtitle(item) : `${item.wine.winery} · ${item.wine.vintage}`;
   return (
     <View style={styles.wCard}>
       <Image source={{ uri: item.wine.image }} style={styles.wImg} resizeMode="cover" />
       <View style={styles.wInfo}>
         <Text style={styles.wType}>{item.wine.type.toUpperCase()}</Text>
+        {(isCustom || showTemporary) && (
+          <View style={styles.badgeRow}>
+            {isCustom && (
+              <View style={styles.ownBadge}>
+                <Text style={styles.ownBadgeText}>Eigener Wein</Text>
+              </View>
+            )}
+            {showTemporary && (
+              <View style={styles.tempBadge}>
+                <Text style={styles.tempBadgeText}>Nur vorübergehend</Text>
+              </View>
+            )}
+          </View>
+        )}
         <Text style={styles.wName} numberOfLines={2}>{item.wine.name}</Text>
-        <Text style={styles.wWinery}>{item.wine.winery} · {item.wine.vintage}</Text>
+        {subtitle ? <Text style={styles.wWinery}>{subtitle}</Text> : null}
         <View style={styles.wRow}>
           <Text style={styles.wPrice}>€ {item.wine.price > 0 ? item.wine.price.toFixed(2) : '–'}</Text>
           {item.rating != null && (
@@ -178,6 +213,11 @@ function CellarCard({
             </Text>
             <Ionicons name="pencil" size={12} color={colors.background} />
           </TouchableOpacity>
+          {onEdit && (
+            <TouchableOpacity style={styles.removeBtn} onPress={onEdit} accessibilityLabel="Eigenen Wein bearbeiten">
+              <Ionicons name="create-outline" size={18} color={colors.accent} />
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.removeBtn} onPress={onRemove}>
             <Ionicons name="trash-outline" size={18} color={colors.skip} />
           </TouchableOpacity>
@@ -209,10 +249,11 @@ function QuantityEditModal({
   visible: boolean;
   wineName: string;
   currentQty: number;
-  onConfirm: (qty: number) => void;
+  onConfirm: (qty: number) => Promise<CellarResult<null>>;
   onClose: () => void;
 }) {
   const [qty, setQty] = useState(currentQty);
+  const [saving, setSaving] = useState(false);
   const [inputVal, setInputVal] = useState(String(currentQty));
 
   React.useEffect(() => {
@@ -258,13 +299,21 @@ function QuantityEditModal({
               <Text style={styles.qEditCancelText}>Abbrechen</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.qEditConfirm}
-              onPress={() => {
-                onConfirm(qty);
-                onClose();
+              style={[styles.qEditConfirm, saving && { opacity: 0.7 }]}
+              disabled={saving}
+              onPress={async () => {
+                setSaving(true);
+                const result = await onConfirm(qty);
+                setSaving(false);
+                if (result.ok) onClose();
+                else Alert.alert('Nicht gespeichert', result.error);
               }}
             >
-              <Text style={styles.qEditConfirmText}>Speichern</Text>
+              {saving ? (
+                <ActivityIndicator color={colors.background} />
+              ) : (
+                <Text style={styles.qEditConfirmText}>Speichern</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -275,35 +324,30 @@ function QuantityEditModal({
 
 // ── Add-to-cellar modal ───────────────────────────────────────────────────────
 
-const WINE_TYPES: WineType[] = ['Rotwein', 'Weißwein', 'Roséwein', 'Schaumwein', 'Süßwein'];
-const GESCHMACK_OPTIONS = ['trocken', 'halbtrocken', 'lieblich'];
-const PLACEHOLDER_IMAGE =
-  'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?auto=format&fit=crop&w=800&q=80';
-
 function AddToCellarModal({
   visible,
   onClose,
   onAdd,
+  onCreateCustom,
 }: {
   visible: boolean;
   onClose: () => void;
   onAdd: (wine: Wine, quantity: number) => void;
+  onCreateCustom: (values: CustomWineFormState) => Promise<CellarResult<unknown>>;
 }) {
-  const [mode, setMode] = useState<'catalog' | 'manual'>('catalog');
+  const [mode, setMode] = useState<'catalog' | 'custom'>('catalog');
   const [search, setSearch] = useState('');
   const [selQty, setSelQty] = useState(1);
   const [selWine, setSelWine] = useState<Wine | null>(null);
+  // Neuer Schlüssel bei jedem Öffnen, damit das Formular leer startet.
+  const [formKey, setFormKey] = useState(0);
 
-  // Manual form state
-  const [fName, setFName] = useState('');
-  const [fWinery, setFWinery] = useState('');
-  const [fVintage, setFVintage] = useState('');
-  const [fType, setFType] = useState<WineType>('Rotwein');
-  const [fGeschmack, setFGeschmack] = useState('trocken');
-  const [fQuantity, setFQuantity] = useState('1');
-  const [fPreis, setFPreis] = useState('');
-  const [fHerkunft, setFHerkunft] = useState('');
+  useEffect(() => {
+    if (visible) setFormKey((k) => k + 1);
+  }, [visible]);
 
+  // Katalogauswahl: stammt weiterhin aus der lokalen Testliste data/wines.ts (keine UUIDs,
+  // deshalb bleiben diese Einträge nur im Arbeitsspeicher).
   const filtered = useMemo(
     () =>
       ALL_WINES.filter(
@@ -318,14 +362,6 @@ function AddToCellarModal({
     setSearch('');
     setSelWine(null);
     setSelQty(1);
-    setFName('');
-    setFWinery('');
-    setFVintage('');
-    setFType('Rotwein');
-    setFGeschmack('trocken');
-    setFQuantity('1');
-    setFPreis('');
-    setFHerkunft('');
     setMode('catalog');
     onClose();
   }
@@ -336,28 +372,10 @@ function AddToCellarModal({
     resetAndClose();
   }
 
-  function handleAddManual() {
-    if (!fName.trim()) {
-      Alert.alert('Bitte Weinname eingeben');
-      return;
-    }
-    const wine: Wine = {
-      id: `manual_${Date.now()}`,
-      name: fName.trim(),
-      winery: fWinery.trim() || 'Unbekannt',
-      vintage: parseInt(fVintage, 10) || new Date().getFullYear(),
-      type: fType,
-      region: fHerkunft.trim() || 'Unbekannt',
-      country: '',
-      grape: '',
-      taste: [fGeschmack],
-      description: '',
-      rating: 0,
-      price: parseFloat(fPreis.replace(',', '.')) || 0,
-      image: PLACEHOLDER_IMAGE,
-    };
-    onAdd(wine, parseInt(fQuantity, 10) || 1);
-    resetAndClose();
+  async function handleCreateCustom(values: CustomWineFormState): Promise<CellarResult<unknown>> {
+    const result = await onCreateCustom(values);
+    if (result.ok) resetAndClose();
+    return result;
   }
 
   return (
@@ -386,11 +404,11 @@ function AddToCellarModal({
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.modeTab, mode === 'manual' && styles.modeTabActive]}
-              onPress={() => setMode('manual')}
+              style={[styles.modeTab, mode === 'custom' && styles.modeTabActive]}
+              onPress={() => setMode('custom')}
             >
-              <Text style={[styles.modeTabText, mode === 'manual' && styles.modeTabTextActive]}>
-                Freie Eingabe
+              <Text style={[styles.modeTabText, mode === 'custom' && styles.modeTabTextActive]}>
+                Eigenen Wein anlegen
               </Text>
             </TouchableOpacity>
           </View>
@@ -455,101 +473,14 @@ function AddToCellarModal({
             </View>
           )}
 
-          {/* Manual entry */}
-          {mode === 'manual' && (
-            <ScrollView contentContainerStyle={styles.manualForm} keyboardShouldPersistTaps="handled">
-              <Text style={styles.fieldLabel}>Weinname *</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={fName}
-                onChangeText={setFName}
-                placeholder="z. B. Barolo Riserva"
-                placeholderTextColor={colors.textMuted}
-              />
-
-              <Text style={styles.fieldLabel}>Weingut</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={fWinery}
-                onChangeText={setFWinery}
-                placeholder="z. B. Tenuta San Lorenzo"
-                placeholderTextColor={colors.textMuted}
-              />
-
-              <Text style={styles.fieldLabel}>Jahrgang</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={fVintage}
-                onChangeText={setFVintage}
-                placeholder={String(new Date().getFullYear())}
-                placeholderTextColor={colors.textMuted}
-                keyboardType="number-pad"
-              />
-
-              <Text style={styles.fieldLabel}>Weinart</Text>
-              <View style={styles.pickerRow}>
-                {WINE_TYPES.map((t) => (
-                  <TouchableOpacity
-                    key={t}
-                    style={[styles.pickerChip, fType === t && styles.pickerChipActive]}
-                    onPress={() => setFType(t)}
-                  >
-                    <Text style={[styles.pickerChipText, fType === t && styles.pickerChipTextActive]}>
-                      {t}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.fieldLabel}>Geschmack</Text>
-              <View style={styles.pickerRow}>
-                {GESCHMACK_OPTIONS.map((g) => (
-                  <TouchableOpacity
-                    key={g}
-                    style={[styles.pickerChip, fGeschmack === g && styles.pickerChipActive]}
-                    onPress={() => setFGeschmack(g)}
-                  >
-                    <Text style={[styles.pickerChipText, fGeschmack === g && styles.pickerChipTextActive]}>
-                      {g}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-
-              <Text style={styles.fieldLabel}>Anzahl Flaschen</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={fQuantity}
-                onChangeText={setFQuantity}
-                keyboardType="number-pad"
-                placeholder="1"
-                placeholderTextColor={colors.textMuted}
-              />
-
-              <Text style={styles.fieldLabel}>Preis (optional)</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={fPreis}
-                onChangeText={setFPreis}
-                placeholder="0.00"
-                placeholderTextColor={colors.textMuted}
-                keyboardType="decimal-pad"
-              />
-
-              <Text style={styles.fieldLabel}>Herkunft (optional)</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={fHerkunft}
-                onChangeText={setFHerkunft}
-                placeholder="z. B. Toskana, Italien"
-                placeholderTextColor={colors.textMuted}
-              />
-
-              <TouchableOpacity style={[styles.addConfirmBtn, { marginTop: spacing.md }]} onPress={handleAddManual}>
-                <Ionicons name="library" size={18} color={colors.background} />
-                <Text style={styles.addConfirmText}>Zum Weinkeller hinzufügen</Text>
-              </TouchableOpacity>
-            </ScrollView>
+          {/* Eigener Wein */}
+          {mode === 'custom' && (
+            <CustomWineFields
+              key={formKey}
+              initial={EMPTY_CUSTOM_WINE_FORM}
+              submitLabel="Zum Weinkeller hinzufügen"
+              onSubmit={handleCreateCustom}
+            />
           )}
         </View>
       </KeyboardAvoidingView>
@@ -562,34 +493,45 @@ function AddToCellarModal({
 function ReviewModal({
   visible,
   wine,
-  existingReview,
+  existingRating,
+  existingComment,
   onClose,
   onSubmit,
 }: {
   visible: boolean;
   wine: Wine | null;
-  existingReview?: Review;
+  existingRating?: number;
+  existingComment?: string;
   onClose: () => void;
-  onSubmit: (rating: number, comment: string) => void;
+  onSubmit: (rating: number, comment: string) => Promise<CellarResult<null>>;
 }) {
   const [rating, setRating] = React.useState(0);
   const [comment, setComment] = React.useState('');
   const [success, setSuccess] = React.useState(false);
+  const [saving, setSaving] = React.useState(false);
 
   React.useEffect(() => {
     if (visible) {
-      setRating(existingReview?.rating ?? 0);
-      setComment(existingReview?.comment ?? '');
+      setRating(existingRating ?? 0);
+      setComment(existingComment ?? '');
       setSuccess(false);
+      setSaving(false);
     }
-  }, [visible, existingReview]);
+  }, [visible, existingRating, existingComment]);
 
-  function handleSubmit() {
+  async function handleSubmit() {
+    if (saving) return;
     if (rating === 0) {
       Alert.alert('Bitte Sterne vergeben', 'Wähle mindestens 1 Stern aus.');
       return;
     }
-    onSubmit(rating, comment.trim());
+    setSaving(true);
+    const result = await onSubmit(rating, comment.trim());
+    setSaving(false);
+    if (!result.ok) {
+      Alert.alert('Nicht gespeichert', result.error);
+      return;
+    }
     setSuccess(true);
     setTimeout(() => {
       setSuccess(false);
@@ -636,6 +578,7 @@ function ReviewModal({
                   placeholderTextColor={colors.textMuted}
                   multiline
                   numberOfLines={3}
+                  maxLength={1000}
                   textAlignVertical="top"
                 />
 
@@ -643,8 +586,16 @@ function ReviewModal({
                   <TouchableOpacity style={rvStyles.cancelBtn} onPress={onClose}>
                     <Text style={rvStyles.cancelText}>Abbrechen</Text>
                   </TouchableOpacity>
-                  <TouchableOpacity style={rvStyles.submitBtn} onPress={handleSubmit}>
-                    <Text style={rvStyles.submitText}>Absenden</Text>
+                  <TouchableOpacity
+                    style={[rvStyles.submitBtn, saving && { opacity: 0.7 }]}
+                    onPress={handleSubmit}
+                    disabled={saving}
+                  >
+                    {saving ? (
+                      <ActivityIndicator color={colors.background} />
+                    ) : (
+                      <Text style={rvStyles.submitText}>Absenden</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </>
@@ -717,15 +668,55 @@ const rvStyles = StyleSheet.create({
 type Tab = 'merkliste' | 'weinkeller';
 
 export default function SammlungScreen() {
-  const { watchlist, watchlistLoading, watchlistError, removeFromWatchlist, addToCart, myReviews, submitReview } = useApp();
-  const { cellarWines, addToCellar, removeFromCellar, updateQuantity } = useCellar();
-  const { user } = useAuth();
+  const { watchlist, watchlistLoading, watchlistError, removeFromWatchlist, addToCart } = useApp();
+  const {
+    cellarWines,
+    loading: cellarLoading,
+    loadError: cellarLoadError,
+    isPersistent,
+    reload: reloadCellar,
+    addToCellar,
+    removeEntry,
+    setQuantity,
+    setRating,
+    createCustomWine,
+    updateCustomWine,
+  } = useCellar();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>('merkliste');
   const [qtyWine, setQtyWine] = useState<Wine | null>(null);
   const [editCellarItem, setEditCellarItem] = useState<CellarWine | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
   const [reviewCellarWine, setReviewCellarWine] = useState<CellarWine | null>(null);
+  const [editCustomItem, setEditCustomItem] = useState<CellarWine | null>(null);
+
+  // Beim Öffnen des Weinkellers den Stand aus Supabase neu laden (still, ohne Spinner).
+  useEffect(() => {
+    if (activeTab === 'weinkeller' && isPersistent) reloadCellar();
+  }, [activeTab, isPersistent, reloadCellar]);
+
+  function confirmRemove(entry: CellarWine) {
+    const isCustom = entry.ref.kind === 'custom';
+    const title = isCustom ? 'Eigenen Wein löschen' : 'Wein entfernen';
+    const message = isCustom
+      ? entry.persisted
+        ? `„${entry.wine.name}“ wird endgültig gelöscht. Alle Verkostungen dieses Weins werden dabei ebenfalls gelöscht.`
+        : `„${entry.wine.name}“ wird gelöscht.`
+      : entry.persisted
+        ? `„${entry.wine.name}“ aus dem Weinkeller entfernen? Deine Sterne und Verkostungen zu diesem Wein bleiben erhalten.`
+        : `„${entry.wine.name}“ aus dem Weinkeller entfernen?`;
+    Alert.alert(title, message, [
+      { text: 'Abbrechen', style: 'cancel' },
+      {
+        text: isCustom ? 'Löschen' : 'Entfernen',
+        style: 'destructive',
+        onPress: async () => {
+          const result = await removeEntry(entry);
+          if (!result.ok) Alert.alert('Nicht gelöscht', result.error);
+        },
+      },
+    ]);
+  }
 
   const watchlistSections = useMemo(() => groupWines(watchlist), [watchlist]);
   const cellarSections = useMemo(() => groupCellarWines(cellarWines), [cellarWines]);
@@ -830,6 +821,25 @@ export default function SammlungScreen() {
       {/* ── MEIN WEINKELLER ── */}
       {activeTab === 'weinkeller' && (
         <View style={{ flex: 1 }}>
+          {/* Hinweis ohne Anmeldung */}
+          {!isPersistent && (
+            <View style={styles.infoBanner}>
+              <Ionicons name="information-circle-outline" size={18} color={colors.accent} />
+              <Text style={styles.infoBannerText}>
+                Dein Weinkeller wird erst nach der Anmeldung dauerhaft gespeichert. Bis dahin ist er nach
+                einem Neustart der App leer.
+              </Text>
+            </View>
+          )}
+
+          {/* Fehler beim Laden */}
+          {isPersistent && cellarLoadError && (
+            <TouchableOpacity style={styles.errorBanner} onPress={() => reloadCellar()}>
+              <Ionicons name="cloud-offline-outline" size={18} color={colors.skip} />
+              <Text style={styles.errorBannerText}>{cellarLoadError} Tippen zum erneuten Laden.</Text>
+            </TouchableOpacity>
+          )}
+
           {/* Stats header */}
           <View style={styles.cellarHeader}>
             <View>
@@ -848,7 +858,11 @@ export default function SammlungScreen() {
             </TouchableOpacity>
           </View>
 
-          {cellarWines.length === 0 ? (
+          {cellarLoading && cellarWines.length === 0 ? (
+            <View style={styles.empty}>
+              <ActivityIndicator size="large" color={colors.accent} />
+            </View>
+          ) : cellarWines.length === 0 ? (
             <View style={styles.empty}>
               <Ionicons name="library-outline" size={64} color={colors.accent} />
               <Text style={styles.emptyTitle}>Dein Weinkeller ist leer</Text>
@@ -870,21 +884,10 @@ export default function SammlungScreen() {
                     item={item.item}
                     onEditQty={() => setEditCellarItem(item.item)}
                     onReview={() => setReviewCellarWine(item.item)}
-                    hasReviewed={!!myReviews[item.item.wine.id]}
-                    onRemove={() =>
-                      Alert.alert(
-                        'Wein entfernen',
-                        `"${item.item.wine.name}" aus dem Weinkeller entfernen?`,
-                        [
-                          { text: 'Abbrechen', style: 'cancel' },
-                          {
-                            text: 'Entfernen',
-                            style: 'destructive',
-                            onPress: () => removeFromCellar(item.item.wine.id),
-                          },
-                        ],
-                      )
-                    }
+                    onEdit={item.item.custom ? () => setEditCustomItem(item.item) : undefined}
+                    hasReviewed={item.item.rating != null}
+                    showTemporary={isPersistent && !item.item.persisted}
+                    onRemove={() => confirmRemove(item.item)}
                   />
                 );
               }}
@@ -916,9 +919,11 @@ export default function SammlungScreen() {
         visible={!!editCellarItem}
         wineName={editCellarItem?.wine.name ?? ''}
         currentQty={editCellarItem?.quantity ?? 1}
-        onConfirm={(qty) => {
-          if (editCellarItem) updateQuantity(editCellarItem.wine.id, qty);
-        }}
+        onConfirm={(qty) =>
+          editCellarItem
+            ? setQuantity(editCellarItem, qty)
+            : Promise.resolve<CellarResult<null>>({ ok: true, data: null })
+        }
         onClose={() => setEditCellarItem(null)}
       />
 
@@ -927,26 +932,33 @@ export default function SammlungScreen() {
         visible={addModalVisible}
         onClose={() => setAddModalVisible(false)}
         onAdd={(wine, qty) => addToCellar(wine, qty, 'manual')}
+        onCreateCustom={(values) => createCustomWine(values)}
+      />
+
+      {/* Eigenen Wein bearbeiten */}
+      <EditCustomWineModal
+        wine={editCustomItem?.custom ?? null}
+        onClose={() => setEditCustomItem(null)}
+        onSave={async (values) => {
+          if (!editCustomItem) return { ok: true, data: null };
+          const result = await updateCustomWine(editCustomItem, values);
+          if (result.ok) setEditCustomItem(null);
+          return result;
+        }}
       />
 
       {/* Review modal */}
       <ReviewModal
         visible={!!reviewCellarWine}
         wine={reviewCellarWine?.wine ?? null}
-        existingReview={reviewCellarWine ? myReviews[reviewCellarWine.wine.id] : undefined}
+        existingRating={reviewCellarWine?.rating}
+        existingComment={reviewCellarWine?.notes}
         onClose={() => setReviewCellarWine(null)}
-        onSubmit={(rating, comment) => {
-          if (!reviewCellarWine) return;
-          const wine = reviewCellarWine.wine;
-          const review: Review = {
-            id: `user_${wine.id}_${Date.now()}`,
-            userName: user ? `${user.firstName} ${user.lastName[0]}.` : 'Anonym',
-            rating,
-            comment,
-            date: new Date().toISOString().slice(0, 10),
-          };
-          submitReview(wine.id, review);
-        }}
+        onSubmit={(rating, comment) =>
+          reviewCellarWine
+            ? setRating(reviewCellarWine, rating, comment)
+            : Promise.resolve<CellarResult<null>>({ ok: true, data: null })
+        }
       />
     </SafeAreaView>
   );
@@ -1080,6 +1092,51 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   reviewLinkText: { color: colors.accent, fontSize: 12, fontWeight: '600' },
+  badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 6 },
+  ownBadge: {
+    borderWidth: 1,
+    borderColor: colors.accent,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    borderRadius: radii.sm,
+  },
+  ownBadgeText: { color: colors.accent, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+  tempBadge: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 1,
+    borderRadius: radii.sm,
+  },
+  tempBadgeText: { color: colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.5 },
+
+  // Hinweise im Weinkeller
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.sm + 2,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.card,
+  },
+  infoBannerText: { color: colors.text, fontSize: 12, lineHeight: 17, flex: 1 },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.md,
+    padding: spacing.sm + 2,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.skip,
+    backgroundColor: colors.card,
+  },
+  errorBannerText: { color: colors.skip, fontSize: 12, lineHeight: 17, flex: 1 },
 
   // Cellar header
   cellarHeader: {
@@ -1308,35 +1365,4 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   addConfirmText: { color: colors.background, fontWeight: '700', fontSize: 14, letterSpacing: 0.5 },
-  manualForm: { padding: spacing.lg, gap: 4 },
-  fieldLabel: {
-    color: colors.accent,
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 1.5,
-    marginTop: spacing.sm,
-    marginBottom: 4,
-  },
-  fieldInput: {
-    backgroundColor: colors.background,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm + 2,
-    color: colors.text,
-    fontSize: 14,
-  },
-  pickerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  pickerChip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderRadius: radii.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.background,
-  },
-  pickerChipActive: { borderColor: colors.accent, backgroundColor: colors.accent },
-  pickerChipText: { color: colors.textMuted, fontSize: 13 },
-  pickerChipTextActive: { color: colors.background, fontWeight: '700' },
 });

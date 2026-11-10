@@ -129,13 +129,29 @@ export type TastingProfile = {
   abgang: Skalenwert | null;
 };
 
+// ── Bezug auf einen Wein ──────────────────────────────────────────────────────
+
+/**
+ * Verweis auf den verkosteten Wein: entweder ein Marktplatzwein (`wines.id`) oder ein
+ * eigener, von Hand angelegter Wein (`custom_wines.id`). In der Datenbank wird je nach
+ * `kind` genau eine der Spalten `wine_id` bzw. `custom_wine_id` gesetzt, nie beide.
+ */
+export type WineRefKind = 'market' | 'custom';
+export const WINE_REF_KINDS: readonly WineRefKind[] = ['market', 'custom'];
+export type WineRef = { kind: WineRefKind; id: string };
+
 // ── Datensatz in Supabase ─────────────────────────────────────────────────────
 
 /** Eine gespeicherte Verkostung (Zeile aus `public.tasting_notes`, in camelCase). */
 export type TastingNote = {
   id: string;
   userId: string;
-  wineId: string;
+  /** Verweis auf den Wein, abgeleitet aus `wineId` bzw. `customWineId` */
+  ref: WineRef;
+  /** gesetzt bei Marktplatzweinen, sonst `null` */
+  wineId: string | null;
+  /** gesetzt bei eigenen Weinen, sonst `null` */
+  customWineId: string | null;
   purchasedWineId: string | null;
   tastedAt: string;
   level: TastingLevel;
@@ -150,9 +166,10 @@ export type TastingNote = {
 
 /** Eingabe für eine neue Verkostung. */
 export type TastingNoteInput = {
-  wineId: string;
+  ref: WineRef;
   level: TastingLevel;
   data: TastingData;
+  /** Nur bei Marktplatzweinen sinnvoll (Eintrag in `purchased_wines`). */
   purchasedWineId?: string | null;
   focus?: TastingStep | null;
   lessonId?: string | null;
@@ -161,8 +178,8 @@ export type TastingNoteInput = {
   tastedAt?: string;
 };
 
-/** Änderbare Felder einer bestehenden Verkostung. */
-export type TastingNotePatch = Partial<Omit<TastingNoteInput, 'wineId'>>;
+/** Änderbare Felder einer bestehenden Verkostung. Der Wein selbst ist nicht änderbar. */
+export type TastingNotePatch = Partial<Omit<TastingNoteInput, 'ref'>>;
 
 /** Ergebnis einer Speicher-Funktion: entweder Daten oder eine deutsche Fehlermeldung. */
 export type TastingResult<T> = { ok: true; data: T } | { ok: false; error: string };

@@ -1,13 +1,9 @@
 import { supabase } from '../lib/supabase';
-import { Wine, WineType } from '../types';
+import { weinartToWineType } from '../lib/cellar/weinart';
+import { Wine } from '../types';
 
-const WEINART_MAP: Record<string, WineType> = {
-  Rotwein: 'Rotwein',
-  Weißwein: 'Weißwein',
-  Roséwein: 'Roséwein',
-  Schaumwein: 'Schaumwein',
-  Süßwein: 'Süßwein',
-};
+// Die Zuordnung von wines.weinart zum Anzeige-Typ steht in lib/cellar/weinart.ts.
+// Dort sind auch „Rosé“ und „Dessert- und Likörwein“ enthalten, die bisher als Rotwein erschienen.
 
 function toArray(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter(Boolean);
@@ -24,7 +20,7 @@ export function mapRow(row: Record<string, unknown>): Wine {
       .filter(Boolean)
       .join(' · '),
     vintage: Number(row.jahrgang) || 0,
-    type: WEINART_MAP[String(row.weinart)] ?? 'Rotwein',
+    type: weinartToWineType(row.weinart),
     region: String(row.region ?? ''),
     country: String(row.herkunft ?? ''),
     grape: String(row.rebsorte ?? ''),

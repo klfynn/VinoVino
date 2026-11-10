@@ -7,6 +7,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Wine, Review } from '../types';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
+import { useCellar } from '../context/CellarContext';
 import { colors, radii, spacing } from '../theme';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -32,6 +34,8 @@ export function WineDetailModal({
   visible, wine, onClose, onAddToWatchlist, onAddToCart, watchlisted, onAddToCellar,
 }: Props) {
   const { myReviews } = useApp();
+  const { findMarketEntry } = useCellar();
+  const { user } = useAuth();
   const ty = useRef(new Animated.Value(SCREEN_H)).current;
 
   useEffect(() => {
@@ -69,13 +73,23 @@ export function WineDetailModal({
     })
   ).current;
 
-  // Merge static mock reviews with any review the current user submitted this session
+  // Beispiel-Bewertungen plus die eigene Bewertung aus dem Weinkeller (Supabase „reviews“).
+  const cellarEntry = wine ? findMarketEntry(wine.id) : undefined;
   const allReviews = useMemo<Review[]>(() => {
     if (!wine) return [];
     const base = wine.reviews ?? [];
-    const mine = myReviews[wine.id];
+    let mine: Review | undefined = myReviews[wine.id];
+    if (!mine && cellarEntry?.rating != null) {
+      mine = {
+        id: `mine_${wine.id}`,
+        userName: user ? `${user.firstName} ${user.lastName ? `${user.lastName[0]}.` : ''}`.trim() || 'Du' : 'Du',
+        rating: cellarEntry.rating,
+        comment: cellarEntry.notes ?? '',
+        date: (cellarEntry.ratedAt ?? new Date().toISOString()).slice(0, 10),
+      };
+    }
     return mine ? [...base, mine] : base;
-  }, [wine, myReviews]);
+  }, [wine, myReviews, cellarEntry, user]);
 
   const avgRating = useMemo(() => {
     if (allReviews.length === 0) return undefined;
