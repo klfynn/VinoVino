@@ -41,19 +41,32 @@ export function normalizePurchaseRow(raw: unknown): PurchaseRow | null {
     quantity: q !== null && q >= 0 ? Math.floor(q) : 1,
     purchasedAt: str(raw.purchased_at) ?? str(raw.created_at),
     source: str(raw.source),
+    notiz: str(raw.notiz),
   };
 }
 
-/** Liest eine Zeile aus `reviews` (eigene Bewertung). Ohne gültige wine_id → `null`. */
+/**
+ * Liest eine Zeile aus `reviews` (eigene Sterne). Ohne gültige wine_id → `null`.
+ * Ein Text in `review_text` wird ignoriert, auch wenn dort etwas steht: Bewertungen sind für alle
+ * sichtbar, die private Notiz kommt aus `purchased_wines.notiz`.
+ */
 export function normalizeReviewRow(raw: unknown): ReviewRow | null {
   if (!isObj(raw) || !isUuid(raw.wine_id)) return null;
   const r = num(raw.rating);
   return {
     wineId: raw.wine_id,
     rating: r !== null && Number.isInteger(r) && r >= 1 && r <= 5 ? r : null,
-    text: str(raw.review_text),
     date: str(raw.updated_at) ?? str(raw.created_at),
   };
+}
+
+/**
+ * Private Notiz eines Marktplatzweins aus seinen Kaufzeilen: die neueste Zeile, die eine Notiz hat.
+ * (Beim Speichern wird die Notiz in alle Kaufzeilen des Weins geschrieben; neue Käufe haben noch keine.)
+ */
+export function purchaseNotiz(rows: PurchaseRow[]): string | null {
+  for (const row of sortPurchasesNewestFirst(rows)) if (row.notiz) return row.notiz;
+  return null;
 }
 
 /** Liest eine Zeile aus `custom_wines`. Ohne ID oder Namen → `null`. */
@@ -217,7 +230,7 @@ export function mergeCellar(input: MergeInput): CellarWine[] {
       source: toCellarSource(latest.source),
       purchaseDate: latest.purchasedAt ? toDate(latest.purchasedAt) : undefined,
       rating: review?.rating ?? undefined,
-      notes: review?.text ?? undefined,
+      notes: purchaseNotiz(rows) ?? undefined,
       ratedAt: review?.date ?? undefined,
       persisted: true,
       purchases: sorted,

@@ -73,7 +73,7 @@ export function WineDetailModal({
     })
   ).current;
 
-  // Beispiel-Bewertungen plus die eigene Bewertung aus dem Weinkeller (Supabase „reviews“).
+  // Beispiel-Bewertungen plus die eigenen Sterne aus dem Weinkeller (Supabase „reviews“, nur rating).
   const cellarEntry = wine ? findMarketEntry(wine.id) : undefined;
   const allReviews = useMemo<Review[]>(() => {
     if (!wine) return [];
@@ -84,7 +84,8 @@ export function WineDetailModal({
         id: `mine_${wine.id}`,
         userName: user ? `${user.firstName} ${user.lastName ? `${user.lastName[0]}.` : ''}`.trim() || 'Du' : 'Du',
         rating: cellarEntry.rating,
-        comment: cellarEntry.notes ?? '',
+        // Die Weinkeller-Notiz ist privat und erscheint nicht in der Bewertungsliste.
+        comment: '',
         date: (cellarEntry.ratedAt ?? new Date().toISOString()).slice(0, 10),
       };
     }

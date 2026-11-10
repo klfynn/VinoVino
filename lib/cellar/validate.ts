@@ -121,14 +121,19 @@ export function validateCustomWineInput(
   return { ok: Object.keys(errors).length === 0, values, errors };
 }
 
-/** Prüft Sterne (1 bis 5) und Notiz; liefert eine Fehlermeldung oder `null`. */
-export function validateRating(rating: unknown, notiz: unknown): string | null {
-  if (!Number.isInteger(rating) || (rating as number) < 1 || (rating as number) > 5) {
-    return 'Bitte vergib 1 bis 5 Sterne.';
-  }
+/** Prüft eine Weinkeller-Notiz (leer erlaubt, höchstens 1000 Zeichen); liefert eine Fehlermeldung oder `null`. */
+export function validateNotiz(notiz: unknown): string | null {
   if (notiz !== null && notiz !== undefined && typeof notiz !== 'string') return 'Ungültige Notiz.';
   if (typeof notiz === 'string' && Array.from(notiz).length > NOTIZ_MAX_LENGTH) {
     return `Die Notiz darf höchstens ${NOTIZ_MAX_LENGTH} Zeichen lang sein.`;
   }
   return null;
+}
+
+/** Prüft Sterne (1 bis 5) und Notiz; liefert eine Fehlermeldung oder `null`. */
+export function validateRating(rating: unknown, notiz: unknown): string | null {
+  if (!Number.isInteger(rating) || (rating as number) < 1 || (rating as number) > 5) {
+    return 'Bitte vergib 1 bis 5 Sterne.';
+  }
+  return validateNotiz(notiz);
 }

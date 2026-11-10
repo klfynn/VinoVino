@@ -581,6 +581,10 @@ function ReviewModal({
                   maxLength={1000}
                   textAlignVertical="top"
                 />
+                <View style={rvStyles.privateHint}>
+                  <Ionicons name="lock-closed-outline" size={12} color={colors.textMuted} />
+                  <Text style={rvStyles.privateHintText}>Nur für dich sichtbar.</Text>
+                </View>
 
                 <View style={rvStyles.actions}>
                   <TouchableOpacity style={rvStyles.cancelBtn} onPress={onClose}>
@@ -641,8 +645,10 @@ const rvStyles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     minHeight: 80,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xs,
   },
+  privateHint: { flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: spacing.lg },
+  privateHintText: { color: colors.textMuted, fontSize: 12 },
   actions: { flexDirection: 'row', gap: spacing.sm },
   cancelBtn: {
     flex: 1,

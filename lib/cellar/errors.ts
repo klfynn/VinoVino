@@ -8,6 +8,8 @@ export const LOAD_FAILED_MESSAGE = 'Der Weinkeller konnte nicht geladen werden. 
 export const NOT_SIGNED_IN_CELLAR_MESSAGE = 'Bitte melde dich an, damit dein Weinkeller dauerhaft gespeichert wird.';
 export const CUSTOM_WINES_MISSING_MESSAGE =
   'Die eigenen Weine sind in der Datenbank noch nicht eingerichtet. Bitte die Migration „custom_wines“ in Supabase ausführen.';
+export const PURCHASE_NOTIZ_MISSING_MESSAGE =
+  'Die private Notiz ist in der Datenbank noch nicht eingerichtet. Bitte die Migration „purchased_wines_notiz“ in Supabase ausführen.';
 export const NO_PERMISSION_CELLAR_MESSAGE =
   'Keine Berechtigung für den Weinkeller. Bitte melde dich erneut an. Falls das nicht hilft, fehlt die Migration „cellar_access“.';
 export const INVALID_INPUT_MESSAGE = 'Einige Angaben sind ungültig und wurden nicht gespeichert.';
@@ -38,6 +40,9 @@ export function cellarErrorMessage(err: unknown, art: 'save' | 'load' = 'save'):
   if (isNetworkError(err)) return art === 'load' ? LOAD_NETWORK_MESSAGE : SAVE_NETWORK_MESSAGE;
   if ((code === '42P01' || code === 'PGRST205' || text.includes('does not exist')) && text.includes('custom_wines')) {
     return CUSTOM_WINES_MISSING_MESSAGE;
+  }
+  if ((code === '42703' || code === 'PGRST204' || text.includes('column')) && text.includes('notiz')) {
+    return PURCHASE_NOTIZ_MISSING_MESSAGE;
   }
   if (code === '42501' || text.includes('row-level security') || text.includes('permission denied')) {
     return NO_PERMISSION_CELLAR_MESSAGE;

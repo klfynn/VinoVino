@@ -1,4 +1,5 @@
 // Speicher-Funktionen für Marktplatzweine im Weinkeller (Tabellen public.purchased_wines und public.reviews).
+// Sterne liegen in reviews.rating, die private Notiz in purchased_wines.notiz (nie in reviews.review_text).
 // Der genaue Aufbau beider Tabellen liegt nicht im Repository. Deshalb wird mit `select('*')` gelesen
 // und defensiv ausgewertet; beim Schreiben werden nur die bekannten Spalten benutzt.
 // Jede Funktion liefert { ok: true, data } oder { ok: false, error } mit deutscher Meldung und wirft nie.
@@ -8,7 +9,7 @@ import { listCustomWines } from './customWines';
 import { cellarErrorMessage, INVALID_INPUT_MESSAGE, NOT_FOUND_MESSAGE } from '../lib/cellar/errors';
 import { normalizePurchaseRow, normalizeReviewRow, planQuantityChange } from '../lib/cellar/merge';
 import { CellarResult, CellarSource, CustomWine, PurchaseRow, ReviewRow } from '../lib/cellar/types';
-import { validateRating } from '../lib/cellar/validate';
+import { buildPurchaseNotizPayload, buildReviewPayload } from '../lib/cellar/payload';
 import { isUuid } from '../lib/tasting/wineRef';
 import type { Wine } from '../types';
 
@@ -225,26 +226,56 @@ export async function removeMarketWine(userId: string, wineId: string): Promise<
   }
 }
 
-// ── Bewertungen (reviews) ─────────────────────────────────────────────────────
+// ── Sterne (reviews) und private Notiz (purchased_wines.notiz) ────────────────
+
+export type MarketRatingSaved = {
+  /** Die Kaufzeilen des Weins mit der neuen Notiz */
+  purchases: PurchaseRow[];
+  /** Die gespeicherte Bewertung oder `null`, wenn keine Sterne vergeben wurden */
+  review: ReviewRow | null;
+};
 
 /**
- * Speichert Sterne und Notiz eines Marktplatzweins in `reviews`. Ob es eine Eindeutigkeit auf
- * (user_id, wine_id) gibt, ist nicht bekannt; deshalb wird zuerst aktualisiert und nur dann
- * eingefügt, wenn es noch keine Bewertung gibt. So entstehen keine Duplikate.
+ * Speichert Sterne und Notiz eines Marktplatzweins.
+ * - Die Notiz ist privat und kommt ausschließlich in `purchased_wines.notiz` (alle Kaufzeilen des Weins).
+ * - Die Sterne kommen in `reviews` (nur user_id, wine_id, rating). Ohne Sterne (`rating` = null)
+ *   wird kein `reviews`-Eintrag angelegt. `review_text` wird nie geschrieben.
+ * Ob es in `reviews` eine Eindeutigkeit auf (user_id, wine_id) gibt, ist nicht bekannt; deshalb wird
+ * wie bisher zuerst aktualisiert und nur dann eingefügt, wenn es noch keine Bewertung gibt.
  */
-export async function saveMarketReview(
+export async function saveMarketRating(
   userId: string,
   wineId: string,
-  rating: number,
-  text: string,
-): Promise<CellarResult<ReviewRow>> {
+  rating: number | null,
+  notiz: string,
+): Promise<CellarResult<MarketRatingSaved>> {
   if (!isUuid(wineId)) return fail(NOT_FOUND_MESSAGE);
-  if (validateRating(rating, text)) return fail(INVALID_INPUT_MESSAGE);
-  const reviewText = text.trim() ? text.trim() : null;
+  const notizPayload = buildPurchaseNotizPayload(notiz);
+  const reviewPayload = rating === null ? null : buildReviewPayload(userId, wineId, rating);
+  if (!notizPayload || (rating !== null && !reviewPayload)) return fail(INVALID_INPUT_MESSAGE);
+
+  let purchases: PurchaseRow[];
+  try {
+    const { data, error } = await supabase
+      .from('purchased_wines')
+      .update(notizPayload)
+      .eq('user_id', userId)
+      .eq('wine_id', wineId)
+      .select('*');
+    if (error) throw error;
+    purchases = (data ?? []).map(normalizePurchaseRow).filter((p): p is PurchaseRow => p !== null);
+    if (purchases.length === 0) return fail(NOT_FOUND_MESSAGE);
+  } catch (err) {
+    console.error('[VinoVino] Notiz konnte nicht gespeichert werden:', err);
+    return fail(cellarErrorMessage(err));
+  }
+
+  if (!reviewPayload) return ok({ purchases, review: null });
+
   try {
     const { data: updated, error: updateError } = await supabase
       .from('reviews')
-      .update({ rating, review_text: reviewText })
+      .update({ rating: reviewPayload.rating })
       .eq('user_id', userId)
       .eq('wine_id', wineId)
       .select('*');
@@ -253,14 +284,14 @@ export async function saveMarketReview(
     if (!row) {
       const { data: inserted, error: insertError } = await supabase
         .from('reviews')
-        .insert({ user_id: userId, wine_id: wineId, rating, review_text: reviewText })
+        .insert(reviewPayload)
         .select('*')
         .single();
       if (insertError) throw insertError;
       row = inserted;
     }
-    const parsed = normalizeReviewRow(row);
-    return ok(parsed ?? { wineId, rating, text: reviewText, date: new Date().toISOString() });
+    const review = normalizeReviewRow(row) ?? { wineId, rating: reviewPayload.rating, date: new Date().toISOString() };
+    return ok({ purchases, review });
   } catch (err) {
     console.error('[VinoVino] Bewertung konnte nicht gespeichert werden:', err);
     return fail(cellarErrorMessage(err));

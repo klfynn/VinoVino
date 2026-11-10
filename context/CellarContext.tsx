@@ -6,7 +6,7 @@ import {
   addPurchase,
   loadCellar,
   removeMarketWine,
-  saveMarketReview,
+  saveMarketRating,
   setMarketQuantity,
 } from '../services/cellar';
 import {
@@ -34,8 +34,9 @@ export type { CellarWine } from '../lib/cellar/types';
 
 /**
  * „Mein Weinkeller“.
- * - Angemeldet: Marktplatzweine liegen in purchased_wines (Sterne/Notiz in reviews), eigene Weine in
- *   custom_wines. Beides wird beim Anmelden und beim Öffnen des Weinkellers geladen.
+ * - Angemeldet: Marktplatzweine liegen in purchased_wines (private Notiz in purchased_wines.notiz,
+ *   Sterne in reviews.rating), eigene Weine in custom_wines (Notiz in custom_wines.notiz). Beides
+ *   wird beim Anmelden und beim Öffnen des Weinkellers geladen. Notizen sind nur für den Nutzer sichtbar.
  * - Weine ohne echte UUID (lokale Testdaten aus data/wines.ts, Scanner-Ergebnisse) und alles ohne
  *   Anmeldung bleiben wie bisher nur im Arbeitsspeicher (`persisted: false`).
  */
@@ -290,11 +291,15 @@ export function CellarProvider({ children }: { children: React.ReactNode }) {
         }));
         return ok(null);
       }
-      const result = await saveMarketReview(userId, entry.ref.id, rating, notiz);
+      const result = await saveMarketRating(userId, entry.ref.id, rating, notiz);
       if (!result.ok) return result;
+      const saved = result.data;
       setRemote((prev) => ({
         ...prev,
-        reviews: [...prev.reviews.filter((r) => r.wineId !== entry.ref.id), result.data],
+        purchases: [...prev.purchases.filter((p) => p.wineId !== entry.ref.id), ...saved.purchases],
+        reviews: saved.review
+          ? [...prev.reviews.filter((r) => r.wineId !== entry.ref.id), saved.review]
+          : prev.reviews,
       }));
       return ok(null);
     },

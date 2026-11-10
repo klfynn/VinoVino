@@ -1,5 +1,5 @@
 // Prüfskript für „Mein Weinkeller“: Eingaben eigener Weine, Zusammenführen, Sortierung,
-// Weine ohne UUID, Mengenänderung und Weinart-Zuordnung.
+// Weine ohne UUID, Mengenänderung, Weinart-Zuordnung und private Notiz (nie in reviews.review_text).
 // Ausführen mit: npm run check:cellar
 import {
   canPersistMarketWine,
@@ -12,17 +12,26 @@ import {
   normalizePurchaseRow,
   normalizeReviewRow,
   planQuantityChange,
+  purchaseNotiz,
 } from '../lib/cellar/merge';
+import { buildPurchaseNotizPayload, buildReviewPayload } from '../lib/cellar/payload';
 import {
   JAHRGANG_MIN,
   normalizeCustomWine,
   PREIS_MAX,
   QUANTITY_MAX,
   validateCustomWineInput,
+  validateNotiz,
   validateRating,
 } from '../lib/cellar/validate';
 import { weinartToWineType } from '../lib/cellar/weinart';
-import { cellarErrorMessage, CUSTOM_WINES_MISSING_MESSAGE, SAVE_NETWORK_MESSAGE, LOAD_NETWORK_MESSAGE } from '../lib/cellar/errors';
+import {
+  cellarErrorMessage,
+  CUSTOM_WINES_MISSING_MESSAGE,
+  LOAD_NETWORK_MESSAGE,
+  PURCHASE_NOTIZ_MISSING_MESSAGE,
+  SAVE_NETWORK_MESSAGE,
+} from '../lib/cellar/errors';
 import { CELLAR_PLACEHOLDER_IMAGE, CellarWine, CustomWine, PurchaseRow } from '../lib/cellar/types';
 import { TERROIR, WEINART_WERTE, weinartToKategorie } from '../lib/tasting/catalog';
 import { wineRefKey } from '../lib/tasting/wineRef';
@@ -178,14 +187,16 @@ check('Notiz falscher Typ: Fehler', validateRating(4, 7) !== null);
 // ── Datenbankzeilen lesen ─────────────────────────────────────────────────────
 
 eq('Kaufzeile: vollständig', normalizePurchaseRow({ id: 'p1', wine_id: W1, quantity: 2, purchased_at: '2026-01-01T00:00:00Z', source: 'purchase' }), {
-  id: 'p1', wineId: W1, quantity: 2, purchasedAt: '2026-01-01T00:00:00Z', source: 'purchase',
+  id: 'p1', wineId: W1, quantity: 2, purchasedAt: '2026-01-01T00:00:00Z', source: 'purchase', notiz: null,
 });
+eq('Kaufzeile: mit privater Notiz', normalizePurchaseRow({ id: 'p1', wine_id: W1, quantity: 1, notiz: 'Zum Geburtstag öffnen' })?.notiz, 'Zum Geburtstag öffnen');
 eq('Kaufzeile: ohne Menge = 1, created_at statt purchased_at', normalizePurchaseRow({ id: 7, wine_id: W1, created_at: '2026-02-01' }), {
-  id: '7', wineId: W1, quantity: 1, purchasedAt: '2026-02-01', source: null,
+  id: '7', wineId: W1, quantity: 1, purchasedAt: '2026-02-01', source: null, notiz: null,
 });
 eq('Kaufzeile: wine_id ohne UUID wird verworfen', normalizePurchaseRow({ id: 'p', wine_id: 'w1', quantity: 1 }), null);
 eq('Kaufzeile: kaputt', normalizePurchaseRow('x'), null);
-eq('Bewertung: gültig', normalizeReviewRow({ wine_id: W1, rating: 4, review_text: 'gut', created_at: 'd' }), { wineId: W1, rating: 4, text: 'gut', date: 'd' });
+eq('Bewertung: gültig, review_text wird ignoriert', normalizeReviewRow({ wine_id: W1, rating: 4, review_text: 'gut', created_at: 'd' }), { wineId: W1, rating: 4, date: 'd' });
+check('Bewertung: kein Textfeld im Ergebnis', !Object.keys(normalizeReviewRow({ wine_id: W1, rating: 4, review_text: 'gut' }) ?? {}).some((k) => /text/i.test(k)));
 eq('Bewertung: Sterne ungültig', normalizeReviewRow({ wine_id: W1, rating: 9 })?.rating, null);
 eq('eigener Wein: ohne Name verworfen', normalizeCustomWineRow({ id: C1, name: '' }), null);
 eq('eigener Wein: Preis als Text (numeric)', normalizeCustomWineRow({ id: C1, name: 'x', preis: '12.50' })?.preis, 12.5);
@@ -200,8 +211,8 @@ const custom = (id: string, name: string, createdAt: string, over: Partial<Custo
   preis: null, flaschengroesse: null, quantity: 1, boden: null, source: 'manual', rating: null, notiz: null,
   bildUrl: null, createdAt, updatedAt: createdAt, ...over,
 });
-const purchase = (id: string | null, wineId: string, quantity: number, purchasedAt: string): PurchaseRow => ({
-  id, wineId, quantity, purchasedAt, source: 'purchase',
+const purchase = (id: string | null, wineId: string, quantity: number, purchasedAt: string, notiz: string | null = null): PurchaseRow => ({
+  id, wineId, quantity, purchasedAt, source: 'purchase', notiz,
 });
 const local = (id: string, name: string, addedAt: string): CellarWine => ({
   id: `lokal:market:${id}`, ref: { kind: 'market', id }, wine: wine(id, name), quantity: 1, addedAt: new Date(addedAt), source: 'manual', persisted: false,
@@ -209,12 +220,12 @@ const local = (id: string, name: string, addedAt: string): CellarWine => ({
 
 const input: MergeInput = {
   purchases: [
-    purchase('p1', W1, 2, '2026-01-01T10:00:00Z'),
+    purchase('p1', W1, 2, '2026-01-01T10:00:00Z', 'privat'),
     purchase('p2', W1, 1, '2026-03-01T10:00:00Z'),
     purchase('p3', W2, 1, '2026-02-01T10:00:00Z'),
   ],
   marketWines: { [W1]: wine(W1, 'Riesling', 'Weißwein') },
-  reviews: [{ wineId: W1, rating: 5, text: 'super', date: '2026-03-02' }, { wineId: W2, rating: null, text: null, date: null }],
+  reviews: [{ wineId: W1, rating: 5, date: '2026-03-02' }, { wineId: W2, rating: null, date: null }],
   customWines: [
     custom(C1, 'Hauswein', '2026-04-01T10:00:00Z', { weinart: 'Rosé', jahrgang: 'NV', weingut: 'Gut A', rating: 3, notiz: 'ok' }),
     custom(C2, 'Dessert', '2026-02-15T10:00:00Z', { weinart: 'Dessert- und Likörwein', quantity: 0 }),
@@ -234,7 +245,7 @@ eq('merge: Sortierung neueste zuerst', merged.map((e) => e.wine.name), [
 const riesling = merged.find((e) => e.ref.id === W1);
 eq('merge: Kaufzeilen addiert', riesling?.quantity, 3);
 eq('merge: Datum = neuester Kauf', riesling?.addedAt.toISOString(), '2026-03-01T10:00:00.000Z');
-eq('merge: Sterne/Notiz aus reviews', [riesling?.rating, riesling?.notes], [5, 'super']);
+eq('merge: Sterne aus reviews, Notiz aus purchased_wines', [riesling?.rating, riesling?.notes], [5, 'privat']);
 eq('merge: Marktplatz gespeichert', [riesling?.persisted, riesling?.ref.kind], [true, 'market']);
 eq('merge: Kaufzeilen neueste zuerst', riesling?.purchases?.map((p) => p.id), ['p2', 'p1']);
 const fehlt = merged.find((e) => e.ref.id === W2);
@@ -321,11 +332,52 @@ for (const w of WEINART_WERTE) {
   eq(`eigener Wein ${w}: Typ`, customWineToWine(custom(C1, 'x', '2026-01-01', { weinart: w })).type, typ);
 }
 
+// ── Private Notiz: Speicher-Payloads ──────────────────────────────────────────
+
+const reviewPayload = buildReviewPayload(U, W1, 4);
+eq('Payload reviews: genau user_id, wine_id, rating', reviewPayload, { user_id: U, wine_id: W1, rating: 4 });
+check('Payload reviews: kein Feld review_text', reviewPayload !== null && !('review_text' in reviewPayload));
+check('Payload reviews: keine Notiz in irgendeinem Feld', !Object.keys(reviewPayload ?? {}).some((k) => /text|notiz|note|comment/i.test(k)));
+eq('Payload reviews: Felder sortiert', Object.keys(reviewPayload ?? {}).sort(), ['rating', 'user_id', 'wine_id']);
+for (const r of [null, undefined, 0, 6, 2.5, '4', NaN]) {
+  eq(`Payload reviews: ohne gültige Sterne (${JSON.stringify(r)}) kein Eintrag`, buildReviewPayload(U, W1, r), null);
+}
+eq('Payload reviews: wine_id ohne UUID', buildReviewPayload(U, 'w1', 4), null);
+eq('Payload reviews: ohne Nutzer', buildReviewPayload('', W1, 4), null);
+
+eq('Payload purchased_wines: Notiz landet in notiz', buildPurchaseNotizPayload('  Zum Geburtstag öffnen  '), { notiz: 'Zum Geburtstag öffnen' });
+eq('Payload purchased_wines: nur das Feld notiz', Object.keys(buildPurchaseNotizPayload('x') ?? {}), ['notiz']);
+eq('Payload purchased_wines: leere Notiz → null', buildPurchaseNotizPayload('   '), { notiz: null });
+eq('Payload purchased_wines: keine Notiz → null', buildPurchaseNotizPayload(undefined), { notiz: null });
+eq('Payload purchased_wines: 1000 Zeichen ok', buildPurchaseNotizPayload('🍷'.repeat(1000))?.notiz?.length, 2000);
+eq('Payload purchased_wines: 1000 Zeichen plus Leerzeichen ok', buildPurchaseNotizPayload(` ${'x'.repeat(1000)} `)?.notiz?.length, 1000);
+eq('Payload purchased_wines: 1001 Zeichen abgelehnt', buildPurchaseNotizPayload('x'.repeat(1001)), null);
+eq('Payload purchased_wines: falscher Typ abgelehnt', buildPurchaseNotizPayload(42), null);
+// Notiz ohne Sterne: Notiz wird gespeichert, aber es entsteht kein reviews-Eintrag.
+eq('Notiz ohne Sterne: purchased_wines ja, reviews nein', [buildPurchaseNotizPayload('nur Notiz'), buildReviewPayload(U, W1, null)], [{ notiz: 'nur Notiz' }, null]);
+
+check('validateNotiz: leer ok', validateNotiz('') === null && validateNotiz(null) === null);
+check('validateNotiz: 1001 Zeichen Fehler', validateNotiz('x'.repeat(1001)) !== null);
+
+eq('purchaseNotiz: neueste Zeile mit Notiz', purchaseNotiz([
+  purchase('a', W1, 1, '2026-01-01', 'alt'),
+  purchase('b', W1, 1, '2026-03-01', null),
+  purchase('c', W1, 1, '2026-02-01', 'neu'),
+]), 'neu');
+eq('purchaseNotiz: keine Notiz', purchaseNotiz([purchase('a', W1, 1, '2026-01-01')]), null);
+eq('purchaseNotiz: keine Zeilen', purchaseNotiz([]), null);
+const ohneSterne = mergeCellar({
+  purchases: [purchase('p9', W2, 1, '2026-01-01', 'nur Notiz')],
+  marketWines: {}, reviews: [], customWines: [], localEntries: [], localCustomWines: [],
+})[0];
+eq('merge: Notiz ohne Sterne wird angezeigt', [ohneSterne?.rating, ohneSterne?.notes], [undefined, 'nur Notiz']);
+
 // ── Fehlermeldungen ───────────────────────────────────────────────────────────
 
 eq('Fehler: Network request failed (Supabase pausiert)', cellarErrorMessage(new TypeError('Network request failed')), SAVE_NETWORK_MESSAGE);
 eq('Fehler: Netzwerk beim Laden', cellarErrorMessage({ message: 'TypeError: Network request failed' }, 'load'), LOAD_NETWORK_MESSAGE);
 eq('Fehler: Tabelle custom_wines fehlt', cellarErrorMessage({ code: 'PGRST205', message: "Could not find the table 'public.custom_wines'" }), CUSTOM_WINES_MISSING_MESSAGE);
+eq('Fehler: Spalte notiz fehlt (Migration nicht ausgeführt)', cellarErrorMessage({ code: 'PGRST204', message: "Could not find the 'notiz' column of 'purchased_wines' in the schema cache" }), PURCHASE_NOTIZ_MISSING_MESSAGE);
 check('Fehler: RLS', cellarErrorMessage({ code: '42501', message: 'new row violates row-level security policy' }).includes('Berechtigung'));
 check('Fehler: Check-Constraint', cellarErrorMessage({ code: '23514', message: 'violates check constraint' }).includes('ungültig'));
 check('Fehler: unbekannt ergibt deutsche Meldung', cellarErrorMessage(new Error('boom')).startsWith('Konnte nicht gespeichert'));

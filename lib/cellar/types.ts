@@ -78,13 +78,18 @@ export type PurchaseRow = {
   quantity: number;
   purchasedAt: string | null;
   source: string | null;
+  /** Private Weinkeller-Notiz (Spalte purchased_wines.notiz), nur für den Nutzer selbst sichtbar */
+  notiz: string | null;
 };
 
-/** Normalisierte Zeile aus `public.reviews` (eigene Bewertung je Wein). */
+/**
+ * Normalisierte Zeile aus `public.reviews` (eigene Sterne je Wein).
+ * `review_text` wird bewusst nicht gelesen: Bewertungen sind für alle sichtbar, die private
+ * Notiz liegt in `purchased_wines.notiz`.
+ */
 export type ReviewRow = {
   wineId: string;
   rating: number | null;
-  text: string | null;
   date: string | null;
 };
 
