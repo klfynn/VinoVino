@@ -7,7 +7,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "check:academy": "tsc -p scripts/tsconfig.academy-check.json && node node_modules/.cache/academy-check/scripts/academy-check.js"
+    "check:academy": "tsc -p scripts/tsconfig.academy-check.json && node node_modules/.cache/academy-check/scripts/academy-check.js",
+    "check:tasting": "tsc -p scripts/tsconfig.tasting-check.json && node node_modules/.cache/tasting-check/scripts/tasting-check.js"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.0",

@@ -1,0 +1,51 @@
+{
+  "lektion": "l12",
+  "hinweis": "Ob und wie stark der Boden den Geschmack eines Weins prägt, ist in der Weinwissenschaft umstritten. Die Angaben hier beschreiben nur, womit ein Boden häufig in Verbindung gebracht wird. Dein Tipp ist eine Übung, keine Messung.",
+  "eindruecke": {
+    "label": "Was nimmst du wahr?",
+    "auswahl": "mehrfach",
+    "lektion": "l12",
+    "optionen": [
+      { "id": "steinig", "label": "steinig", "erklaerung": "Erinnert an nassen Stein, Kiesel oder Feuerstein." },
+      { "id": "salzig", "label": "salzig", "erklaerung": "Ein leicht salziger, speichelfördernder Eindruck am Gaumen." },
+      { "id": "kreidig", "label": "kreidig", "erklaerung": "Ein trockener, feinkörniger Eindruck, ähnlich wie Kreide an den Fingern." },
+      { "id": "erdig", "label": "erdig", "erklaerung": "Erinnert an feuchte Erde, Waldboden oder Pilze." },
+      { "id": "rauchig", "label": "rauchig", "erklaerung": "Ein Hauch von Rauch oder Feuerstein, der nicht vom Holzfass kommen muss." },
+      { "id": "kuehl_frisch", "label": "kühl und frisch", "erklaerung": "Viel Säure, schlanke Frucht. Kann auf ein kühles Klima oder eine hohe Lage hindeuten." },
+      { "id": "warm_reif", "label": "warm und reif", "erklaerung": "Reife, süße Frucht und spürbarer Alkohol. Kann auf ein warmes Klima hindeuten." },
+      { "id": "kraeutrig", "label": "kräutrig", "erklaerung": "Noten von getrockneten Kräutern wie Thymian oder Rosmarin, wie man sie aus warmen, trockenen Gegenden kennt." },
+      { "id": "fruchtbetont", "label": "fruchtbetont", "erklaerung": "Die Frucht steht klar im Vordergrund, Herkunftsnoten treten zurück." }
+    ]
+  },
+  "boeden": {
+    "label": "Dein Tipp zum Boden",
+    "auswahl": "einfach",
+    "optional": true,
+    "lektion": "l39",
+    "optionen": [
+      { "id": "kalkstein", "label": "Kalkstein", "verbunden_mit": "Wird häufig verbunden mit: straffer Säure und Eleganz, etwa im Burgund oder in der Champagne." },
+      { "id": "schiefer", "label": "Schiefer", "verbunden_mit": "Wird häufig verbunden mit: Mineralität und Frische bei Riesling, etwa an der Mosel." },
+      { "id": "granit", "label": "Granit", "verbunden_mit": "Wird häufig verbunden mit: klarer Frucht und straffer Struktur, etwa beim Syrah der nördlichen Rhône." },
+      { "id": "lehm", "label": "Lehm", "verbunden_mit": "Wird häufig verbunden mit: vollerem Körper und weicher Frucht." },
+      { "id": "loess", "label": "Löss", "verbunden_mit": "Wird häufig verbunden mit: zugänglichen, fruchtigen Weinen, etwa beim Grünen Veltliner." },
+      { "id": "kies", "label": "Kies", "verbunden_mit": "Wird häufig verbunden mit: reifen Rotweinen aus warmen Lagen, etwa im Médoc." },
+      { "id": "sand", "label": "Sand", "verbunden_mit": "Wird häufig verbunden mit: leichteren, duftigen Weinen mit feinem Tannin." },
+      { "id": "vulkangestein", "label": "Basalt/Vulkangestein", "verbunden_mit": "Wird häufig verbunden mit: würzigen, rauchigen Noten, etwa am Kaiserstuhl oder am Ätna." },
+      { "id": "muschelkalk", "label": "Muschelkalk", "verbunden_mit": "Wird häufig verbunden mit: kräftigen, mineralisch wirkenden Weinen, etwa beim Silvaner in Franken." },
+      { "id": "keuper", "label": "Keuper", "verbunden_mit": "Wird häufig verbunden mit: würzigen, kräftigen Weinen, etwa in Franken und Württemberg." },
+      { "id": "weiss_nicht", "label": "weiß nicht", "verbunden_mit": "Kein Problem: Den Boden zu erraten ist auch für Profis schwer." }
+    ]
+  },
+  "klima_eindruck": {
+    "label": "Wie wirkt das Klima?",
+    "auswahl": "einfach",
+    "optional": true,
+    "lektion": "l12",
+    "optionen": [
+      { "id": "kuehl", "label": "kühl", "erklaerung": "Hohe Säure, eher grüne oder zitrische Frucht, wenig Alkohol." },
+      { "id": "gemaessigt", "label": "gemäßigt", "erklaerung": "Frische und reife Frucht halten sich die Waage." },
+      { "id": "warm", "label": "warm", "erklaerung": "Reife, runde Frucht, mittlere Säure, spürbarer Alkohol." },
+      { "id": "heiss", "label": "heiß", "erklaerung": "Sehr reife bis gekochte Frucht, wenig Säure, viel Alkohol." }
+    ]
+  }
+}

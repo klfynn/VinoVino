@@ -1,0 +1,250 @@
+{
+  "stufen": [
+    {
+      "id": "primaer",
+      "label": "Primäraromen",
+      "beschreibung": "Aromen aus der Traube und ihrer Herkunft: Frucht, Blüten, Kräuter, Würze und Mineralik.",
+      "ab_stufe": "einfach",
+      "familien": [
+        {
+          "id": "zitrus",
+          "label": "Zitrus",
+          "lektion": "l03",
+          "aromen": [
+            { "id": "zitrone", "label": "Zitrone" },
+            { "id": "limette", "label": "Limette" },
+            { "id": "grapefruit", "label": "Grapefruit" },
+            { "id": "orangenschale", "label": "Orangenschale" },
+            { "id": "mandarine", "label": "Mandarine" }
+          ]
+        },
+        {
+          "id": "kernobst",
+          "label": "Kernobst",
+          "lektion": "l03",
+          "aromen": [
+            { "id": "gruener_apfel", "label": "grüner Apfel" },
+            { "id": "roter_apfel", "label": "roter Apfel" },
+            { "id": "birne", "label": "Birne" },
+            { "id": "quitte", "label": "Quitte" }
+          ]
+        },
+        {
+          "id": "steinobst",
+          "label": "Steinobst",
+          "lektion": "l03",
+          "aromen": [
+            { "id": "pfirsich", "label": "Pfirsich" },
+            { "id": "aprikose", "label": "Aprikose" },
+            { "id": "nektarine", "label": "Nektarine" },
+            { "id": "pflaume", "label": "Pflaume" }
+          ]
+        },
+        {
+          "id": "tropische_fruechte",
+          "label": "Tropische Früchte",
+          "lektion": "l03",
+          "kategorien": ["weiss", "rose", "schaum", "orange", "suess", "unbekannt"],
+          "aromen": [
+            { "id": "ananas", "label": "Ananas" },
+            { "id": "mango", "label": "Mango" },
+            { "id": "maracuja", "label": "Maracuja" },
+            { "id": "litschi", "label": "Litschi" },
+            { "id": "banane", "label": "Banane" },
+            { "id": "melone", "label": "Melone" }
+          ]
+        },
+        {
+          "id": "rote_beeren",
+          "label": "Rote Beeren",
+          "lektion": "l03",
+          "kategorien": ["rot", "rose", "schaum", "orange", "suess", "unbekannt"],
+          "aromen": [
+            { "id": "erdbeere", "label": "Erdbeere" },
+            { "id": "himbeere", "label": "Himbeere" },
+            { "id": "rote_johannisbeere", "label": "rote Johannisbeere" },
+            { "id": "sauerkirsche", "label": "Sauerkirsche" },
+            { "id": "cranberry", "label": "Cranberry" }
+          ]
+        },
+        {
+          "id": "schwarze_beeren",
+          "label": "Schwarze Beeren",
+          "lektion": "l03",
+          "kategorien": ["rot", "rose", "suess", "unbekannt"],
+          "aromen": [
+            { "id": "brombeere", "label": "Brombeere" },
+            { "id": "cassis", "label": "schwarze Johannisbeere (Cassis)" },
+            { "id": "heidelbeere", "label": "Heidelbeere" },
+            { "id": "schwarzkirsche", "label": "Schwarzkirsche" }
+          ]
+        },
+        {
+          "id": "blueten",
+          "label": "Blüten",
+          "lektion": "l03",
+          "aromen": [
+            { "id": "holunderbluete", "label": "Holunderblüte" },
+            { "id": "rosenbluete", "label": "Rose" },
+            { "id": "veilchen", "label": "Veilchen" },
+            { "id": "akazie", "label": "Akazie" },
+            { "id": "jasmin", "label": "Jasmin" },
+            { "id": "orangenbluete", "label": "Orangenblüte" }
+          ]
+        },
+        {
+          "id": "gruen_krautig",
+          "label": "Grün und krautig",
+          "lektion": "l03",
+          "aromen": [
+            { "id": "gras", "label": "Gras" },
+            { "id": "gruene_paprika", "label": "grüne Paprika" },
+            { "id": "stachelbeere", "label": "Stachelbeere" },
+            { "id": "minze", "label": "Minze" },
+            { "id": "eukalyptus", "label": "Eukalyptus" },
+            { "id": "tomatenblatt", "label": "Tomatenblatt" }
+          ]
+        },
+        {
+          "id": "wuerze",
+          "label": "Würze",
+          "lektion": "l03",
+          "aromen": [
+            { "id": "schwarzer_pfeffer", "label": "schwarzer Pfeffer" },
+            { "id": "weisser_pfeffer", "label": "weißer Pfeffer" },
+            { "id": "lakritz", "label": "Lakritz" },
+            { "id": "zimt", "label": "Zimt" },
+            { "id": "nelke", "label": "Nelke" },
+            { "id": "wacholder", "label": "Wacholder" }
+          ]
+        },
+        {
+          "id": "mineralik",
+          "label": "Mineralik",
+          "lektion": "l12",
+          "aromen": [
+            { "id": "feuerstein", "label": "Feuerstein" },
+            { "id": "kreide", "label": "Kreide" },
+            { "id": "nasser_stein", "label": "nasser Stein" },
+            { "id": "salz", "label": "Salz" },
+            { "id": "graphit", "label": "Graphit" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "sekundaer",
+      "label": "Sekundäraromen",
+      "beschreibung": "Aromen aus Gärung und Ausbau im Keller, zum Beispiel durch Hefe oder Holzfass.",
+      "ab_stufe": "einfach",
+      "familien": [
+        {
+          "id": "hefe_gaerung",
+          "label": "Hefe und Gärung",
+          "lektion": "l13",
+          "aromen": [
+            { "id": "brioche", "label": "Brioche" },
+            { "id": "hefe", "label": "Hefe" },
+            { "id": "toastbrot", "label": "Toastbrot" },
+            { "id": "keks", "label": "Keks" },
+            { "id": "mandel", "label": "Mandel" }
+          ]
+        },
+        {
+          "id": "milchsaeure",
+          "label": "Milchsäure (malolaktische Gärung)",
+          "lektion": "l14",
+          "aromen": [
+            { "id": "butter", "label": "Butter" },
+            { "id": "sahne", "label": "Sahne" },
+            { "id": "joghurt", "label": "Joghurt" }
+          ]
+        },
+        {
+          "id": "holz",
+          "label": "Holz",
+          "lektion": "l13",
+          "aromen": [
+            { "id": "vanille", "label": "Vanille" },
+            { "id": "kokos", "label": "Kokos" },
+            { "id": "toast", "label": "Toast (Röstnote)" },
+            { "id": "rauch", "label": "Rauch" },
+            { "id": "zeder", "label": "Zeder" },
+            { "id": "schokolade", "label": "Schokolade" },
+            { "id": "kaffee", "label": "Kaffee" },
+            { "id": "karamell", "label": "Karamell" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tertiaer",
+      "label": "Tertiäraromen",
+      "beschreibung": "Aromen, die erst mit der Reife in Fass oder Flasche entstehen.",
+      "ab_stufe": "erweitert",
+      "familien": [
+        {
+          "id": "getrocknete_fruechte",
+          "label": "Getrocknete Früchte",
+          "lektion": "l30",
+          "aromen": [
+            { "id": "feige", "label": "Feige" },
+            { "id": "rosine", "label": "Rosine" },
+            { "id": "doerrpflaume", "label": "Dörrpflaume" },
+            { "id": "konfituere", "label": "Konfitüre" }
+          ]
+        },
+        {
+          "id": "nuss_honig",
+          "label": "Nuss und Honig",
+          "lektion": "l30",
+          "aromen": [
+            { "id": "walnuss", "label": "Walnuss" },
+            { "id": "haselnuss", "label": "Haselnuss" },
+            { "id": "honig", "label": "Honig" },
+            { "id": "marzipan", "label": "Marzipan" }
+          ]
+        },
+        {
+          "id": "erdig_animalisch",
+          "label": "Erdig und animalisch",
+          "lektion": "l30",
+          "aromen": [
+            { "id": "leder", "label": "Leder" },
+            { "id": "tabak", "label": "Tabak" },
+            { "id": "pilz", "label": "Pilz" },
+            { "id": "waldboden", "label": "Waldboden" },
+            { "id": "trueffel", "label": "Trüffel" },
+            { "id": "unterholz", "label": "Unterholz" }
+          ]
+        },
+        {
+          "id": "reifenoten",
+          "label": "Reifenoten",
+          "lektion": "l30",
+          "aromen": [
+            { "id": "petrol", "label": "Petrol" },
+            { "id": "wachs", "label": "Wachs" },
+            { "id": "sherry_note", "label": "Sherry-Note (oxidativ)" }
+          ]
+        }
+      ]
+    }
+  ],
+  "fehler": {
+    "id": "fehler",
+    "label": "Fehlnoten",
+    "beschreibung": "Gerüche, die auf einen Weinfehler hindeuten können. Im Zweifel lieber eine zweite Flasche probieren.",
+    "ab_stufe": "profi",
+    "lektion": "l28",
+    "aromen": [
+      { "id": "korkton", "label": "Korkton (TCA)" },
+      { "id": "essigstich", "label": "Essigstich" },
+      { "id": "oxidation", "label": "Oxidation" },
+      { "id": "boeckser", "label": "Böckser (faule Eier)" },
+      { "id": "brettanomyces", "label": "Brettanomyces (Stall, Pferdeschweiß)" },
+      { "id": "maeuseln", "label": "Mäuseln" },
+      { "id": "schwefel", "label": "Schwefel" }
+    ]
+  }
+}

@@ -1,0 +1,134 @@
+{
+  "skalen": [
+    {
+      "id": "suesse",
+      "feld": "schmecken.suesse",
+      "label": "Süße",
+      "erklaerung": "Wie viel Zucker schmeckst du auf der Zungenspitze? 1 = trocken, kein Zucker spürbar, 5 = deutlich süß",
+      "anker": ["trocken", "fast trocken", "halbtrocken", "lieblich", "süß"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "einfach",
+      "lektion": "l04"
+    },
+    {
+      "id": "saeure",
+      "feld": "schmecken.saeure",
+      "label": "Säure",
+      "erklaerung": "Wie stark lässt der Wein deinen Mund zusammenziehen oder wässern? 1 = flach und weich, 5 = sehr frisch und spitz",
+      "anker": ["flach und weich", "mild", "ausgewogen frisch", "lebendig", "sehr frisch und spitz"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "einfach",
+      "lektion": "l14"
+    },
+    {
+      "id": "koerper",
+      "feld": "schmecken.koerper",
+      "label": "Körper",
+      "erklaerung": "Wie schwer fühlt sich der Wein im Mund an? Denk an Wasser, Milch und Sahne. 1 = leicht wie Wasser, 5 = voll und schwer",
+      "anker": ["sehr leicht", "leicht", "mittel", "kräftig", "voll und schwer"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "einfach",
+      "lektion": "l03"
+    },
+    {
+      "id": "tannin",
+      "feld": "schmecken.tannin",
+      "label": "Tannin",
+      "erklaerung": "Wie stark trocknet der Wein Zahnfleisch und Zunge aus, ähnlich wie schwarzer Tee? 1 = kaum spürbar, 5 = stark und pelzig",
+      "anker": ["kaum spürbar", "weich", "mittel", "deutlich", "stark und pelzig"],
+      "kategorien": ["rot", "orange"],
+      "stufe": "erweitert",
+      "lektion": "l03"
+    },
+    {
+      "id": "alkohol",
+      "feld": "schmecken.alkohol",
+      "label": "Alkohol",
+      "erklaerung": "Wie viel Wärme spürst du im Mund und im Hals nach dem Schlucken? 1 = kaum Wärme, 5 = deutlich wärmend bis brennend",
+      "anker": ["kaum Wärme", "leicht", "mittel", "wärmend", "deutlich wärmend"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "erweitert",
+      "lektion": "l03"
+    },
+    {
+      "id": "abgang",
+      "feld": "schmecken.abgang",
+      "label": "Abgang",
+      "erklaerung": "Wie lange bleibt der Geschmack nach dem Schlucken im Mund? 1 = sofort weg, 5 = sehr lang, mehr als zehn Sekunden",
+      "anker": ["sehr kurz", "kurz", "mittel", "lang", "sehr lang"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "erweitert",
+      "lektion": "l18"
+    },
+    {
+      "id": "intensitaet_nase",
+      "feld": "riechen.intensitaet",
+      "label": "Intensität (Nase)",
+      "erklaerung": "Wie kräftig duftet der Wein im Glas? 1 = du musst lange suchen, 5 = der Duft springt dir entgegen",
+      "anker": ["sehr zurückhaltend", "zurückhaltend", "mittel", "ausgeprägt", "sehr ausgeprägt"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "erweitert",
+      "lektion": "l18"
+    },
+    {
+      "id": "qualitaet",
+      "feld": "fazit.qualitaet",
+      "label": "Qualität",
+      "erklaerung": "Wie gut ist der Wein insgesamt, unabhängig davon, ob er dir schmeckt? 1 = fehlerhaft oder einfach, 5 = herausragend",
+      "anker": ["einfach", "ordentlich", "gut", "sehr gut", "herausragend"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "erweitert",
+      "lektion": "l18"
+    },
+    {
+      "id": "balance",
+      "feld": "schmecken.balance",
+      "label": "Balance",
+      "erklaerung": "Passen Süße, Säure, Tannin, Alkohol und Frucht zusammen, oder sticht etwas heraus? 1 = unausgewogen, 5 = alles im Gleichgewicht",
+      "anker": ["unausgewogen", "etwas unruhig", "weitgehend stimmig", "harmonisch", "vollkommen im Gleichgewicht"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "profi",
+      "lektion": "l18"
+    },
+    {
+      "id": "farbintensitaet",
+      "feld": "sehen.intensitaet",
+      "label": "Farbintensität",
+      "erklaerung": "Wie dicht ist die Farbe, wenn du das Glas schräg über ein weißes Blatt hältst? 1 = sehr hell, 5 = tief und undurchsichtig",
+      "anker": ["sehr hell", "hell", "mittel", "kräftig", "tief"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "profi",
+      "lektion": "l18"
+    },
+    {
+      "id": "viskositaet",
+      "feld": "sehen.viskositaet",
+      "label": "Viskosität",
+      "erklaerung": "Wie langsam laufen die Tropfen nach dem Schwenken am Glas herunter? 1 = schnell und dünn, 5 = langsam und dick",
+      "anker": ["dünnflüssig", "leicht", "mittel", "ölig", "dickflüssig"],
+      "kategorien": ["weiss", "rose", "rot", "schaum", "orange", "suess", "unbekannt"],
+      "stufe": "profi",
+      "lektion": "l18"
+    },
+    {
+      "id": "perlage",
+      "feld": "sehen.perlage",
+      "label": "Perlage",
+      "erklaerung": "Wie fein und ausdauernd steigen die Bläschen im Glas auf? 1 = grob und schnell vorbei, 5 = sehr fein und lange anhaltend",
+      "anker": ["grob, kurz", "eher grob", "mittel", "fein", "sehr fein und anhaltend"],
+      "kategorien": ["schaum"],
+      "stufe": "profi",
+      "lektion": "l15"
+    },
+    {
+      "id": "mousse",
+      "feld": "schmecken.mousse",
+      "label": "Mousse",
+      "erklaerung": "Wie fühlt sich der Schaum im Mund an? 1 = grob und kratzig, 5 = cremig und zart",
+      "anker": ["grob und kratzig", "etwas rau", "mittel", "weich", "cremig und zart"],
+      "kategorien": ["schaum"],
+      "stufe": "profi",
+      "lektion": "l15"
+    }
+  ]
+}
