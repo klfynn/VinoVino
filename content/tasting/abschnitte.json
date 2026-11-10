@@ -1,0 +1,10 @@
+{
+  "abschnitte": [
+    { "id": "sehen", "label": "Sehen", "beschreibung": "Klarheit, Farbe und Intensität im Glas.", "lektion": "l18" },
+    { "id": "riechen", "label": "Riechen", "beschreibung": "Duftintensität, Aromen und mögliche Fehlnoten.", "lektion": "l03" },
+    { "id": "schmecken", "label": "Schmecken", "beschreibung": "Süße, Säure, Tannin, Körper, Alkohol und Abgang.", "lektion": "l03" },
+    { "id": "terroir", "label": "Terroir", "beschreibung": "Herkunftseindrücke und dein Tipp zu Boden und Klima.", "lektion": "l12" },
+    { "id": "fazit", "label": "Fazit", "beschreibung": "Qualität, Trinkreife, Lagerpotenzial und deine Notiz.", "lektion": "l30" },
+    { "id": "blind", "label": "Blindverkostung", "beschreibung": "Tipps zu Rebsorte, Region und Jahrgang (folgt später).", "lektion": "l32" }
+  ]
+}

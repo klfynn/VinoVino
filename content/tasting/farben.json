@@ -1,0 +1,85 @@
+{
+  "lektion": "l02",
+  "kategorien": {
+    "weiss": {
+      "label": "Weißwein",
+      "lektion": "l02",
+      "farben": [
+        { "id": "weiss_blassgruen_gelb", "label": "blassgrün-gelb", "hex": "#E9EDB4" },
+        { "id": "weiss_zitronengelb", "label": "zitronengelb", "hex": "#F2E68A" },
+        { "id": "weiss_goldgelb", "label": "goldgelb", "hex": "#E6C25A" },
+        { "id": "weiss_bernstein", "label": "bernstein", "hex": "#C98A2E" }
+      ],
+      "rand": [
+        { "id": "rand_wasserhell", "label": "wasserhell", "hex": "#F4F4E8" },
+        { "id": "rand_gruenlich", "label": "grünlich", "hex": "#DDE6B0" },
+        { "id": "rand_golden", "label": "golden", "hex": "#E3BE5E" },
+        { "id": "rand_bernstein", "label": "bernstein", "hex": "#C08A35" }
+      ]
+    },
+    "rose": {
+      "label": "Rosé",
+      "lektion": "l02",
+      "farben": [
+        { "id": "rose_zwiebelschale", "label": "zwiebelschale", "hex": "#E9B98F" },
+        { "id": "rose_lachsfarben", "label": "lachsfarben", "hex": "#F2A48A" },
+        { "id": "rose_hellrosa", "label": "hellrosa", "hex": "#F4B6C2" },
+        { "id": "rose_kraeftig_rosa", "label": "kräftig rosa", "hex": "#E0607E" }
+      ],
+      "rand": []
+    },
+    "rot": {
+      "label": "Rotwein",
+      "lektion": "l02",
+      "farben": [
+        { "id": "rot_purpurviolett", "label": "purpurviolett", "hex": "#5B1A4A" },
+        { "id": "rot_rubinrot", "label": "rubinrot", "hex": "#9B1B30" },
+        { "id": "rot_granatrot", "label": "granatrot", "hex": "#7A1F2B" },
+        { "id": "rot_ziegelrot", "label": "ziegelrot", "hex": "#A0452E" },
+        { "id": "rot_braeunlich", "label": "bräunlich", "hex": "#7B4A2D" }
+      ],
+      "rand": [
+        { "id": "rand_purpur", "label": "purpur", "hex": "#7A2A6B" },
+        { "id": "rand_rubin", "label": "rubin", "hex": "#B22A45" },
+        { "id": "rand_orange", "label": "orange", "hex": "#C8653A" },
+        { "id": "rand_braun", "label": "braun", "hex": "#8A5A3A" }
+      ]
+    },
+    "schaum": {
+      "label": "Schaumwein",
+      "lektion": "l15",
+      "wie": ["weiss", "rose"],
+      "farben": [],
+      "rand": []
+    },
+    "orange": {
+      "label": "Orange Wine",
+      "lektion": "l37",
+      "farben": [
+        { "id": "orange_goldorange", "label": "goldorange", "hex": "#E0A040" },
+        { "id": "orange_kupfer", "label": "kupfer", "hex": "#C0703A" },
+        { "id": "orange_bernstein", "label": "bernstein", "hex": "#B5782E" }
+      ],
+      "rand": []
+    },
+    "suess": {
+      "label": "Aufgespritet und edelsüß",
+      "lektion": "l41",
+      "farben": [
+        { "id": "suess_goldgelb", "label": "goldgelb", "hex": "#E2B84A" },
+        { "id": "suess_bernstein", "label": "bernstein", "hex": "#C27F2A" },
+        { "id": "suess_rubinrot", "label": "rubinrot (zum Beispiel Ruby Port)", "hex": "#8E1B32" },
+        { "id": "suess_mahagoni", "label": "mahagoni", "hex": "#6E3420" },
+        { "id": "suess_tiefbraun", "label": "tiefbraun", "hex": "#3E2216" }
+      ],
+      "rand": []
+    },
+    "unbekannt": {
+      "label": "Weinart unbekannt",
+      "lektion": "l02",
+      "wie": ["weiss", "rose", "rot"],
+      "farben": [],
+      "rand": []
+    }
+  }
+}

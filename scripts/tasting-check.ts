@@ -1,0 +1,406 @@
+// Prüfskript des Verkostungsbogens: Kataloge, Validierung und Entwurf.
+// Ausführen mit: npm run check:tasting
+import { TIERS } from '../content/academy';
+import {
+  ABSCHNITTE,
+  AROMEN,
+  DEFAULT_KATEGORIE,
+  FARBEN,
+  getAromaStufen,
+  getFarben,
+  getFehler,
+  getRandFarben,
+  getSkalen,
+  SKALEN,
+  TERROIR,
+  weinartToKategorie,
+} from '../lib/tasting/catalog';
+import {
+  isValidTastingData,
+  MAX_LIST_LENGTH,
+  profileFromTasting,
+  sanitizeTastingData,
+} from '../lib/tasting/validate';
+import {
+  isDraftValid,
+  parseDraft,
+  serializeDraft,
+  TASTING_DRAFT_MAX_AGE_MS,
+  TastingDraft,
+  tastingDraftKey,
+} from '../lib/tasting/draft';
+import {
+  NOTIZ_MAX_LENGTH,
+  TASTING_LEVELS,
+  TastingData,
+  WEIN_KATEGORIEN,
+  WeinKategorie,
+} from '../lib/tasting/types';
+
+let passed = 0;
+const failures: string[] = [];
+
+function check(name: string, ok: boolean, detail?: unknown) {
+  if (ok) passed += 1;
+  else failures.push(detail === undefined ? name : `${name}: ${JSON.stringify(detail)}`);
+}
+
+function eq(name: string, actual: unknown, expected: unknown) {
+  const a = JSON.stringify(actual);
+  const e = JSON.stringify(expected);
+  check(name, a === e, a === e ? undefined : { erwartet: expected, erhalten: actual });
+}
+
+// ── Katalog-IDs: Schema und Eindeutigkeit ─────────────────────────────────────
+
+const ID_RE = /^[a-z]+(_[a-z]+)*$/;
+
+function checkIds(name: string, ids: string[]) {
+  for (const id of ids) check(`${name}: ID „${id}“ folgt dem Schema`, ID_RE.test(id), id);
+  const doppelt = ids.filter((id, i) => ids.indexOf(id) !== i);
+  check(`${name}: IDs eindeutig`, doppelt.length === 0, doppelt);
+}
+
+const aromaIds = AROMEN.stufen.flatMap((s) => s.familien.flatMap((f) => f.aromen.map((a) => a.id)));
+const fehlerIds = AROMEN.fehler.aromen.map((a) => a.id);
+const familienIds = AROMEN.stufen.flatMap((s) => s.familien.map((f) => f.id));
+checkIds('Aromen (inkl. Fehlnoten)', [...aromaIds, ...fehlerIds]);
+checkIds('Aromafamilien und Stufen', [...familienIds, ...AROMEN.stufen.map((s) => s.id), AROMEN.fehler.id]);
+
+const farbKategorien = Object.values(FARBEN.kategorien);
+checkIds('Farben', farbKategorien.flatMap((k) => k.farben.map((f) => f.id)));
+checkIds('Randfarben', farbKategorien.flatMap((k) => k.rand.map((f) => f.id)));
+checkIds('Skalen', SKALEN.map((s) => s.id));
+checkIds('Terroir-Eindrücke', TERROIR.eindruecke.optionen.map((o) => o.id));
+checkIds('Böden', TERROIR.boeden.optionen.map((o) => o.id));
+checkIds('Klimaeindruck', TERROIR.klima_eindruck.optionen.map((o) => o.id));
+checkIds('Abschnitte', ABSCHNITTE.map((a) => a.id));
+
+// Mindestinhalt laut Aufgabe
+eq('Aromen: drei Stufen', AROMEN.stufen.map((s) => s.id), ['primaer', 'sekundaer', 'tertiaer']);
+eq('Aromen: 10 Primärfamilien', AROMEN.stufen[0].familien.length, 10);
+eq('Aromen: 3 Sekundärfamilien', AROMEN.stufen[1].familien.length, 3);
+eq('Aromen: 4 Tertiärfamilien', AROMEN.stufen[2].familien.length, 4);
+eq('Fehlnoten: 7 Einträge', fehlerIds.length, 7);
+eq('Fehlnoten: nur Profi', AROMEN.fehler.ab_stufe, 'profi');
+eq('Böden: 11 Einträge inkl. „weiß nicht“', TERROIR.boeden.optionen.length, 11);
+check('Böden: „weiß nicht“ vorhanden', TERROIR.boeden.optionen.some((o) => o.id === 'weiss_nicht'));
+eq('Terroir-Eindrücke: 9 Einträge', TERROIR.eindruecke.optionen.length, 9);
+eq('Klimaeindruck: 4 Einträge', TERROIR.klima_eindruck.optionen.map((o) => o.id), ['kuehl', 'gemaessigt', 'warm', 'heiss']);
+for (const b of TERROIR.boeden.optionen) {
+  check(`Boden ${b.id}: vorsichtige Formulierung`, !!b.verbunden_mit && !/\b(macht|verursacht|bewirkt)\b/i.test(b.verbunden_mit), b.verbunden_mit);
+}
+for (const f of farbKategorien) {
+  for (const farbe of [...f.farben, ...f.rand]) {
+    check(`Farbe ${farbe.id}: Hex-Wert`, /^#[0-9A-Fa-f]{6}$/.test(farbe.hex), farbe.hex);
+  }
+}
+eq('Farben: alle Kategorien vorhanden', Object.keys(FARBEN.kategorien).sort(), [...WEIN_KATEGORIEN].sort());
+for (const k of WEIN_KATEGORIEN) check(`Farben: Kategorie ${k} hat Farben`, getFarben(k).length > 0, k);
+eq('Farben: Rotwein von hell nach dunkel', getFarben('rot').map((f) => f.label), [
+  'purpurviolett', 'rubinrot', 'granatrot', 'ziegelrot', 'bräunlich',
+]);
+eq(
+  'Farben: Schaumwein = Weißwein + Rosé',
+  getFarben('schaum').map((f) => f.id),
+  [...getFarben('weiss'), ...getFarben('rose')].map((f) => f.id),
+);
+eq('Randfarben: nicht in Stufe einfach', getRandFarben('rot', 'einfach'), []);
+eq('Randfarben: Rotwein in Profi', getRandFarben('rot', 'profi').map((f) => f.id), [
+  'rand_purpur', 'rand_rubin', 'rand_orange', 'rand_braun',
+]);
+
+// ── Lektionsverweise ──────────────────────────────────────────────────────────
+
+const lektionIds = new Set(TIERS.flatMap((t) => t.lektionen.map((l) => l.id)));
+const verweise: [string, unknown][] = [
+  ...AROMEN.stufen.flatMap((s) => s.familien.map((f) => [`Aromafamilie ${f.id}`, f.lektion] as [string, unknown])),
+  ['Fehlnoten', AROMEN.fehler.lektion],
+  ['Farben', FARBEN.lektion],
+  ...Object.entries(FARBEN.kategorien).map(([k, v]) => [`Farbkategorie ${k}`, v.lektion] as [string, unknown]),
+  ...SKALEN.map((s) => [`Skala ${s.id}`, s.lektion] as [string, unknown]),
+  ['Terroir', TERROIR.lektion],
+  ['Terroir-Eindrücke', TERROIR.eindruecke.lektion],
+  ['Böden', TERROIR.boeden.lektion],
+  ['Klimaeindruck', TERROIR.klima_eindruck.lektion],
+  ...ABSCHNITTE.map((a) => [`Abschnitt ${a.id}`, a.lektion] as [string, unknown]),
+];
+for (const [name, lektion] of verweise) {
+  check(
+    `${name}: lektion existiert oder ist null`,
+    lektion === null || (typeof lektion === 'string' && lektionIds.has(lektion)),
+    lektion,
+  );
+}
+check('Jede Aromafamilie hat ein Feld lektion', AROMEN.stufen.every((s) => s.familien.every((f) => 'lektion' in f)));
+
+// ── Weinart → Kategorie ───────────────────────────────────────────────────────
+
+const weinarten: [unknown, WeinKategorie][] = [
+  // Werte aus dem Code (FilterContext, wineRecognition, services/supabase.ts, data/wines.ts)
+  ['Rotwein', 'rot'],
+  ['Weißwein', 'weiss'],
+  ['Rosé', 'rose'],
+  ['Roséwein', 'rose'],
+  ['Schaumwein', 'schaum'],
+  ['Süßwein', 'suess'],
+  ['Dessert- und Likörwein', 'suess'],
+  // Weitere Schreibweisen und Begriffe
+  ['rotwein', 'rot'],
+  ['  Weisswein ', 'weiss'],
+  ['Rose', 'rose'],
+  ['Weißherbst', 'rose'],
+  ['Champagner', 'schaum'],
+  ['Sekt', 'schaum'],
+  ['Crémant', 'schaum'],
+  ['Prosecco', 'schaum'],
+  ['Rosé-Sekt', 'schaum'],
+  ['Port', 'suess'],
+  ['Portwein', 'suess'],
+  ['Sherry', 'suess'],
+  ['Eiswein', 'suess'],
+  ['Orange Wine', 'orange'],
+  ['Orangewein', 'orange'],
+  // Unbekannt → Standardkategorie, ohne zu werfen
+  ['Portugal', DEFAULT_KATEGORIE],
+  ['Cidre', DEFAULT_KATEGORIE],
+  ['', DEFAULT_KATEGORIE],
+  ['   ', DEFAULT_KATEGORIE],
+  [null, DEFAULT_KATEGORIE],
+  [undefined, DEFAULT_KATEGORIE],
+  [42, DEFAULT_KATEGORIE],
+  [{ weinart: 'Rotwein' }, DEFAULT_KATEGORIE],
+];
+for (const [weinart, erwartet] of weinarten) {
+  let ergebnis: WeinKategorie | string;
+  try {
+    ergebnis = weinartToKategorie(weinart);
+  } catch (err) {
+    ergebnis = `geworfen: ${String(err)}`;
+  }
+  eq(`weinartToKategorie(${JSON.stringify(weinart) ?? 'undefined'})`, ergebnis, erwartet);
+}
+eq('Standardkategorie ist neutral', DEFAULT_KATEGORIE, 'unbekannt');
+
+// ── Skalen ────────────────────────────────────────────────────────────────────
+
+for (const s of SKALEN) {
+  eq(`Skala ${s.id}: genau 5 Ankertexte`, s.anker.length, 5);
+  check(`Skala ${s.id}: Erklärung vorhanden`, s.erklaerung.trim().length > 0);
+  check(`Skala ${s.id}: gültige Stufe`, (TASTING_LEVELS as readonly string[]).includes(s.stufe), s.stufe);
+  check(`Skala ${s.id}: gültige Kategorien`, s.kategorien.length > 0 && s.kategorien.every((k) => WEIN_KATEGORIEN.includes(k)), s.kategorien);
+}
+const tannin = SKALEN.find((s) => s.id === 'tannin');
+eq('Tannin: Kategorien nur rot und orange', tannin ? [...tannin.kategorien].sort() : null, ['orange', 'rot']);
+for (const k of WEIN_KATEGORIEN) {
+  const hatTannin = getSkalen(k, 'profi').some((s) => s.id === 'tannin');
+  eq(`Tannin erscheint bei ${k}`, hatTannin, k === 'rot' || k === 'orange');
+}
+eq('Skalen einfach (rot)', getSkalen('rot', 'einfach').map((s) => s.id), ['suesse', 'saeure', 'koerper']);
+eq('Skalen erweitert (rot)', getSkalen('rot', 'erweitert').map((s) => s.id), [
+  'suesse', 'saeure', 'koerper', 'tannin', 'alkohol', 'abgang', 'intensitaet_nase', 'qualitaet',
+]);
+eq('Skalen erweitert (weiss) ohne Tannin', getSkalen('weiss', 'erweitert').some((s) => s.id === 'tannin'), false);
+check('Mousse und Perlage nur bei Schaumwein (Profi)', getSkalen('schaum', 'profi').some((s) => s.id === 'mousse') && getSkalen('schaum', 'profi').some((s) => s.id === 'perlage') && !getSkalen('rot', 'profi').some((s) => s.id === 'mousse'));
+eq('Mousse nicht in Stufe erweitert', getSkalen('schaum', 'erweitert').some((s) => s.id === 'mousse'), false);
+eq('Balance erst in Profi', [getSkalen('weiss', 'erweitert').some((s) => s.id === 'balance'), getSkalen('weiss', 'profi').some((s) => s.id === 'balance')], [false, true]);
+
+// ── Aromen filtern ────────────────────────────────────────────────────────────
+
+eq('Aromen einfach: Primär und Sekundär', getAromaStufen('weiss', 'einfach').map((s) => s.id), ['primaer', 'sekundaer']);
+eq('Aromen erweitert: alle drei Stufen', getAromaStufen('rot', 'erweitert').map((s) => s.id), ['primaer', 'sekundaer', 'tertiaer']);
+eq('Aromen: keine schwarzen Beeren bei Weißwein', getAromaStufen('weiss', 'profi')[0].familien.some((f) => f.id === 'schwarze_beeren'), false);
+eq('Aromen: alle Familien bei unbekannt', getAromaStufen('unbekannt', 'profi').reduce((n, s) => n + s.familien.length, 0), familienIds.length);
+eq('Fehlnoten: nicht in erweitert', getFehler('erweitert'), []);
+eq('Fehlnoten: in Profi', getFehler('profi').length, 7);
+
+// ── isValidTastingData und sanitizeTastingData ────────────────────────────────
+
+const gueltig: TastingData = {
+  sehen: { klarheit: 'klar', intensitaet: 3, farbe: 'rot_rubinrot', rand: 'rand_purpur', viskositaet: 2 },
+  riechen: {
+    intensitaet: 4,
+    zustand: 'sauber',
+    aromen: { primaer: ['cassis', 'brombeere'], sekundaer: ['vanille'], tertiaer: ['leder'] },
+    fehler: [],
+  },
+  schmecken: { suesse: 1, saeure: 3, tannin: 4, koerper: 4, alkohol: 4, abgang: 5, balance: 4, aromen_gaumen: ['cassis', 'kaffee'] },
+  terroir: { eindruecke: ['warm_reif', 'erdig'], boden_tipp: 'kies', klima_eindruck: 'warm' },
+  fazit: { qualitaet: 4, trinkreife: 'trinkbar', lagerpotenzial: 'lang', notiz: 'Dichter Bordeaux, braucht Luft.' },
+  blind: { rebsorte_tipp: 'Cabernet Sauvignon', region_tipp: 'Bordeaux', jahrgang_tipp: '2018' },
+};
+
+check('isValid: vollständiger Bogen', isValidTastingData(gueltig));
+check('isValid: leeres Objekt', isValidTastingData({}));
+check('isValid: unbekannte Felder werden toleriert', isValidTastingData({ ...gueltig, zukunft: { x: 1 }, sehen: { ...gueltig.sehen, neu: true } }));
+check('isValid: boden_tipp null', isValidTastingData({ terroir: { boden_tipp: null, klima_eindruck: null } }));
+check('isValid: Schaumwein mit Mousse und Perlage', isValidTastingData({ sehen: { perlage: 5 }, schmecken: { mousse: 4 } }));
+check('isValid: Notiz genau 1000 Zeichen', isValidTastingData({ fazit: { notiz: 'a'.repeat(NOTIZ_MAX_LENGTH) } }));
+check('isValid: 1000 Emojis zählen als 1000 Zeichen', isValidTastingData({ fazit: { notiz: '🍷'.repeat(NOTIZ_MAX_LENGTH) } }));
+
+const kaputt: [string, unknown][] = [
+  ['null', null],
+  ['undefined', undefined],
+  ['Zahl', 42],
+  ['Text', 'Bogen'],
+  ['Array', []],
+  ['Abschnitt kein Objekt', { sehen: 'klar' }],
+  ['Abschnitt ist Array', { schmecken: [1, 2] }],
+  ['Skalenwert 0', { schmecken: { suesse: 0 } }],
+  ['Skalenwert 6', { schmecken: { saeure: 6 } }],
+  ['Skalenwert 2.5', { schmecken: { koerper: 2.5 } }],
+  ['Skalenwert als Text', { schmecken: { tannin: '3' } }],
+  ['Skalenwert NaN', { sehen: { intensitaet: NaN } }],
+  ['Klarheit unbekannt', { sehen: { klarheit: 'milchig' } }],
+  ['Farbe unbekannt', { sehen: { farbe: 'neongruen' } }],
+  ['Rand-ID als Farbe', { sehen: { farbe: 'rand_purpur' } }],
+  ['Aroma in falscher Stufe', { riechen: { aromen: { primaer: ['vanille'], sekundaer: [], tertiaer: [] } } }],
+  ['Aroma unbekannt', { riechen: { aromen: { primaer: ['gummibaerchen'], sekundaer: [], tertiaer: [] } } }],
+  ['Aromen ohne Liste', { riechen: { aromen: { primaer: ['zitrone'] } } }],
+  ['Aromen als Text', { riechen: { aromen: 'zitrone' } }],
+  ['Fehlnote unbekannt', { riechen: { fehler: ['zitrone'] } }],
+  ['Fehlnote als Gaumenaroma', { schmecken: { aromen_gaumen: ['korkton'] } }],
+  ['Zustand unbekannt', { riechen: { zustand: 'gut' } }],
+  ['Eindruck unbekannt', { terroir: { eindruecke: ['magisch'] } }],
+  ['Boden unbekannt', { terroir: { boden_tipp: 'beton' } }],
+  ['Klima unbekannt', { terroir: { klima_eindruck: 'tropisch' } }],
+  ['Trinkreife unbekannt', { fazit: { trinkreife: 'bald' } }],
+  ['Lagerpotenzial unbekannt', { fazit: { lagerpotenzial: 'ewig' } }],
+  ['Notiz keine Zeichenkette', { fazit: { notiz: 123 } }],
+  ['Blind-Tipp keine Zeichenkette', { blind: { jahrgang_tipp: 2018 } }],
+  ['Liste zu lang', { terroir: { eindruecke: Array(MAX_LIST_LENGTH + 1).fill('erdig') } }],
+];
+for (const [name, data] of kaputt) check(`isValid: kaputt (${name})`, !isValidTastingData(data), data);
+
+const zuLangeNotiz = 'x'.repeat(NOTIZ_MAX_LENGTH + 500);
+check('isValid: überlange Notiz', !isValidTastingData({ fazit: { notiz: zuLangeNotiz } }));
+check('isValid: überlanger Blind-Tipp', !isValidTastingData({ blind: { region_tipp: 'y'.repeat(101) } }));
+
+// sanitize
+eq('sanitize: gültiger Bogen bleibt (ohne Fremdfelder)', sanitizeTastingData(gueltig), {
+  ...gueltig,
+  riechen: { ...gueltig.riechen, fehler: undefined },
+});
+for (const [name, data] of [['null', null], ['Zahl', 42], ['Text', 'x'], ['Array', [1]], ['undefined', undefined]] as [string, unknown][]) {
+  eq(`sanitize: ${name} → {}`, sanitizeTastingData(data), {});
+}
+eq('sanitize: leeres Objekt', sanitizeTastingData({}), {});
+eq('sanitize: unbekannte Felder entfernt', sanitizeTastingData({ zukunft: 1, sehen: { klarheit: 'klar', neu: true } }), {
+  sehen: { klarheit: 'klar' },
+});
+eq(
+  'sanitize: ungültige Werte entfernt, gültige bleiben',
+  sanitizeTastingData({
+    schmecken: { suesse: 0, saeure: 3, tannin: '4', koerper: 2.5, aromen_gaumen: ['cassis', 'quatsch', 'cassis', 7] },
+    sehen: { farbe: 'neongruen' },
+    terroir: { boden_tipp: 'beton', klima_eindruck: null, eindruecke: ['erdig', 'magisch'] },
+  }),
+  { schmecken: { saeure: 3, aromen_gaumen: ['cassis'] }, terroir: { eindruecke: ['erdig'], klima_eindruck: null } },
+);
+eq(
+  'sanitize: Aromen falscher Stufe entfernt, Listen ergänzt',
+  sanitizeTastingData({ riechen: { aromen: { primaer: ['zitrone', 'vanille'], tertiaer: ['petrol'] } } }),
+  { riechen: { aromen: { primaer: ['zitrone'], sekundaer: [], tertiaer: ['petrol'] } } },
+);
+eq('sanitize: leere Aromen entfallen', sanitizeTastingData({ riechen: { aromen: { primaer: [], sekundaer: [], tertiaer: [] } } }), {});
+const gekuerzt = sanitizeTastingData({ fazit: { notiz: `  ${zuLangeNotiz}  ` } });
+eq('sanitize: Notiz auf 1000 Zeichen gekürzt', gekuerzt.fazit?.notiz?.length, NOTIZ_MAX_LENGTH);
+eq('sanitize: Emoji-Notiz nicht zerschnitten', Array.from(sanitizeTastingData({ fazit: { notiz: '🍷'.repeat(1200) } }).fazit?.notiz ?? '').length, NOTIZ_MAX_LENGTH);
+eq('sanitize: Notiz nur Leerzeichen entfällt', sanitizeTastingData({ fazit: { notiz: '   ' } }), {});
+eq('sanitize: Steuerzeichen entfernt', sanitizeTastingData({ fazit: { notiz: 'a\u0000b\nc' } }).fazit?.notiz, 'ab\nc');
+eq('sanitize: Blind-Tipp gekürzt', sanitizeTastingData({ blind: { region_tipp: 'y'.repeat(150) } }).blind?.region_tipp?.length, 100);
+const langeListe = sanitizeTastingData({ schmecken: { aromen_gaumen: aromaIds } });
+eq('sanitize: Liste auf Höchstlänge begrenzt', langeListe.schmecken?.aromen_gaumen?.length, Math.min(aromaIds.length, MAX_LIST_LENGTH));
+
+const stichproben: unknown[] = [gueltig, {}, null, 42, ...kaputt.map(([, d]) => d), { fazit: { notiz: zuLangeNotiz } }, { schmecken: { aromen_gaumen: aromaIds } }];
+stichproben.forEach((d, i) => check(`sanitize → isValid (Stichprobe ${i + 1})`, isValidTastingData(sanitizeTastingData(d))));
+check('sanitize ist idempotent', JSON.stringify(sanitizeTastingData(sanitizeTastingData(gueltig))) === JSON.stringify(sanitizeTastingData(gueltig)));
+
+// Größte mögliche Bögen bleiben unter der Datenbankgrenze (20 000 Byte)
+const maximal = sanitizeTastingData({
+  sehen: { klarheit: 'trueb', intensitaet: 5, farbe: 'weiss_blassgruen_gelb', rand: 'rand_wasserhell', viskositaet: 5, perlage: 5 },
+  riechen: {
+    intensitaet: 5,
+    zustand: 'auffaellig',
+    aromen: {
+      primaer: AROMEN.stufen[0].familien.flatMap((f) => f.aromen.map((a) => a.id)),
+      sekundaer: AROMEN.stufen[1].familien.flatMap((f) => f.aromen.map((a) => a.id)),
+      tertiaer: AROMEN.stufen[2].familien.flatMap((f) => f.aromen.map((a) => a.id)),
+    },
+    fehler: fehlerIds,
+  },
+  schmecken: { suesse: 5, saeure: 5, tannin: 5, koerper: 5, alkohol: 5, abgang: 5, balance: 5, mousse: 5, aromen_gaumen: aromaIds },
+  terroir: { eindruecke: TERROIR.eindruecke.optionen.map((o) => o.id), boden_tipp: 'vulkangestein', klima_eindruck: 'gemaessigt' },
+  fazit: { qualitaet: 5, trinkreife: 'ueber_hoehepunkt', lagerpotenzial: 'mittel', notiz: '"\\'.repeat(600) },
+  blind: { rebsorte_tipp: '"'.repeat(100), region_tipp: '🍷'.repeat(100), jahrgang_tipp: '\\'.repeat(100) },
+});
+const utf8Bytes = (text: string) =>
+  Array.from(text).reduce((n, ch) => {
+    const cp = ch.codePointAt(0) ?? 0;
+    return n + (cp < 0x80 ? 1 : cp < 0x800 ? 2 : cp < 0x10000 ? 3 : 4);
+  }, 0);
+const bytes = utf8Bytes(JSON.stringify(maximal));
+check('Größe: maximaler Bogen unter 20 000 Byte', bytes <= 20000, bytes);
+
+// profileFromTasting
+eq('profile: vollständiger Bogen', profileFromTasting(gueltig), { suesse: 1, saeure: 3, tannin: 4, koerper: 4, alkohol: 4, abgang: 5 });
+eq('profile: leer', profileFromTasting({}), { suesse: null, saeure: null, tannin: null, koerper: null, alkohol: null, abgang: null });
+eq('profile: kaputt', profileFromTasting('x'), { suesse: null, saeure: null, tannin: null, koerper: null, alkohol: null, abgang: null });
+eq('profile: ungültige Werte werden null', profileFromTasting({ schmecken: { suesse: 9, saeure: '2', koerper: 3 } }), {
+  suesse: null, saeure: null, tannin: null, koerper: 3, alkohol: null, abgang: null,
+});
+
+// ── Entwurf (AsyncStorage) ────────────────────────────────────────────────────
+
+const NOW = Date.UTC(2026, 10, 10, 12, 0, 0);
+const WINE = '3f2b6c1e-8a4d-4f7a-9c2e-1b5d7e9f0a12';
+const draft = (over: Partial<TastingDraft> = {}): TastingDraft => ({
+  wineId: WINE,
+  level: 'erweitert',
+  step: 'riechen',
+  purchasedWineId: null,
+  lessonId: 'l18',
+  focus: null,
+  data: { sehen: { klarheit: 'klar', farbe: 'weiss_zitronengelb' }, riechen: { intensitaet: 3 } },
+  savedAt: NOW - 60_000,
+  ...over,
+});
+const roundTrip = (d: TastingDraft) => parseDraft(serializeDraft(d));
+
+eq('draftKey: mit Nutzer', tastingDraftKey('u-1', WINE), `tasting_draft_v1:u-1:${WINE}`);
+eq('draftKey: ohne Nutzer', tastingDraftKey(null, WINE), `tasting_draft_v1:anon:${WINE}`);
+eq('draftKey: leerer Nutzer', tastingDraftKey('', 'w1'), 'tasting_draft_v1:anon:w1');
+eq('parseDraft: Roundtrip', roundTrip(draft()), draft());
+check('isDraftValid: gültig', isDraftValid(roundTrip(draft()), WINE, NOW));
+check('isDraftValid: leerer Bogen ist gültig', isDraftValid(draft({ data: {} }), WINE, NOW));
+check('isDraftValid: genau 7 Tage alt ist noch gültig', isDraftValid(draft({ savedAt: NOW - TASTING_DRAFT_MAX_AGE_MS }), WINE, NOW));
+check('isDraftValid: abgelaufen (älter als 7 Tage)', !isDraftValid(draft({ savedAt: NOW - TASTING_DRAFT_MAX_AGE_MS - 1 }), WINE, NOW));
+check('isDraftValid: Zeitpunkt in der Zukunft', !isDraftValid(draft({ savedAt: NOW + 60_000 }), WINE, NOW));
+check('isDraftValid: anderer Wein', !isDraftValid(draft(), 'anderer-wein', NOW));
+check('isDraftValid: null', !isDraftValid(null, WINE, NOW));
+check('isDraftValid: ungültiger Bogen', !isDraftValid(draft({ data: { schmecken: { suesse: 9 } } as unknown as TastingData }), WINE, NOW));
+check('isDraftValid: Zeitpunkt NaN', !isDraftValid(draft({ savedAt: NaN }), WINE, NOW));
+eq(
+  'serializeDraft: bereinigt den Bogen',
+  roundTrip(draft({ data: { schmecken: { suesse: 9, saeure: 2 }, fremd: 1 } as unknown as TastingData }))?.data,
+  { schmecken: { saeure: 2 } },
+);
+eq('parseDraft: leer', parseDraft(null), null);
+eq('parseDraft: Leerstring', parseDraft(''), null);
+eq('parseDraft: kaputtes JSON', parseDraft('{"wineId":"w1","level":"einfach",'), null);
+eq('parseDraft: kein Objekt', parseDraft('42'), null);
+eq('parseDraft: Array', parseDraft('[]'), null);
+eq('parseDraft: unbekannte Stufe', parseDraft(JSON.stringify({ ...draft(), level: 'meister' })), null);
+eq('parseDraft: fehlender Zeitpunkt', parseDraft(JSON.stringify({ ...draft(), savedAt: undefined })), null);
+eq('parseDraft: data kein Objekt', parseDraft(JSON.stringify({ ...draft(), data: 'x' })), null);
+eq('parseDraft: unbekannter Schritt', parseDraft(JSON.stringify({ ...draft(), step: 'tanzen' })), null);
+eq('parseDraft: wineId fehlt', parseDraft(JSON.stringify({ ...draft(), wineId: '' })), null);
+eq('parseDraft: lessonId falscher Typ', parseDraft(JSON.stringify({ ...draft(), lessonId: 3 })), null);
+
+// ── Ergebnis ──────────────────────────────────────────────────────────────────
+
+console.log(`Verkostungs-Prüfung: ${passed} bestanden, ${failures.length} fehlgeschlagen`);
+if (failures.length > 0) {
+  failures.forEach((f) => console.log(`  ✗ ${f}`));
+  throw new Error(`${failures.length} Prüfungen fehlgeschlagen`);
+}
