@@ -42,6 +42,17 @@ export function isLevelIncluded(ab: TastingLevel, gewaehlt: TastingLevel): boole
 
 // ── Weinart → Kategorie ───────────────────────────────────────────────────────
 
+/**
+ * Bekannte Werte von `wines.weinart` (so schreibt sie das Händlerportal) und Auswahl für
+ * eigene Weine. Jeder Wert ist unten einer Kategorie zugeordnet (siehe Prüfskript).
+ */
+export const WEINART_WERTE = ['Rotwein', 'Weißwein', 'Rosé', 'Schaumwein', 'Dessert- und Likörwein'] as const;
+export type WeinartWert = (typeof WEINART_WERTE)[number];
+
+export function isWeinartWert(v: unknown): v is WeinartWert {
+  return typeof v === 'string' && (WEINART_WERTE as readonly string[]).includes(v);
+}
+
 /** Kleinschreibung, Umlaute und Akzente vereinheitlicht, Satzzeichen zu Leerzeichen. */
 function normalize(value: string): string {
   return value

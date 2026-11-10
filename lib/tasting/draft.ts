@@ -1,11 +1,12 @@
 // Reine Logik für den lokalen Zwischenstand eines Verkostungsbogens (ohne Nebenwirkungen).
 // Gespeichert wird in AsyncStorage über den Hook `useTastingDraft`.
 import { isValidTastingData, sanitizeTastingData } from './validate';
-import { TASTING_LEVELS, TASTING_STEPS, TastingData, TastingLevel, TastingStep } from './types';
+import { isWineRef, sameWineRef, wineRefKey } from './wineRef';
+import { TASTING_LEVELS, TASTING_STEPS, TastingData, TastingLevel, TastingStep, WineRef } from './types';
 
-/** Zwischenstand eines laufenden Bogens für genau einen Wein. */
+/** Zwischenstand eines laufenden Bogens für genau einen Wein (Marktplatz- oder eigener Wein). */
 export type TastingDraft = {
-  wineId: string;
+  ref: WineRef;
   level: TastingLevel;
   /** Schritt, bei dem fortgesetzt wird */
   step?: TastingStep;
@@ -18,13 +19,18 @@ export type TastingDraft = {
 
 export const TASTING_DRAFT_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-export function tastingDraftKey(userId: string | null | undefined, wineId: string): string {
-  return `tasting_draft_v1:${userId || 'anon'}:${wineId}`;
+/**
+ * Schlüssel in AsyncStorage: `tasting_draft_v1:<userId|anon>:<kind>:<id>`.
+ * Entwürfe nach dem alten Schema (`tasting_draft_v1:<userId|anon>:<wineId>`) werden nicht mehr
+ * gelesen; es gab noch keine Oberfläche, die welche erzeugt hätte.
+ */
+export function tastingDraftKey(userId: string | null | undefined, ref: WineRef): string {
+  return `tasting_draft_v1:${userId || 'anon'}:${wineRefKey(ref)}`;
 }
 
 export function serializeDraft(draft: TastingDraft): string {
   return JSON.stringify({
-    wineId: draft.wineId,
+    ref: { kind: draft.ref.kind, id: draft.ref.id },
     level: draft.level,
     step: draft.step,
     purchasedWineId: draft.purchasedWineId ?? null,
@@ -53,7 +59,8 @@ export function parseDraft(raw: string | null | undefined): TastingDraft | null 
   }
   if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return null;
   const o = parsed as Record<string, unknown>;
-  if (typeof o.wineId !== 'string' || !o.wineId) return null;
+  // Alte Entwürfe hatten statt `ref` ein `wineId` und werden hier bewusst verworfen.
+  if (!isWineRef(o.ref)) return null;
   if (!isOneOf(TASTING_LEVELS, o.level)) return null;
   if (typeof o.savedAt !== 'number') return null;
   if (typeof o.data !== 'object' || o.data === null || Array.isArray(o.data)) return null;
@@ -61,7 +68,7 @@ export function parseDraft(raw: string | null | undefined): TastingDraft | null 
   if (o.focus !== undefined && o.focus !== null && !isOneOf(TASTING_STEPS, o.focus)) return null;
   if (!optionalString(o.purchasedWineId) || !optionalString(o.lessonId)) return null;
   return {
-    wineId: o.wineId,
+    ref: { kind: o.ref.kind, id: o.ref.id },
     level: o.level,
     step: (o.step ?? undefined) as TastingStep | undefined,
     purchasedWineId: (o.purchasedWineId ?? null) as string | null,
@@ -78,10 +85,10 @@ export function parseDraft(raw: string | null | undefined): TastingDraft | null 
  */
 export function isDraftValid(
   draft: TastingDraft | null,
-  wineId: string,
+  ref: WineRef,
   now: number = Date.now(),
 ): draft is TastingDraft {
-  if (!draft || draft.wineId !== wineId) return false;
+  if (!draft || !sameWineRef(draft.ref, ref)) return false;
   if (!Number.isFinite(draft.savedAt) || draft.savedAt > now || now - draft.savedAt > TASTING_DRAFT_MAX_AGE_MS) {
     return false;
   }

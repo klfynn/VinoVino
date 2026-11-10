@@ -13,6 +13,8 @@ import {
   getSkalen,
   SKALEN,
   TERROIR,
+  isWeinartWert,
+  WEINART_WERTE,
   weinartToKategorie,
 } from '../lib/tasting/catalog';
 import {
@@ -35,7 +37,19 @@ import {
   TastingData,
   WEIN_KATEGORIEN,
   WeinKategorie,
+  WineRef,
 } from '../lib/tasting/types';
+import {
+  bodenVorbelegung,
+  customRef,
+  isStoredWineRef,
+  isWineRef,
+  marketRef,
+  sameWineRef,
+  wineRefColumns,
+  wineRefFromColumns,
+  wineRefKey,
+} from '../lib/tasting/wineRef';
 
 let passed = 0;
 const failures: string[] = [];
@@ -354,8 +368,11 @@ eq('profile: ungültige Werte werden null', profileFromTasting({ schmecken: { su
 
 const NOW = Date.UTC(2026, 10, 10, 12, 0, 0);
 const WINE = '3f2b6c1e-8a4d-4f7a-9c2e-1b5d7e9f0a12';
+const CUSTOM = '9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d';
+const REF_M: WineRef = { kind: 'market', id: WINE };
+const REF_C: WineRef = { kind: 'custom', id: CUSTOM };
 const draft = (over: Partial<TastingDraft> = {}): TastingDraft => ({
-  wineId: WINE,
+  ref: REF_M,
   level: 'erweitert',
   step: 'riechen',
   purchasedWineId: null,
@@ -367,19 +384,28 @@ const draft = (over: Partial<TastingDraft> = {}): TastingDraft => ({
 });
 const roundTrip = (d: TastingDraft) => parseDraft(serializeDraft(d));
 
-eq('draftKey: mit Nutzer', tastingDraftKey('u-1', WINE), `tasting_draft_v1:u-1:${WINE}`);
-eq('draftKey: ohne Nutzer', tastingDraftKey(null, WINE), `tasting_draft_v1:anon:${WINE}`);
-eq('draftKey: leerer Nutzer', tastingDraftKey('', 'w1'), 'tasting_draft_v1:anon:w1');
+eq('draftKey: mit Nutzer', tastingDraftKey('u-1', REF_M), `tasting_draft_v1:u-1:market:${WINE}`);
+eq('draftKey: ohne Nutzer', tastingDraftKey(null, REF_M), `tasting_draft_v1:anon:market:${WINE}`);
+eq('draftKey: leerer Nutzer', tastingDraftKey('', { kind: 'market', id: 'w1' }), 'tasting_draft_v1:anon:market:w1');
+eq('draftKey: eigener Wein', tastingDraftKey('u-1', REF_C), `tasting_draft_v1:u-1:custom:${CUSTOM}`);
+check(
+  'draftKey: Marktplatz- und eigener Wein mit gleicher ID haben verschiedene Schlüssel',
+  tastingDraftKey('u-1', { kind: 'market', id: CUSTOM }) !== tastingDraftKey('u-1', REF_C),
+);
+check('draftKey: altes Schema wird nicht mehr erzeugt', tastingDraftKey('u-1', REF_M) !== `tasting_draft_v1:u-1:${WINE}`);
 eq('parseDraft: Roundtrip', roundTrip(draft()), draft());
-check('isDraftValid: gültig', isDraftValid(roundTrip(draft()), WINE, NOW));
-check('isDraftValid: leerer Bogen ist gültig', isDraftValid(draft({ data: {} }), WINE, NOW));
-check('isDraftValid: genau 7 Tage alt ist noch gültig', isDraftValid(draft({ savedAt: NOW - TASTING_DRAFT_MAX_AGE_MS }), WINE, NOW));
-check('isDraftValid: abgelaufen (älter als 7 Tage)', !isDraftValid(draft({ savedAt: NOW - TASTING_DRAFT_MAX_AGE_MS - 1 }), WINE, NOW));
-check('isDraftValid: Zeitpunkt in der Zukunft', !isDraftValid(draft({ savedAt: NOW + 60_000 }), WINE, NOW));
-check('isDraftValid: anderer Wein', !isDraftValid(draft(), 'anderer-wein', NOW));
-check('isDraftValid: null', !isDraftValid(null, WINE, NOW));
-check('isDraftValid: ungültiger Bogen', !isDraftValid(draft({ data: { schmecken: { suesse: 9 } } as unknown as TastingData }), WINE, NOW));
-check('isDraftValid: Zeitpunkt NaN', !isDraftValid(draft({ savedAt: NaN }), WINE, NOW));
+eq('parseDraft: Roundtrip eigener Wein', roundTrip(draft({ ref: REF_C })), draft({ ref: REF_C }));
+check('isDraftValid: gültig', isDraftValid(roundTrip(draft()), REF_M, NOW));
+check('isDraftValid: eigener Wein gültig', isDraftValid(roundTrip(draft({ ref: REF_C })), REF_C, NOW));
+check('isDraftValid: leerer Bogen ist gültig', isDraftValid(draft({ data: {} }), REF_M, NOW));
+check('isDraftValid: genau 7 Tage alt ist noch gültig', isDraftValid(draft({ savedAt: NOW - TASTING_DRAFT_MAX_AGE_MS }), REF_M, NOW));
+check('isDraftValid: abgelaufen (älter als 7 Tage)', !isDraftValid(draft({ savedAt: NOW - TASTING_DRAFT_MAX_AGE_MS - 1 }), REF_M, NOW));
+check('isDraftValid: Zeitpunkt in der Zukunft', !isDraftValid(draft({ savedAt: NOW + 60_000 }), REF_M, NOW));
+check('isDraftValid: anderer Wein', !isDraftValid(draft(), { kind: 'market', id: 'anderer-wein' }, NOW));
+check('isDraftValid: gleiche ID, andere Art', !isDraftValid(draft(), { kind: 'custom', id: WINE }, NOW));
+check('isDraftValid: null', !isDraftValid(null, REF_M, NOW));
+check('isDraftValid: ungültiger Bogen', !isDraftValid(draft({ data: { schmecken: { suesse: 9 } } as unknown as TastingData }), REF_M, NOW));
+check('isDraftValid: Zeitpunkt NaN', !isDraftValid(draft({ savedAt: NaN }), REF_M, NOW));
 eq(
   'serializeDraft: bereinigt den Bogen',
   roundTrip(draft({ data: { schmecken: { suesse: 9, saeure: 2 }, fremd: 1 } as unknown as TastingData }))?.data,
@@ -387,15 +413,76 @@ eq(
 );
 eq('parseDraft: leer', parseDraft(null), null);
 eq('parseDraft: Leerstring', parseDraft(''), null);
-eq('parseDraft: kaputtes JSON', parseDraft('{"wineId":"w1","level":"einfach",'), null);
+eq('parseDraft: kaputtes JSON', parseDraft('{"ref":{"kind":"market","id":"w1"},"level":"einfach",'), null);
 eq('parseDraft: kein Objekt', parseDraft('42'), null);
 eq('parseDraft: Array', parseDraft('[]'), null);
 eq('parseDraft: unbekannte Stufe', parseDraft(JSON.stringify({ ...draft(), level: 'meister' })), null);
 eq('parseDraft: fehlender Zeitpunkt', parseDraft(JSON.stringify({ ...draft(), savedAt: undefined })), null);
 eq('parseDraft: data kein Objekt', parseDraft(JSON.stringify({ ...draft(), data: 'x' })), null);
 eq('parseDraft: unbekannter Schritt', parseDraft(JSON.stringify({ ...draft(), step: 'tanzen' })), null);
-eq('parseDraft: wineId fehlt', parseDraft(JSON.stringify({ ...draft(), wineId: '' })), null);
+eq('parseDraft: ref fehlt', parseDraft(JSON.stringify({ ...draft(), ref: undefined })), null);
+eq('parseDraft: ref mit leerer ID', parseDraft(JSON.stringify({ ...draft(), ref: { kind: 'market', id: '' } })), null);
+eq('parseDraft: ref mit unbekannter Art', parseDraft(JSON.stringify({ ...draft(), ref: { kind: 'shop', id: WINE } })), null);
 eq('parseDraft: lessonId falscher Typ', parseDraft(JSON.stringify({ ...draft(), lessonId: 3 })), null);
+{
+  // Entwurf nach altem Schema (mit wineId statt ref) wird ignoriert.
+  const { ref: _ref, ...ohneRef } = draft();
+  eq('parseDraft: alter Entwurf mit wineId wird ignoriert', parseDraft(JSON.stringify({ ...ohneRef, wineId: WINE })), null);
+}
+
+// ── WineRef ───────────────────────────────────────────────────────────────────
+
+eq('wineRefColumns: Marktplatz', wineRefColumns(REF_M), { wine_id: WINE, custom_wine_id: null });
+eq('wineRefColumns: eigener Wein', wineRefColumns(REF_C), { wine_id: null, custom_wine_id: CUSTOM });
+for (const ref of [REF_M, REF_C, marketRef('x'), customRef('y')]) {
+  const cols = wineRefColumns(ref);
+  const gesetzt = [cols.wine_id, cols.custom_wine_id].filter((v) => v !== null).length;
+  eq(`wineRefColumns: nie beide IDs (${ref.kind})`, gesetzt, 1);
+}
+eq('wineRefFromColumns: Marktplatz', wineRefFromColumns({ wine_id: WINE, custom_wine_id: null }), REF_M);
+eq('wineRefFromColumns: eigener Wein', wineRefFromColumns({ wine_id: null, custom_wine_id: CUSTOM }), REF_C);
+eq('wineRefFromColumns: beide gesetzt ergibt null', wineRefFromColumns({ wine_id: WINE, custom_wine_id: CUSTOM }), null);
+eq('wineRefFromColumns: keine gesetzt ergibt null', wineRefFromColumns({ wine_id: null, custom_wine_id: null }), null);
+eq('wineRefFromColumns: alte Zeile ohne Spalte custom_wine_id', wineRefFromColumns({ wine_id: WINE }), REF_M);
+eq('wineRefFromColumns: Roundtrip', wineRefFromColumns(wineRefColumns(REF_C)), REF_C);
+check('isWineRef: gültig', isWineRef(REF_M) && isWineRef(REF_C));
+check('isWineRef: lokaler Wein ist formal gültig', isWineRef({ kind: 'market', id: 'w1' }));
+check('isWineRef: falsche Art', !isWineRef({ kind: 'shop', id: WINE }));
+check('isWineRef: leere ID', !isWineRef({ kind: 'custom', id: '' }));
+check('isWineRef: Doppelpunkt in ID', !isWineRef({ kind: 'custom', id: 'a:b' }));
+check('isWineRef: null/Text/Array', !isWineRef(null) && !isWineRef('market:x') && !isWineRef([]));
+check('isStoredWineRef: UUID', isStoredWineRef(REF_M) && isStoredWineRef(REF_C));
+check('isStoredWineRef: lokale Testdaten (w1) nicht', !isStoredWineRef({ kind: 'market', id: 'w1' }));
+check('isStoredWineRef: Scanner-ID nicht', !isStoredWineRef({ kind: 'market', id: 'scan-1700000000000' }));
+check('sameWineRef: gleich', sameWineRef(REF_M, { kind: 'market', id: WINE }));
+check('sameWineRef: andere Art', !sameWineRef(REF_M, { kind: 'custom', id: WINE }));
+check('sameWineRef: null', !sameWineRef(REF_M, null));
+eq('wineRefKey', wineRefKey(REF_C), `custom:${CUSTOM}`);
+
+// Bodentyp als Vorbelegung für den Terroir-Schritt (eigene Weine)
+eq('bodenVorbelegung: bekannter Boden', bodenVorbelegung({ boden: 'schiefer' }), 'schiefer');
+eq('bodenVorbelegung: weiß nicht', bodenVorbelegung({ boden: 'weiss_nicht' }), null);
+eq('bodenVorbelegung: unbekannter Boden', bodenVorbelegung({ boden: 'mondstaub' }), null);
+eq('bodenVorbelegung: leer', bodenVorbelegung({ boden: null }), null);
+eq('bodenVorbelegung: kein Wein', bodenVorbelegung(null), null);
+eq('bodenVorbelegung: falscher Typ', bodenVorbelegung({ boden: 3 }), null);
+
+// Weinart-Liste für eigene Weine: jede Weinart hat eine Kategorie und passende Skalen/Farben
+const WEINART_ERWARTET: Record<string, WeinKategorie> = {
+  Rotwein: 'rot',
+  Weißwein: 'weiss',
+  Rosé: 'rose',
+  Schaumwein: 'schaum',
+  'Dessert- und Likörwein': 'suess',
+};
+eq('WEINART_WERTE: Werte wie im Händlerportal', [...WEINART_WERTE], Object.keys(WEINART_ERWARTET));
+for (const w of WEINART_WERTE) {
+  eq(`weinartToKategorie (eigener Wein): ${w}`, weinartToKategorie(w), WEINART_ERWARTET[w]);
+  check(`Skalen für eigenen Wein (${w})`, getSkalen(weinartToKategorie(w), 'einfach').length > 0);
+  check(`Farben für eigenen Wein (${w})`, getFarben(weinartToKategorie(w)).length > 0);
+  check(`isWeinartWert: ${w}`, isWeinartWert(w));
+}
+check('isWeinartWert: Roséwein ist kein Portalwert', !isWeinartWert('Roséwein'));
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 

@@ -9,6 +9,7 @@ import {
   tastingErrorMessage,
   WINE_NOT_IN_DB_MESSAGE,
 } from '../lib/tasting/errors';
+import { isStoredWineRef, isUuid, wineRefColumns, wineRefFromColumns } from '../lib/tasting/wineRef';
 import {
   TASTING_LEVELS,
   TASTING_SCHEMA_VERSION,
@@ -19,23 +20,24 @@ import {
   TastingNotePatch,
   TastingResult,
   TastingStep,
+  WineRef,
 } from '../lib/tasting/types';
 
 const TABLE = 'tasting_notes';
 const COLUMNS =
-  'id, user_id, wine_id, purchased_wine_id, tasted_at, level, focus, lesson_id, blind, schema_version, data, created_at, updated_at';
+  'id, user_id, wine_id, custom_wine_id, purchased_wine_id, tasted_at, level, focus, lesson_id, blind, schema_version, data, created_at, updated_at';
 
 export const RECENT_DEFAULT_LIMIT = 20;
 export const RECENT_MAX_LIMIT = 100;
 
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-/** IDs in `wines`/`purchased_wines`/`tasting_notes` sind UUIDs. Lokale Weine (z. B. „manual_…“) nicht. */
-export const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v);
+// Weiterhin hier exportiert, damit bestehende Importe funktionieren.
+export { isUuid };
 
 type Row = {
   id: string;
   user_id: string;
-  wine_id: string;
+  wine_id: string | null;
+  custom_wine_id: string | null;
   purchased_wine_id: string | null;
   tasted_at: string;
   level: string;
@@ -51,11 +53,16 @@ type Row = {
 const ok = <T>(data: T): TastingResult<T> => ({ ok: true, data });
 const fail = <T>(error: string): TastingResult<T> => ({ ok: false, error });
 
-function mapRow(row: Row): TastingNote {
+function mapRow(row: Row): TastingNote | null {
+  const ref = wineRefFromColumns(row);
+  // Laut Constraint ist genau eine der beiden Spalten gesetzt; sonst wird die Zeile übersprungen.
+  if (!ref) return null;
   return {
     id: row.id,
     userId: row.user_id,
+    ref,
     wineId: row.wine_id,
+    customWineId: row.custom_wine_id,
     purchasedWineId: row.purchased_wine_id,
     tastedAt: row.tasted_at,
     level: (TASTING_LEVELS as readonly string[]).includes(row.level) ? (row.level as TastingLevel) : 'einfach',
@@ -68,6 +75,14 @@ function mapRow(row: Row): TastingNote {
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+const mapRows = (rows: unknown): TastingNote[] =>
+  ((rows ?? []) as Row[]).map(mapRow).filter((n): n is TastingNote => n !== null);
+
+/** Filtert eine Abfrage auf den Wein des Verweises (wine_id bzw. custom_wine_id). */
+function refColumn(ref: WineRef): 'wine_id' | 'custom_wine_id' {
+  return ref.kind === 'custom' ? 'custom_wine_id' : 'wine_id';
 }
 
 /** ID des angemeldeten Nutzers aus der lokalen Sitzung, sonst `null`. */
@@ -105,19 +120,19 @@ function checkMeta(input: TastingNotePatch): string | null {
 
 // ── Lesen ─────────────────────────────────────────────────────────────────────
 
-/** Alle Verkostungen des angemeldeten Nutzers zu einem Wein, neueste zuerst. */
-export async function listTastingNotes(wineId: string): Promise<TastingResult<TastingNote[]>> {
+/** Alle Verkostungen des angemeldeten Nutzers zu einem Wein (Marktplatz oder eigener Wein), neueste zuerst. */
+export async function listTastingNotes(ref: WineRef): Promise<TastingResult<TastingNote[]>> {
   const userId = await currentUserId();
-  if (!userId || !isUuid(wineId)) return ok([]);
+  if (!userId || !isStoredWineRef(ref)) return ok([]);
   try {
     const { data, error } = await supabase
       .from(TABLE)
       .select(COLUMNS)
       .eq('user_id', userId)
-      .eq('wine_id', wineId)
+      .eq(refColumn(ref), ref.id)
       .order('tasted_at', { ascending: false });
     if (error) throw error;
-    return ok(((data ?? []) as Row[]).map(mapRow));
+    return ok(mapRows(data));
   } catch (err) {
     console.error('[VinoVino] Verkostungen konnten nicht geladen werden:', err);
     return fail(tastingErrorMessage(err, 'Deine Verkostungen konnten nicht geladen werden.'));
@@ -139,7 +154,7 @@ export async function listRecentTastingNotes(
       .order('tasted_at', { ascending: false })
       .limit(n);
     if (error) throw error;
-    return ok(((data ?? []) as Row[]).map(mapRow));
+    return ok(mapRows(data));
   } catch (err) {
     console.error('[VinoVino] Letzte Verkostungen konnten nicht geladen werden:', err);
     return fail(tastingErrorMessage(err, 'Deine letzten Verkostungen konnten nicht geladen werden.'));
@@ -147,15 +162,15 @@ export async function listRecentTastingNotes(
 }
 
 /** Die neueste Verkostung zu einem Wein oder `null`. */
-export async function getLatestTastingNote(wineId: string): Promise<TastingResult<TastingNote | null>> {
+export async function getLatestTastingNote(ref: WineRef): Promise<TastingResult<TastingNote | null>> {
   const userId = await currentUserId();
-  if (!userId || !isUuid(wineId)) return ok(null);
+  if (!userId || !isStoredWineRef(ref)) return ok(null);
   try {
     const { data, error } = await supabase
       .from(TABLE)
       .select(COLUMNS)
       .eq('user_id', userId)
-      .eq('wine_id', wineId)
+      .eq(refColumn(ref), ref.id)
       .order('tasted_at', { ascending: false })
       .limit(1)
       .maybeSingle();
@@ -169,18 +184,24 @@ export async function getLatestTastingNote(wineId: string): Promise<TastingResul
 
 // ── Schreiben ─────────────────────────────────────────────────────────────────
 
-/** Legt eine neue Verkostung an. Mehrere Verkostungen je Wein sind erlaubt. */
+/**
+ * Legt eine neue Verkostung an. Mehrere Verkostungen je Wein sind erlaubt.
+ * Je nach `ref.kind` wird `wine_id` oder `custom_wine_id` gesetzt, nie beide.
+ */
 export async function saveTastingNote(input: TastingNoteInput): Promise<TastingResult<TastingNote>> {
   const userId = await currentUserId();
   if (!userId) return fail(NOT_SIGNED_IN_MESSAGE);
-  if (!input || !isUuid(input.wineId)) return fail(WINE_NOT_IN_DB_MESSAGE);
+  if (!input || !isStoredWineRef(input.ref)) return fail(WINE_NOT_IN_DB_MESSAGE);
   if (input.level === undefined) return fail('Bitte wähle eine Stufe für die Verkostung.');
   const metaError = checkMeta(input);
   if (metaError) return fail(metaError);
+  if (input.ref.kind === 'custom' && input.purchasedWineId != null) {
+    return fail('Eigene Weine haben keinen Eintrag aus einer Bestellung.');
+  }
 
   const row: Record<string, unknown> = {
     user_id: userId,
-    wine_id: input.wineId,
+    ...wineRefColumns(input.ref),
     purchased_wine_id: input.purchasedWineId ?? null,
     level: input.level,
     focus: input.focus ?? null,
@@ -194,7 +215,9 @@ export async function saveTastingNote(input: TastingNoteInput): Promise<TastingR
   try {
     const { data, error } = await supabase.from(TABLE).insert(row).select(COLUMNS).single();
     if (error) throw error;
-    return ok(mapRow(data as Row));
+    const note = mapRow(data as Row);
+    if (!note) throw new Error('Unerwartete Antwort der Datenbank');
+    return ok(note);
   } catch (err) {
     console.error('[VinoVino] Verkostung konnte nicht gespeichert werden:', err);
     return fail(tastingErrorMessage(err, 'Deine Verkostung konnte nicht gespeichert werden.'));
@@ -235,8 +258,9 @@ export async function updateTastingNote(
       .select(COLUMNS)
       .maybeSingle();
     if (error) throw error;
-    if (!data) return fail('Diese Verkostung wurde nicht gefunden.');
-    return ok(mapRow(data as Row));
+    const note = data ? mapRow(data as Row) : null;
+    if (!note) return fail('Diese Verkostung wurde nicht gefunden.');
+    return ok(note);
   } catch (err) {
     console.error('[VinoVino] Verkostung konnte nicht geändert werden:', err);
     return fail(tastingErrorMessage(err, 'Deine Verkostung konnte nicht geändert werden.'));

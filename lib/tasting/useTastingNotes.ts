@@ -9,7 +9,8 @@ import {
   updateTastingNote,
 } from '../../services/tastingNotes';
 import { profileFromTasting } from './validate';
-import { TastingNote, TastingNoteInput, TastingNotePatch, TastingProfile } from './types';
+import { sameWineRef } from './wineRef';
+import { TastingNote, TastingNoteInput, TastingNotePatch, TastingProfile, WineRef } from './types';
 
 type ActionResult = { ok: true; note?: TastingNote } | { ok: false; error: string };
 
@@ -17,14 +18,20 @@ const byTastedAtDesc = (a: TastingNote, b: TastingNote) => b.tastedAt.localeComp
 
 /**
  * Verkostungen laden und speichern (ohne Oberfläche).
- * - Mit `wineId`: alle Verkostungen dieses Weins, neueste zuerst.
- * - Ohne `wineId`: die letzten Verkostungen über alle Weine (`limit`, Standard 20).
+ * - Mit `ref`: alle Verkostungen dieses Weins (Marktplatz oder eigener Wein), neueste zuerst.
+ * - Ohne `ref`: die letzten Verkostungen über alle Weine (`limit`, Standard 20).
  * Ohne Anmeldung bleibt die Liste leer; Speichern liefert eine verständliche Fehlermeldung.
  */
-export function useTastingNotes(options: { wineId?: string | null; limit?: number } = {}) {
+export function useTastingNotes(options: { ref?: WineRef | null; limit?: number } = {}) {
   const { user } = useAuth();
   const userId = user?.id ?? null;
-  const wineId = options.wineId ?? null;
+  // Aus den Einzelwerten neu bilden, damit ein neues Objekt mit gleichem Inhalt nichts neu lädt.
+  const refKind = options.ref?.kind ?? null;
+  const refId = options.ref?.id ?? null;
+  const ref = useMemo<WineRef | null>(
+    () => (refKind && refId ? { kind: refKind, id: refId } : null),
+    [refKind, refId],
+  );
   const limit = options.limit ?? RECENT_DEFAULT_LIMIT;
 
   const [notes, setNotes] = useState<TastingNote[]>([]);
@@ -45,7 +52,7 @@ export function useTastingNotes(options: { wineId?: string | null; limit?: numbe
     }
     // Spinner nur beim ersten Laden; spätere Aktualisierungen laufen still.
     if (!hasLoaded.current) setLoading(true);
-    const result = wineId ? await listTastingNotes(wineId) : await listRecentTastingNotes(limit);
+    const result = ref ? await listTastingNotes(ref) : await listRecentTastingNotes(limit);
     if (current !== requestId.current) return;
     if (result.ok) {
       setNotes(result.data);
@@ -55,32 +62,32 @@ export function useTastingNotes(options: { wineId?: string | null; limit?: numbe
       setError(result.error);
     }
     setLoading(false);
-  }, [userId, wineId, limit]);
+  }, [userId, ref, limit]);
 
   useEffect(() => {
     hasLoaded.current = false;
     refresh();
   }, [refresh]);
 
-  /** Neue Verkostung speichern. Ohne `wineId` im Eingabeobjekt wird die des Hooks verwendet. */
+  /** Neue Verkostung speichern. Ohne `ref` im Eingabeobjekt wird der Wein des Hooks verwendet. */
   const save = useCallback(
-    async (input: Omit<TastingNoteInput, 'wineId'> & { wineId?: string }): Promise<ActionResult> => {
-      const targetWineId = input.wineId ?? wineId;
-      if (!targetWineId) return { ok: false, error: 'Kein Wein für die Verkostung ausgewählt.' };
+    async (input: Omit<TastingNoteInput, 'ref'> & { ref?: WineRef }): Promise<ActionResult> => {
+      const targetRef = input.ref ?? ref;
+      if (!targetRef) return { ok: false, error: 'Kein Wein für die Verkostung ausgewählt.' };
       setSaving(true);
-      const result = await saveTastingNote({ ...input, wineId: targetWineId });
+      const result = await saveTastingNote({ ...input, ref: targetRef });
       setSaving(false);
       if (!result.ok) return result;
       // Nur in die Liste aufnehmen, wenn sie diesen Wein (oder alle Weine) zeigt.
-      if (!wineId || result.data.wineId === wineId) {
+      if (!ref || sameWineRef(result.data.ref, ref)) {
         setNotes((list) => {
           const next = [result.data, ...list.filter((n) => n.id !== result.data.id)].sort(byTastedAtDesc);
-          return wineId ? next : next.slice(0, limit);
+          return ref ? next : next.slice(0, limit);
         });
       }
       return { ok: true, note: result.data };
     },
-    [wineId, limit],
+    [ref, limit],
   );
 
   const update = useCallback(async (id: string, patch: TastingNotePatch): Promise<ActionResult> => {
