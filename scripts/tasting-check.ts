@@ -1,4 +1,4 @@
-// Prüfskript des Verkostungsbogens: Kataloge, Validierung und Entwurf.
+// Prüfskript des Verkostungsbogens: Kataloge, Validierung, Entwurf und Assistent (Teil B).
 // Ausführen mit: npm run check:tasting
 import { TIERS } from '../content/academy';
 import {
@@ -32,13 +32,68 @@ import {
   tastingDraftKey,
 } from '../lib/tasting/draft';
 import {
+  LAGERPOTENZIAL_WERTE,
   NOTIZ_MAX_LENGTH,
   TASTING_LEVELS,
+  TASTING_STEPS,
   TastingData,
+  TastingLevel,
+  TastingNote,
+  TastingStep,
+  TRINKREIFE_WERTE,
   WEIN_KATEGORIEN,
   WeinKategorie,
   WineRef,
 } from '../lib/tasting/types';
+import {
+  filledSteps,
+  hasAnyInput,
+  isFieldVisible,
+  isStepFilled,
+  nextStep,
+  previousStep,
+  pruneTastingData,
+  resumeStep,
+  stepSkalen,
+  TastingFeld,
+  visibleAromaStufen,
+  visibleFarben,
+  visibleFehler,
+  visibleFields,
+  visibleRandFarben,
+  visibleSteps,
+} from '../lib/tasting/visibility';
+import {
+  aromaPreview,
+  formatTastingDate,
+  groupTastingsByRef,
+  kategorieHatSkala,
+  LAGERPOTENZIAL_LABELS,
+  latestTasting,
+  LEVEL_BESCHREIBUNG,
+  levelLabel,
+  profileRows,
+  restLabel,
+  selectedAromaIds,
+  sortTastingsDesc,
+  summarySentence,
+  tastingCountLabel,
+  tastingsFor,
+  toggleId,
+  TRINKREIFE_LABELS,
+} from '../lib/tasting/summary';
+import { bodenLabel, bodenVergleichText, BODEN_HINWEIS, compareBoden } from '../lib/tasting/terroirCompare';
+import {
+  availabilityHint,
+  initialLevel,
+  kategorieForEntry,
+  wineInfoLine,
+  parseStoredLevel,
+  parseTastingParams,
+  ratingToSave,
+  tastingAvailability,
+  tastingLevelKey,
+} from '../lib/tasting/wizard';
 import {
   bodenVorbelegung,
   customRef,
@@ -483,6 +538,235 @@ for (const w of WEINART_WERTE) {
   check(`isWeinartWert: ${w}`, isWeinartWert(w));
 }
 check('isWeinartWert: Roséwein ist kein Portalwert', !isWeinartWert('Roséwein'));
+
+// ── Teil B: Sichtbarkeit im Assistenten ───────────────────────────────────────
+
+const skalenIds = (step: TastingStep, k: WeinKategorie, l: TastingLevel) => stepSkalen(step, k, l).map((s) => s.id);
+const ALLE_STUFEN: TastingLevel[] = ['einfach', 'erweitert', 'profi'];
+
+// Tannin nur bei Rot und Orange (in jeder Stufe, in der Tannin überhaupt vorkommt)
+for (const k of WEIN_KATEGORIEN) {
+  const hatTannin = skalenIds('schmecken', k, 'profi').includes('tannin');
+  eq(`Tannin nur bei Rot und Orange (${k})`, hatTannin, k === 'rot' || k === 'orange');
+  check(`Kein Tannin im Modus Einfach (${k})`, !skalenIds('schmecken', k, 'einfach').includes('tannin'));
+}
+check('Tannin bei Rotwein ab Erweitert', skalenIds('schmecken', 'rot', 'erweitert').includes('tannin'));
+// Perlage und Mousse nur bei Schaumwein
+for (const k of WEIN_KATEGORIEN) {
+  eq(`Perlage nur bei Schaumwein (${k})`, skalenIds('sehen', k, 'profi').includes('perlage'), k === 'schaum');
+  eq(`Mousse nur bei Schaumwein (${k})`, skalenIds('schmecken', k, 'profi').includes('mousse'), k === 'schaum');
+}
+// Stufe Einfach zeigt keine Profi- (und keine Erweitert-) Felder
+for (const k of WEIN_KATEGORIEN) {
+  for (const step of TASTING_STEPS) {
+    const fremde = stepSkalen(step, k, 'einfach').filter((s) => s.stufe !== 'einfach');
+    eq(`Einfach: nur Skalen mit stufe einfach (${k}, ${step})`, fremde.map((s) => s.id), []);
+    const erw = stepSkalen(step, k, 'erweitert').filter((s) => s.stufe === 'profi');
+    eq(`Erweitert: keine Profi-Skalen (${k}, ${step})`, erw.map((s) => s.id), []);
+  }
+  eq(`Einfach: keine Randfarben (${k})`, visibleRandFarben(k, 'einfach'), []);
+  eq(`Erweitert: keine Randfarben (${k})`, visibleRandFarben(k, 'erweitert'), []);
+  eq(`Einfach: nur Primäraromen (${k})`, visibleAromaStufen(k, 'einfach').map((s) => s.id), ['primaer']);
+  check(`Farben für jede Kategorie (${k})`, visibleFarben(k).length > 0);
+}
+for (const f of ['rand', 'fehler', 'boden_tipp', 'aromen_gaumen', 'lagerpotenzial', 'eindruecke'] as TastingFeld[]) {
+  check(`Einfach: Feld ${f} nicht sichtbar`, !isFieldVisible(f, 'einfach'));
+}
+for (const f of ['rand', 'fehler', 'boden_tipp'] as TastingFeld[]) {
+  check(`Erweitert: Profi-Feld ${f} nicht sichtbar`, !isFieldVisible(f, 'erweitert'));
+  check(`Profi: Feld ${f} sichtbar`, isFieldVisible(f, 'profi'));
+}
+check('Randfarben bei Rotwein im Profil', visibleRandFarben('rot', 'profi').length > 0);
+check('Balance nur im Profil', !skalenIds('schmecken', 'weiss', 'erweitert').includes('balance') && skalenIds('schmecken', 'weiss', 'profi').includes('balance'));
+eq('Fehlnoten nur bei auffälliger Nase', visibleFehler('profi', 'sauber'), []);
+check('Fehlnoten im Profil bei auffälliger Nase', visibleFehler('profi', 'auffaellig').length > 0);
+eq('Keine Fehlnoten unter Profi', visibleFehler('erweitert', 'auffaellig'), []);
+check('Tertiäraromen ab Erweitert', visibleAromaStufen('rot', 'erweitert').some((s) => s.id === 'tertiaer'));
+check('Aromen am Gaumen erst ab Erweitert', !isFieldVisible('aromen_gaumen', 'einfach') && isFieldVisible('aromen_gaumen', 'erweitert'));
+// Reihenfolge der Schmecken-Skalen wie im Bogen
+eq('Reihenfolge Schmecken (Rot, Profi)', skalenIds('schmecken', 'rot', 'profi'), ['suesse', 'saeure', 'tannin', 'koerper', 'alkohol', 'abgang', 'balance']);
+eq('Reihenfolge Schmecken (Weiß, Einfach)', skalenIds('schmecken', 'weiss', 'einfach'), ['suesse', 'saeure', 'koerper']);
+
+// Schritte: Terroir entfällt bei Einfach
+eq('Schritte Einfach ohne Terroir', visibleSteps('einfach'), ['sehen', 'riechen', 'schmecken', 'fazit']);
+eq('Schritte Erweitert', visibleSteps('erweitert'), ['sehen', 'riechen', 'schmecken', 'terroir', 'fazit']);
+eq('Schritte Profi', visibleSteps('profi'), ['sehen', 'riechen', 'schmecken', 'terroir', 'fazit']);
+eq('Einfach: Terroir hat keine Felder', visibleFields('terroir', 'einfach'), []);
+eq('Einfach: Terroir hat keine Skalen', stepSkalen('terroir', 'rot', 'einfach'), []);
+eq('Einfach: nach Schmecken kommt Fazit', nextStep('schmecken', 'einfach'), 'fazit');
+eq('Erweitert: nach Schmecken kommt Terroir', nextStep('schmecken', 'erweitert'), 'terroir');
+eq('Einfach: vor Fazit kommt Schmecken', previousStep('fazit', 'einfach'), 'schmecken');
+eq('Nach Fazit kommt nichts', nextStep('fazit', 'profi'), null);
+eq('Vor Sehen kommt nichts', previousStep('sehen', 'profi'), null);
+eq('resumeStep: Terroir bei Einfach wird zu Sehen', resumeStep('terroir', 'einfach'), 'sehen');
+eq('resumeStep: gespeicherter Schritt', resumeStep('schmecken', 'profi'), 'schmecken');
+eq('resumeStep: ohne Schritt', resumeStep(undefined, 'erweitert'), 'sehen');
+
+// Ausgefüllte Schritte und Bereinigung nach Sichtbarkeit
+const BOGEN_ROT: TastingData = {
+  sehen: { klarheit: 'klar', farbe: 'rot_rubinrot', rand: 'rand_purpur', viskositaet: 3 },
+  riechen: { zustand: 'sauber', fehler: ['korkton'], aromen: { primaer: ['sauerkirsche'], sekundaer: [], tertiaer: ['leder'] } },
+  schmecken: { suesse: 1, saeure: 4, tannin: 4, koerper: 3, alkohol: 3, abgang: 4, balance: 4, aromen_gaumen: ['sauerkirsche'] },
+  terroir: { eindruecke: ['erdig'], boden_tipp: 'schiefer', klima_eindruck: 'warm' },
+  fazit: { qualitaet: 4, trinkreife: 'trinkbar', lagerpotenzial: 'mittel', notiz: 'Schön' },
+};
+const ohneFehler = AROMEN.fehler.aromen.some((a) => a.id === 'korkton');
+check('Testdaten: Fehlnote korkton existiert', ohneFehler);
+check('Testdaten: Bogen gültig', isValidTastingData(BOGEN_ROT));
+const prunedEinfach = pruneTastingData(BOGEN_ROT, 'rot', 'einfach');
+eq('prune Einfach: kein Terroir', prunedEinfach.terroir, undefined);
+eq('prune Einfach: kein Rand, keine Viskosität', prunedEinfach.sehen, { klarheit: 'klar', farbe: 'rot_rubinrot' });
+eq('prune Einfach: nur Süße, Säure, Körper', prunedEinfach.schmecken, { suesse: 1, saeure: 4, koerper: 3 });
+eq('prune Einfach: keine Fehlnoten, keine Tertiäraromen', prunedEinfach.riechen, { zustand: 'sauber', aromen: { primaer: ['sauerkirsche'], sekundaer: [], tertiaer: [] } });
+eq('prune Einfach: Fazit ohne Qualität und Lagerpotenzial', prunedEinfach.fazit, { trinkreife: 'trinkbar', notiz: 'Schön' });
+const prunedProfi = pruneTastingData(BOGEN_ROT, 'rot', 'profi');
+eq('prune Profi: Fehlnoten fallen bei sauberer Nase weg', prunedProfi.riechen?.fehler, undefined);
+eq('prune Profi: Terroir bleibt', prunedProfi.terroir, BOGEN_ROT.terroir);
+eq('prune Profi: Tannin bleibt bei Rot', prunedProfi.schmecken?.tannin, 4);
+eq('prune Weißwein: kein Tannin, keine Rotweinfarbe', [pruneTastingData(BOGEN_ROT, 'weiss', 'profi').schmecken?.tannin, pruneTastingData(BOGEN_ROT, 'weiss', 'profi').sehen?.farbe], [undefined, undefined]);
+eq('prune: auffällige Nase behält Fehlnoten im Profil', pruneTastingData({ riechen: { zustand: 'auffaellig', fehler: ['korkton'] } }, 'rot', 'profi').riechen?.fehler, ['korkton']);
+eq('filledSteps Einfach', filledSteps(BOGEN_ROT, 'rot', 'einfach'), ['sehen', 'riechen', 'schmecken', 'fazit']);
+eq('filledSteps Profi', filledSteps(BOGEN_ROT, 'rot', 'profi'), ['sehen', 'riechen', 'schmecken', 'terroir', 'fazit']);
+check('isStepFilled: Terroir bei Einfach nie', !isStepFilled('terroir', BOGEN_ROT, 'rot', 'einfach'));
+check('isStepFilled: nur unsichtbare Werte zählen nicht', !isStepFilled('sehen', { sehen: { viskositaet: 3 } }, 'rot', 'einfach'));
+check('isStepFilled: leere Aromenlisten zählen nicht', !isStepFilled('riechen', { riechen: { aromen: { primaer: [], sekundaer: [], tertiaer: [] } } }, 'rot', 'profi'));
+
+// Leere Daten
+eq('leer: filledSteps', filledSteps({}, 'rot', 'profi'), []);
+eq('leer: filledSteps null', filledSteps(null, 'rot', 'profi'), []);
+check('leer: hasAnyInput {}', !hasAnyInput({}));
+check('leer: hasAnyInput null', !hasAnyInput(null));
+check('leer: hasAnyInput leere Abschnitte', !hasAnyInput({ sehen: {}, fazit: { notiz: '   ' } }));
+check('hasAnyInput: ein Wert', hasAnyInput({ fazit: { trinkreife: 'optimal' } }));
+eq('leer: pruneTastingData', pruneTastingData({}, 'rot', 'einfach'), {});
+eq('leer: pruneTastingData null', pruneTastingData(null, 'unbekannt', 'profi'), {});
+eq('leer: profileRows', profileRows({}, 'rot'), []);
+eq('leer: summarySentence', summarySentence({}, 'rot'), 'Ohne Angaben');
+eq('leer: selectedAromaIds', selectedAromaIds(undefined), []);
+eq('leer: aromaPreview', aromaPreview([]), { labels: [], rest: 0 });
+eq('leer: groupTastingsByRef', groupTastingsByRef([]).size, 0);
+eq('leer: groupTastingsByRef null', groupTastingsByRef(null).size, 0);
+eq('leer: latestTasting', latestTasting([]), null);
+eq('leer: tastingCountLabel 0', tastingCountLabel(0), '');
+
+// ── Teil B: Zusammenfassung und Profil ────────────────────────────────────────
+
+eq('profileRows Rot: Reihenfolge mit Tannin', profileRows(BOGEN_ROT, 'rot').map((r) => [r.id, r.value]), [
+  ['suesse', 1], ['saeure', 4], ['tannin', 4], ['koerper', 3], ['alkohol', 3], ['abgang', 4],
+]);
+check('profileRows Weiß: kein Tannin, auch wenn ein Wert da wäre', !profileRows(BOGEN_ROT, 'weiss').some((r) => r.id === 'tannin'));
+eq('profileRows: Ankertext', profileRows({ schmecken: { saeure: 5 } }, 'weiss')[0]?.anker, 'sehr frisch und spitz');
+eq('summarySentence: erste drei Werte', summarySentence({ schmecken: { saeure: 4, koerper: 3 } }, 'weiss'), 'Säure 4, Körper 3');
+eq('summarySentence: nur Aromen', summarySentence({ riechen: { aromen: { primaer: ['sauerkirsche', 'zitrone'], sekundaer: [], tertiaer: [] } } }, 'rot'), '2 Aromen notiert');
+eq('summarySentence: nur Fazit', summarySentence({ fazit: { trinkreife: 'optimal' } }, 'rot'), 'Eindrücke notiert');
+eq('selectedAromaIds: Nase und Gaumen ohne Doppelte', selectedAromaIds(BOGEN_ROT), ['sauerkirsche', 'leder']);
+const vieleAromen = AROMEN.stufen[0].familien.flatMap((f) => f.aromen.map((a) => a.id)).slice(0, 9);
+const preview = aromaPreview(vieleAromen);
+eq('aromaPreview: sechs Bezeichnungen', preview.labels.length, 6);
+eq('aromaPreview: Rest', preview.rest, 3);
+eq('restLabel', restLabel(3), '+ 3 weitere');
+eq('restLabel 0', restLabel(0), '');
+eq('toggleId: hinzufügen', toggleId(['a'], 'b'), ['a', 'b']);
+eq('toggleId: entfernen', toggleId(['a', 'b'], 'a'), ['b']);
+eq('toggleId: leer', toggleId(undefined, 'a'), ['a']);
+eq('tastingCountLabel 1', tastingCountLabel(1), '1 Verkostung');
+eq('tastingCountLabel 3', tastingCountLabel(3), '3 Verkostungen');
+eq('formatTastingDate', formatTastingDate('2026-11-11T12:00:00Z'), '11.11.2026');
+eq('formatTastingDate ungültig', formatTastingDate('kaputt'), '');
+eq('levelLabel', TASTING_LEVELS.map(levelLabel), ['Einfach', 'Erweitert', 'Profi']);
+for (const l of ALLE_STUFEN) check(`LEVEL_BESCHREIBUNG vorhanden (${l})`, LEVEL_BESCHREIBUNG[l].length > 0);
+for (const t of TRINKREIFE_WERTE) check(`TRINKREIFE_LABELS vorhanden (${t})`, !!TRINKREIFE_LABELS[t]);
+for (const t of LAGERPOTENZIAL_WERTE) check(`LAGERPOTENZIAL_LABELS vorhanden (${t})`, !!LAGERPOTENZIAL_LABELS[t]);
+check('kategorieHatSkala: Tannin bei Orange', kategorieHatSkala('orange', 'tannin'));
+check('kategorieHatSkala: kein Tannin bei Rosé', !kategorieHatSkala('rose', 'tannin'));
+
+// ── Teil B: Gruppierung und Sortierung ────────────────────────────────────────
+
+function note(id: string, ref: WineRef, tastedAt: string, createdAt = tastedAt): TastingNote {
+  return {
+    id, userId: 'u', ref,
+    wineId: ref.kind === 'market' ? ref.id : null,
+    customWineId: ref.kind === 'custom' ? ref.id : null,
+    purchasedWineId: null, tastedAt, level: 'einfach', focus: null, lessonId: null, blind: false,
+    schemaVersion: 1, data: {}, createdAt, updatedAt: createdAt,
+  };
+}
+const N1 = note('n1', REF_C, '2026-11-01T10:00:00Z');
+const N2 = note('n2', REF_C, '2026-11-05T10:00:00Z');
+const N3 = note('n3', REF_M, '2026-11-03T10:00:00Z');
+const N4 = note('n4', REF_C, '2026-11-05T10:00:00Z', '2026-11-05T11:00:00Z');
+const gruppen = groupTastingsByRef([N1, N3, N2, N4]);
+eq('Gruppierung: zwei Weine', gruppen.size, 2);
+eq('Gruppierung: eigener Wein neueste zuerst (Gleichstand nach Anlage)', tastingsFor(gruppen, REF_C).map((n) => n.id), ['n4', 'n2', 'n1']);
+eq('Gruppierung: Marktplatzwein', tastingsFor(gruppen, REF_M).map((n) => n.id), ['n3']);
+eq('Gruppierung: Wein ohne Verkostung', tastingsFor(gruppen, customRef('00000000-0000-4000-8000-000000000999')), []);
+check('Gruppierung: gleiche ID in anderer Art getrennt', tastingsFor(gruppen, { kind: 'market', id: CUSTOM }).length === 0);
+eq('latestTasting', latestTasting([N1, N3, N2])?.id, 'n2');
+eq('sortTastingsDesc ändert die Eingabe nicht', [N1, N2].map((n) => n.id), ['n1', 'n2']);
+eq('sortTastingsDesc', sortTastingsDesc([N1, N3, N2]).map((n) => n.id), ['n2', 'n3', 'n1']);
+eq('sortTastingsDesc: gleiche Zeiten stabil nach ID', sortTastingsDesc([note('a', REF_M, '2026-01-01T00:00:00Z'), note('b', REF_M, '2026-01-01T00:00:00Z')]).map((n) => n.id), ['b', 'a']);
+
+// ── Teil B: Bodenvergleich ────────────────────────────────────────────────────
+
+eq('Boden: gleich', compareBoden('schiefer', 'schiefer'), { art: 'gleich', eintrag: 'Schiefer' });
+eq('Boden: gleich Text', bodenVergleichText(compareBoden('schiefer', 'schiefer')), 'Dein Tipp stimmt mit dem Eintrag überein.');
+eq('Boden: verschieden', compareBoden('kalkstein', 'schiefer'), { art: 'verschieden', eintrag: 'Schiefer', tipp: 'Kalkstein' });
+eq('Boden: verschieden Text', bodenVergleichText(compareBoden('kalkstein', 'schiefer')), 'Im Eintrag dieses Weins steht: Schiefer. Dein Tipp: Kalkstein.');
+eq('Boden: kein Tipp', compareBoden(null, 'schiefer'), { art: 'kein_tipp' });
+eq('Boden: leerer Tipp', compareBoden('', 'schiefer'), { art: 'kein_tipp' });
+eq('Boden: unbekannter Tipp', compareBoden('mondstaub', 'schiefer'), { art: 'kein_tipp' });
+eq('Boden: kein Eintrag', compareBoden('schiefer', null), { art: 'kein_eintrag' });
+eq('Boden: Eintrag weiß nicht', compareBoden('schiefer', 'weiss_nicht'), { art: 'kein_eintrag' });
+eq('Boden: unbekannter Eintrag', compareBoden('schiefer', 'mondstaub'), { art: 'kein_eintrag' });
+eq('Boden: beides fehlt', compareBoden(undefined, undefined), { art: 'kein_tipp' });
+eq('Boden: Tipp weiß nicht', bodenVergleichText(compareBoden('weiss_nicht', 'kies')), 'Im Eintrag dieses Weins steht: Kies.');
+eq('Boden: kein Text ohne Eintrag', bodenVergleichText(compareBoden('schiefer', null)), null);
+eq('Boden: kein Text ohne Tipp', bodenVergleichText(compareBoden(null, 'schiefer')), null);
+eq('bodenLabel', bodenLabel('vulkangestein'), 'Basalt/Vulkangestein');
+// Vorsichtige Formulierungen: nie „verursacht“ oder „macht den Geschmack“
+const terroirTexte = [BODEN_HINWEIS, TERROIR.hinweis, ...TERROIR.boeden.optionen.map((o) => o.verbunden_mit ?? '')].join(' ').toLowerCase();
+for (const verboten of ['verursacht', 'sorgt für', 'führt zu', 'bewirkt']) {
+  check(`Terroir-Texte ohne „${verboten}“`, !terroirTexte.includes(verboten));
+}
+
+// ── Teil B: Assistent (Parameter, Verfügbarkeit, Stufe, Sterne) ───────────────
+
+eq('Verfügbarkeit: angemeldet und gespeichert', tastingAvailability({ signedIn: true, persisted: true, ref: REF_C }), 'ok');
+eq('Verfügbarkeit: abgemeldet', tastingAvailability({ signedIn: false, persisted: true, ref: REF_C }), 'anmelden');
+eq('Verfügbarkeit: nur vorübergehend', tastingAvailability({ signedIn: true, persisted: false, ref: REF_C }), 'voruebergehend');
+eq('Verfügbarkeit: lokale ID', tastingAvailability({ signedIn: true, persisted: true, ref: { kind: 'market', id: 'w1' } }), 'voruebergehend');
+eq('Hinweis anmelden', availabilityHint('anmelden'), 'Melde dich an, um zu verkosten.');
+eq('Hinweis ok', availabilityHint('ok'), null);
+eq('Parameter: vollständig', parseTastingParams({ kind: 'custom', id: CUSTOM, level: 'profi', focus: 'riechen', lesson: 'l03' }), {
+  ref: REF_C, level: 'profi', focus: 'riechen', lessonId: 'l03',
+});
+eq('Parameter: ohne Art ist Marktplatz', parseTastingParams({ id: WINE }).ref, REF_M);
+eq('Parameter: unbekannte Werte verworfen', parseTastingParams({ kind: 'custom', id: CUSTOM, level: 'meister', focus: 'hoeren', lesson: 'l999' }, (id) => id === 'l03'), {
+  ref: REF_C, level: null, focus: null, lessonId: null,
+});
+eq('Parameter: falsche Art', parseTastingParams({ kind: 'shop', id: WINE }).ref, null);
+eq('Parameter: Liste', parseTastingParams({ kind: ['custom'], id: [CUSTOM] }).ref, REF_C);
+eq('Parameter: leer', parseTastingParams({}), { ref: null, level: null, focus: null, lessonId: null });
+eq('tastingLevelKey', tastingLevelKey('u1'), 'tasting_level_v1:u1');
+eq('parseStoredLevel: gültig', parseStoredLevel('erweitert'), 'erweitert');
+eq('parseStoredLevel: ungültig', parseStoredLevel('meister'), null);
+eq('parseStoredLevel: null', parseStoredLevel(null), null);
+eq('initialLevel: Route vor Speicher', initialLevel('profi', 'einfach'), 'profi');
+eq('initialLevel: Speicher', initialLevel(null, 'erweitert'), 'erweitert');
+eq('initialLevel: Standard', initialLevel(null, null), 'einfach');
+eq('kategorieForEntry: eigener Orangewein', kategorieForEntry({ wine: { type: 'Weißwein' }, custom: { weinart: 'Orange Wine', jahrgang: null } }), 'orange');
+eq('kategorieForEntry: eigener Wein ohne Weinart', kategorieForEntry({ wine: { type: 'Rotwein' }, custom: { weinart: null, jahrgang: null } }), 'rot');
+eq('kategorieForEntry: Marktplatz Roséwein', kategorieForEntry({ wine: { type: 'Roséwein' } }), 'rose');
+eq('kategorieForEntry: Marktplatz Schaumwein', kategorieForEntry({ wine: { type: 'Schaumwein' } }), 'schaum');
+eq('kategorieForEntry: leer', kategorieForEntry(null), 'unbekannt');
+eq('wineInfoLine: Marktplatz', wineInfoLine({ wine: { type: 'Rotwein', vintage: 2019 } }), 'Rotwein · 2019');
+eq('wineInfoLine: eigener Wein ohne Jahrgang', wineInfoLine({ wine: { type: 'Rotwein', vintage: 0 }, custom: { weinart: 'Rotwein', jahrgang: null } }), 'Rotwein');
+eq('wineInfoLine: eigener Wein NV', wineInfoLine({ wine: { type: 'Schaumwein', vintage: 0 }, custom: { weinart: 'Schaumwein', jahrgang: 'NV' } }), 'Schaumwein · NV');
+eq('ratingToSave: unverändert', ratingToSave(4, 4), null);
+eq('ratingToSave: geändert', ratingToSave(3, 5), 5);
+eq('ratingToSave: neu', ratingToSave(undefined, 2), 2);
+eq('ratingToSave: keine Wahl', ratingToSave(3, null), null);
+eq('ratingToSave: ungültig', ratingToSave(3, 7), null);
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 
