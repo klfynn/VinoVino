@@ -79,6 +79,14 @@ export default function RootLayout() {
                     name="recipe/[id]"
                     options={{ headerShown: false }}
                   />
+                  <Stack.Screen
+                    name="cellar/[id]"
+                    options={{ headerShown: false }}
+                  />
+                  <Stack.Screen
+                    name="tasting/[id]"
+                    options={{ headerShown: false, gestureEnabled: false }}
+                  />
                 </Stack>
                 <AuthGate />
                 <CoachMarkOverlay />

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
 import { useCellar, CellarWine } from '../../context/CellarContext';
 import { QuantityModal } from '../../components/QuantityModal';
@@ -27,6 +27,9 @@ import {
   EMPTY_CUSTOM_WINE_FORM,
 } from '../../components/CustomWineForm';
 import { cellarSubtitle } from '../../lib/cellar/merge';
+import { useTastingNotes } from '../../lib/tasting/useTastingNotes';
+import { groupTastingsByRef, tastingCountLabel, tastingsFor } from '../../lib/tasting/summary';
+import { RECENT_MAX_LIMIT } from '../../services/tastingNotes';
 import type { CellarResult } from '../../lib/cellar/types';
 // Hinweis: Die Katalogauswahl im „+“-Dialog stammt weiterhin aus der lokalen Testliste.
 import { wines as ALL_WINES } from '../../data/wines';
@@ -158,14 +161,18 @@ function WatchlistCard({
 
 function CellarCard({
   item,
+  onOpen,
   onEditQty,
   onRemove,
   onReview,
   onEdit,
   hasReviewed,
   showTemporary,
+  tastingCount,
 }: {
   item: CellarWine;
+  /** Öffnet die Detailansicht mit den Verkostungen */
+  onOpen: () => void;
   onEditQty: () => void;
   onRemove: () => void;
   onReview: () => void;
@@ -173,15 +180,24 @@ function CellarCard({
   hasReviewed: boolean;
   /** Hinweis „nur vorübergehend“ für Einträge, die trotz Anmeldung nicht gespeichert werden */
   showTemporary: boolean;
+  /** Anzahl der Verkostungen dieses Weins (0 = kein Etikett) */
+  tastingCount: number;
 }) {
   const isCustom = item.ref.kind === 'custom';
   const subtitle = isCustom ? cellarSubtitle(item) : `${item.wine.winery} · ${item.wine.vintage}`;
+  const countLabel = tastingCountLabel(tastingCount);
   return (
-    <View style={styles.wCard}>
+    <TouchableOpacity
+      style={styles.wCard}
+      onPress={onOpen}
+      activeOpacity={0.85}
+      accessibilityRole="button"
+      accessibilityLabel={`${item.wine.name}${countLabel ? `, ${countLabel}` : ''}. Details öffnen`}
+    >
       <Image source={{ uri: item.wine.image }} style={styles.wImg} resizeMode="cover" />
       <View style={styles.wInfo}>
         <Text style={styles.wType}>{item.wine.type.toUpperCase()}</Text>
-        {(isCustom || showTemporary) && (
+        {(isCustom || showTemporary || !!countLabel) && (
           <View style={styles.badgeRow}>
             {isCustom && (
               <View style={styles.ownBadge}>
@@ -191,6 +207,11 @@ function CellarCard({
             {showTemporary && (
               <View style={styles.tempBadge}>
                 <Text style={styles.tempBadgeText}>Nur vorübergehend</Text>
+              </View>
+            )}
+            {!!countLabel && (
+              <View style={styles.ownBadge}>
+                <Text style={styles.ownBadgeText}>{countLabel}</Text>
               </View>
             )}
           </View>
@@ -233,7 +254,7 @@ function CellarCard({
           </Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 
@@ -701,6 +722,16 @@ export default function SammlungScreen() {
     if (activeTab === 'weinkeller' && isPersistent) reloadCellar();
   }, [activeTab, isPersistent, reloadCellar]);
 
+  // Verkostungen des Nutzers einmal gesammelt laden und im Speicher je Wein gruppieren
+  // (für das Etikett „3 Verkostungen“), statt pro Wein eine Abfrage zu stellen.
+  const { notes: recentTastings, refresh: refreshTastings } = useTastingNotes({ limit: RECENT_MAX_LIMIT });
+  const tastingGroups = useMemo(() => groupTastingsByRef(recentTastings), [recentTastings]);
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab === 'weinkeller' && isPersistent) refreshTastings();
+    }, [activeTab, isPersistent, refreshTastings]),
+  );
+
   function confirmRemove(entry: CellarWine) {
     const isCustom = entry.ref.kind === 'custom';
     const title = isCustom ? 'Eigenen Wein löschen' : 'Wein entfernen';
@@ -888,6 +919,13 @@ export default function SammlungScreen() {
                 return (
                   <CellarCard
                     item={item.item}
+                    onOpen={() =>
+                      router.push({
+                        pathname: '/cellar/[id]',
+                        params: { id: item.item.ref.id, kind: item.item.ref.kind },
+                      })
+                    }
+                    tastingCount={item.item.persisted ? tastingsFor(tastingGroups, item.item.ref).length : 0}
                     onEditQty={() => setEditCellarItem(item.item)}
                     onReview={() => setReviewCellarWine(item.item)}
                     onEdit={item.item.custom ? () => setEditCustomItem(item.item) : undefined}
