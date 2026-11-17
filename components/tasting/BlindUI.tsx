@@ -3,7 +3,7 @@
 // Bedeutungen (richtig, knapp daneben, daneben) stehen nie nur als Farbe da, sondern immer
 // zusätzlich als Symbol und Text.
 import React, { useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../../theme';
 import {
@@ -11,11 +11,15 @@ import {
   blindSummaryText,
   BlindErgebnis,
   ergebnisText,
+  HOST_REVEAL_BUTTON,
+  HOST_REVEAL_FRAGE,
+  HostRevealInfo,
   scoreBlindGuess,
   searchCatalog,
 } from '../../lib/tasting/blind';
 import { bodenVergleichText, BODEN_HINWEIS, compareBoden } from '../../lib/tasting/terroirCompare';
 import type { KatalogEintrag, TastingBlind } from '../../lib/tasting/types';
+import { PrimaryButton } from '../academy/AcademyUI';
 import { Chip, SectionTitle, TOUCH, tastingStyles } from './TastingUI';
 
 // ── Etikett ───────────────────────────────────────────────────────────────────
@@ -114,6 +118,48 @@ export function CatalogPicker({
         </>
       )}
     </View>
+  );
+}
+
+// ── Gastgeber-Weg ─────────────────────────────────────────────────────────────
+
+/**
+ * Unauffälliger Button auf dem Startbildschirm der Blindverkostung. Nach einer Rückfrage zeigt
+ * ein Fenster nur Name, Weingut (falls vorhanden) und Jahrgang, damit ein Gastgeber die richtige
+ * Flasche einschenken kann. Ob der Wein angesehen wurde, wird nirgends gespeichert.
+ */
+export function HostRevealButton({ info }: { info: HostRevealInfo }) {
+  const [offen, setOffen] = useState(false);
+  const fragen = () =>
+    Alert.alert('Wein anzeigen?', HOST_REVEAL_FRAGE, [
+      { text: 'Abbrechen', style: 'cancel' },
+      { text: 'Anzeigen', onPress: () => setOffen(true) },
+    ]);
+  const schliessen = () => setOffen(false);
+  return (
+    <>
+      <TouchableOpacity
+        style={styles.hostButton}
+        onPress={fragen}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`${HOST_REVEAL_BUTTON}. Verrät den Wein.`}
+      >
+        <Ionicons name="eye-outline" size={16} color={colors.textMuted} />
+        <Text style={styles.hostButtonText}>{HOST_REVEAL_BUTTON}</Text>
+      </TouchableOpacity>
+      <Modal visible={offen} transparent animationType="fade" onRequestClose={schliessen}>
+        <View style={styles.hostBackdrop}>
+          <View style={styles.hostSheet} accessibilityViewIsModal>
+            <Text style={styles.eyebrow}>FÜR DEN GASTGEBER</Text>
+            <Text style={styles.hostName}>{info.name || 'Ohne Namen'}</Text>
+            {info.weingut ? <Text style={styles.hostLine}>{info.weingut}</Text> : null}
+            <Text style={styles.hostLine}>{info.jahrgang ? `Jahrgang ${info.jahrgang}` : 'Ohne Jahrgang'}</Text>
+            <PrimaryButton label="Schließen" onPress={schliessen} style={styles.hostClose} />
+          </View>
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -243,6 +289,31 @@ const styles = StyleSheet.create({
   result: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.xs },
   resultText: { fontSize: 13, fontWeight: '700' },
   summary: { color: colors.accent, fontSize: 14, fontWeight: '700', marginTop: spacing.sm, textAlign: 'center' },
+
+  hostButton: {
+    minHeight: TOUCH,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+    alignSelf: 'center',
+  },
+  hostButtonText: { color: colors.textMuted, fontSize: 13, textDecorationLine: 'underline' },
+  hostBackdrop: { flex: 1, backgroundColor: 'rgba(26,10,15,0.75)', justifyContent: 'center', padding: spacing.lg },
+  hostSheet: {
+    backgroundColor: colors.card,
+    borderRadius: radii.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  hostName: { color: colors.text, fontSize: 20, fontWeight: '700', textAlign: 'center', lineHeight: 26, marginTop: spacing.xs },
+  hostLine: { color: colors.textMuted, fontSize: 15, textAlign: 'center' },
+  hostClose: { alignSelf: 'stretch', marginTop: spacing.md },
 
   vergleich: { color: colors.text, fontSize: 13, lineHeight: 19 },
   bodenHinweis: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: spacing.xs, fontStyle: 'italic' },

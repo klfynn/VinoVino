@@ -31,7 +31,7 @@ import { CloseButton, LoadingState, PrimaryButton } from '../../components/acade
 import { AromaPicker } from '../../components/tasting/AromaPicker';
 import { LessonTaskBox } from '../../components/tasting/LessonTaskBox';
 import { TastingResultView } from '../../components/tasting/TastingResultView';
-import { BlindResolution, CatalogPicker } from '../../components/tasting/BlindUI';
+import { BlindResolution, CatalogPicker, HostRevealButton } from '../../components/tasting/BlindUI';
 import {
   Chip,
   ColorSwatches,
@@ -50,7 +50,9 @@ import {
   BLIND_TIPP_EINLEITUNG,
   blindTruthFromEntry,
   buildBlindSaveData,
+  canShowHostReveal,
   cleanJahrgangInput,
+  hostRevealInfo,
   isBlindTippFilled,
   parseBlindParam,
   resumeWizardStep,
@@ -465,6 +467,8 @@ export default function TastingWizardScreen() {
       {blind ? <Text style={styles.wineInfo}>Name und Angaben siehst du erst bei der Auflösung.</Text> : null}
     </View>
   );
+  // Gastgeber-Weg: nur vor dem ersten Schritt (Startbildschirm oder Frage nach dem Entwurf).
+  const hostReveal = canShowHostReveal({ blind, phase }) ? <HostRevealButton info={hostRevealInfo(entry)} /> : null;
 
   // Frage nach dem Entwurf
   if (phase === 'frage' && draft.draft) {
@@ -483,6 +487,7 @@ export default function TastingWizardScreen() {
             </Text>
             <PrimaryButton label="Weitermachen" onPress={resumeDraft} style={styles.fullButton} />
             <PrimaryButton label="Neu beginnen" variant="outline" onPress={discardDraft} style={styles.fullButtonSecondary} />
+            {hostReveal}
           </View>
         </ScrollView>
       </Screen>
@@ -528,6 +533,7 @@ export default function TastingWizardScreen() {
           </View>
           <Text style={styles.footHint}>Jeder Schritt ist freiwillig. Du kannst alles überspringen.</Text>
           <PrimaryButton label={blind ? 'Blindverkostung beginnen' : 'Verkostung beginnen'} onPress={begin} style={styles.fullButton} />
+          {hostReveal}
         </ScrollView>
       </Screen>
     );

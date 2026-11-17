@@ -27,6 +27,11 @@ export interface Wine {
   bioNaturVegan?: string[];
   /** Flaschengröße aus wines (erster nicht leerer Wert); fehlt sie, zeigt die Detailansicht „0,75 l“. */
   flaschengroesse?: string;
+  /**
+   * Ursprüngliche Weinart aus der Datenbank (Text oder `null`), ohne den Rückfall auf „Rotwein“
+   * in `type`. Nur für die Blindverkostung; die Anzeige nutzt weiter `type`.
+   */
+  weinartRoh?: string | null;
   reviews?: Review[];
   averageRating?: number;
 }

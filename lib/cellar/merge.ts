@@ -109,6 +109,7 @@ export function customWineToWine(cw: CustomWine): Wine {
     winery: cw.weingut ?? '',
     vintage: jahr,
     type: weinartToWineType(cw.weinart),
+    weinartRoh: cw.weinart ?? null,
     region: cw.region ?? '',
     country: cw.herkunft ?? '',
     grape: cw.rebsorte ?? '',
