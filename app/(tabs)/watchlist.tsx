@@ -31,6 +31,8 @@ import { useTastingNotes } from '../../lib/tasting/useTastingNotes';
 import { groupTastingsByRef, tastingCountLabel, tastingsFor } from '../../lib/tasting/summary';
 import { RECENT_MAX_LIMIT } from '../../services/tastingNotes';
 import type { CellarResult } from '../../lib/cellar/types';
+import { WinePickerSheet } from '../../components/tasting/WinePickerSheet';
+import type { TastingDraft } from '../../lib/tasting/draft';
 // Hinweis: Die Katalogauswahl im „+“-Dialog stammt weiterhin aus der lokalen Testliste.
 import { wines as ALL_WINES } from '../../data/wines';
 import { Wine, WineType } from '../../types';
@@ -736,6 +738,17 @@ export default function SammlungScreen() {
     router.setParams({ tab: undefined, neu: undefined });
   }, [tabParam, neuParam, router]);
   const [reviewCellarWine, setReviewCellarWine] = useState<CellarWine | null>(null);
+  // Teil D1: Weinauswahl für die Blindverkostung
+  const [blindPickerOpen, setBlindPickerOpen] = useState(false);
+  const startBlind = (entry: CellarWine) => {
+    setBlindPickerOpen(false);
+    router.push({ pathname: '/tasting/[id]', params: { id: entry.ref.id, kind: entry.ref.kind, blind: '1' } });
+  };
+  const resumeBlind = (draft: TastingDraft) => {
+    setBlindPickerOpen(false);
+    // Lektion und Schwerpunkt übernimmt der Assistent bei „Weitermachen“ aus dem Entwurf.
+    router.push({ pathname: '/tasting/[id]', params: { id: draft.ref.id, kind: draft.ref.kind, blind: '1' } });
+  };
   const [editCustomItem, setEditCustomItem] = useState<CellarWine | null>(null);
 
   // Beim Öffnen des Weinkellers den Stand aus Supabase neu laden (still, ohne Spinner).
@@ -916,6 +929,18 @@ export default function SammlungScreen() {
             </TouchableOpacity>
           </View>
 
+          {/* Teil D1: Blindverkostung (öffnet die Weinauswahl im Blind-Modus) */}
+          <TouchableOpacity
+            style={styles.blindBtn}
+            onPress={() => setBlindPickerOpen(true)}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Blindverkostung: einen Wein verkosten, ohne seine Angaben zu sehen"
+          >
+            <Ionicons name="eye-off-outline" size={18} color={colors.accent} />
+            <Text style={styles.blindBtnText}>Blindverkostung</Text>
+          </TouchableOpacity>
+
           {cellarLoading && cellarWines.length === 0 ? (
             <View style={styles.empty}>
               <ActivityIndicator size="large" color={colors.accent} />
@@ -971,6 +996,19 @@ export default function SammlungScreen() {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* Teil D1: Weinauswahl für die Blindverkostung */}
+      <WinePickerSheet
+        visible={blindPickerOpen}
+        onClose={() => setBlindPickerOpen(false)}
+        blind
+        onPick={startBlind}
+        onResumeBlindDraft={resumeBlind}
+        onCreateWine={() => {
+          setAddModalMode('custom');
+          setAddModalVisible(true);
+        }}
+      />
 
       {/* Watchlist → Cart quantity modal */}
       <QuantityModal
@@ -1231,6 +1269,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
+  // Blindverkostung (Teil D1), Umrandung wie der Scanner-Button
+  blindBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+    minHeight: 44,
+    marginHorizontal: spacing.lg,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    backgroundColor: colors.card,
+  },
+  blindBtnText: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 1 },
 
   // FAB
   fab: {

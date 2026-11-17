@@ -29,11 +29,14 @@ export function TastingResultView({
   data,
   kategorie,
   bodenEintrag,
+  ohneBodenVergleich,
 }: {
   data: TastingData;
   kategorie: WeinKategorie;
   /** Eingetragener Boden des Weins (nur eigene Weine), für den neutralen Vergleich */
   bodenEintrag?: string | null;
+  /** Teil D1: Der Vergleich steht schon in der Auflösung der Blindverkostung darüber. */
+  ohneBodenVergleich?: boolean;
 }) {
   const clean = sanitizeTastingData(data);
   const rows = profileRows(clean, kategorie);
@@ -88,8 +91,8 @@ export function TastingResultView({
           {eindruecke.length > 0 && <Row label="Eindrücke" value={eindruecke.join(', ')} />}
           {klima && <Row label="Klima" value={klima} />}
           {tipp && <Row label="Dein Tipp zum Boden" value={tipp} />}
-          {vergleich && <Text style={styles.vergleich}>{vergleich}</Text>}
-          {tipp && <Text style={styles.hinweis}>{BODEN_HINWEIS}</Text>}
+          {vergleich && !ohneBodenVergleich && <Text style={styles.vergleich}>{vergleich}</Text>}
+          {tipp && !(ohneBodenVergleich && vergleich) && <Text style={styles.hinweis}>{BODEN_HINWEIS}</Text>}
         </View>
       )}
 

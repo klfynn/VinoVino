@@ -22,6 +22,7 @@ import { useCellar } from '../../context/CellarContext';
 import { BackButton, CloseButton, LoadingState, PrimaryButton } from '../../components/academy/AcademyUI';
 import { CellarTastingSection } from '../../components/tasting/CellarTastingSection';
 import { TastingResultView } from '../../components/tasting/TastingResultView';
+import { BlindBadge, BlindResolution } from '../../components/tasting/BlindUI';
 import { TOUCH } from '../../components/tasting/TastingUI';
 import { cellarSubtitle } from '../../lib/cellar/merge';
 import { TERROIR } from '../../lib/tasting/catalog';
@@ -214,11 +215,27 @@ export default function CellarDetailScreen() {
               {openNote ? formatTastingDate(openNote.tastedAt) : ''}
               <Text style={styles.modalLevel}>{'  ·  '}{openNote ? levelLabel(openNote.level).toUpperCase() : ''}</Text>
             </Text>
+            {openNote?.blind && <BlindBadge />}
           </View>
           {openNote && (
             <ScrollView contentContainerStyle={styles.modalContent}>
-              <Text style={styles.modalWine}>{entry.wine.name}</Text>
-              <TastingResultView data={openNote.data} kategorie={kategorie} bodenEintrag={custom?.boden ?? null} />
+              {openNote.blind ? (
+                // Teil D1: dieselbe Auflösung wie nach dem Speichern, aus der gespeicherten Momentaufnahme.
+                <>
+                  <BlindResolution
+                    wineName={entry.wine.name}
+                    blind={openNote.data.blind}
+                    bodenTipp={openNote.data.terroir?.boden_tipp ?? null}
+                    bodenEintrag={custom?.boden ?? null}
+                  />
+                  <TastingResultView data={openNote.data} kategorie={kategorie} bodenEintrag={custom?.boden ?? null} ohneBodenVergleich />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.modalWine}>{entry.wine.name}</Text>
+                  <TastingResultView data={openNote.data} kategorie={kategorie} bodenEintrag={custom?.boden ?? null} />
+                </>
+              )}
               <TouchableOpacity
                 style={[styles.deleteBtn, deleting && { opacity: 0.6 }]}
                 onPress={() => confirmDelete(openNote)}
