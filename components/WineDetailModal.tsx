@@ -153,7 +153,7 @@ export function WineDetailModal({
                 <Meta label="Jahrgang" value={String(wine.vintage)} />
                 <Meta label="Herkunft & Region" value={`${wine.country}, ${wine.region}`} />
                 <Meta label="Rebsorte" value={wine.grape} />
-                <Meta label="Flaschengröße" value="0,75 l" />
+                <Meta label="Flaschengröße" value={wine.flaschengroesse ?? '0,75 l'} />
               </View>
 
               {/* Geschmack */}
