@@ -442,6 +442,44 @@ export function cleanJahrgangInput(text: unknown): string {
   return typeof text === 'string' ? text.replace(/\D+/g, '').slice(0, 4) : '';
 }
 
+// ── Gastgeber-Weg ─────────────────────────────────────────────────────────────
+
+export const BLIND_ERKLAERUNG_ZUFALL = 'Zufällig: Die App wählt einen Wein. Ein Gastgeber kann ihn einsehen und einschenken.';
+export const BLIND_ERKLAERUNG_SELBST = 'Selbst wählen: Du oder dein Gastgeber wählt die Flasche. Du siehst dann die Namen.';
+export const HOST_REVEAL_BUTTON = 'Für den Gastgeber: Wein anzeigen';
+export const HOST_REVEAL_FRAGE = 'Das verrät den Wein. Zeige ihn nur dem Gastgeber.';
+
+/**
+ * Der Button für den Gastgeber erscheint nur im Blind-Modus und nur vor dem ersten Schritt:
+ * auf dem Startbildschirm (`start`) und bei der Frage nach einem Entwurf (`frage`, Rückkehr über
+ * „Weitermachen“). Sobald der Assistent läuft (`bogen`) oder fertig ist, nicht mehr.
+ */
+export function canShowHostReveal(state: { blind?: unknown; phase?: unknown } | null | undefined): boolean {
+  if (!isObj(state) || state.blind !== true) return false;
+  return state.phase === 'start' || state.phase === 'frage';
+}
+
+/** Was der Gastgeber sieht: nur Name, Weingut (falls vorhanden) und Jahrgang. */
+export type HostRevealInfo = { name: string; weingut: string | null; jahrgang: string | null };
+
+/**
+ * Angaben für das Fenster des Gastgebers. Bewusst keine Rebsorte, Region oder Herkunft, damit die
+ * Auflösung später nicht verdorben wird. Das Weingut gibt es nur bei eigenen Weinen (bei
+ * Marktplatzweinen enthält `winery` Rebsorte und Region und wird deshalb nicht gezeigt).
+ */
+export function hostRevealInfo(
+  entry: { wine?: { name?: unknown; vintage?: unknown } | null; custom?: { weingut?: unknown; jahrgang?: unknown } | null } | null | undefined,
+): HostRevealInfo {
+  const w = isObj(entry) && isObj(entry.wine) ? entry.wine : {};
+  const c = isObj(entry) && isObj(entry.custom) ? entry.custom : null;
+  const vintage = typeof w.vintage === 'number' && Number.isInteger(w.vintage) && w.vintage > 0 ? String(w.vintage) : null;
+  return {
+    name: textOf(w.name) ?? '',
+    weingut: c ? textOf(c.weingut) ?? null : null,
+    jahrgang: c ? textOf(c.jahrgang) ?? null : vintage,
+  };
+}
+
 // ── Routenparameter ───────────────────────────────────────────────────────────
 
 /** `blind=1` schaltet den Blind-Modus ein; jeder andere Wert wird ignoriert. */

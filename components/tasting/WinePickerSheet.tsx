@@ -19,7 +19,13 @@ import {
   selectTastableWines,
   winePickerState,
 } from '../../lib/tasting/lessonLinks';
-import { BLIND_HINWEIS_ZU_WENIG, pickRandomBlindWine, selectBlindWines } from '../../lib/tasting/blind';
+import {
+  BLIND_ERKLAERUNG_SELBST,
+  BLIND_ERKLAERUNG_ZUFALL,
+  BLIND_HINWEIS_ZU_WENIG,
+  pickRandomBlindWine,
+  selectBlindWines,
+} from '../../lib/tasting/blind';
 import { useBlindDraft } from '../../lib/tasting/useBlindDraft';
 import { sameWineRef } from '../../lib/tasting/wineRef';
 import type { TastingDraft } from '../../lib/tasting/draft';
@@ -147,6 +153,11 @@ export function WinePickerSheet({
             <Text style={styles.choiceHelp}>Du siehst dann die Namen.</Text>
           </View>
         </TouchableOpacity>
+        {/* Gastgeber-Weg: kurze Erklärung zu beiden Wegen */}
+        <View style={styles.explain}>
+          <Text style={styles.explainText}>{BLIND_ERKLAERUNG_ZUFALL}</Text>
+          <Text style={styles.explainText}>{BLIND_ERKLAERUNG_SELBST}</Text>
+        </View>
       </View>
     );
   } else {
@@ -252,6 +263,9 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: spacing.md, paddingVertical: spacing.lg },
   emptyText: { color: colors.text, fontSize: 15, lineHeight: 22, textAlign: 'center' },
   emptyButton: { alignSelf: 'stretch' },
+
+  explain: { gap: spacing.xs, marginTop: spacing.xs },
+  explainText: { color: colors.textMuted, fontSize: 12, lineHeight: 17 },
 
   // Blind-Modus: Auswahl wie die Stufenkarten im Assistenten
   choice: {

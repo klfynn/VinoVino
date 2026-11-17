@@ -17,7 +17,12 @@ import {
   buildBlindSaveData,
   cleanJahrgangInput,
   comparableFields,
+  BLIND_ERKLAERUNG_SELBST,
+  BLIND_ERKLAERUNG_ZUFALL,
+  canShowHostReveal,
   ergebnisText,
+  HOST_REVEAL_FRAGE,
+  hostRevealInfo,
   isBlindEligible,
   isBlindTippFilled,
   katalogNamen,
@@ -1453,6 +1458,32 @@ eq('Praxisaufgabe l32: Parameter mit blind=1', lessonTastingParams(BREF, 'l32', 
 });
 check('Praxisaufgabe l03: ohne blind', !('blind' in lessonTastingParams(BREF, 'l03', LESSON_TASKS.l03)));
 check('isBlindLessonTask: null', !isBlindLessonTask(null));
+
+// ── Gastgeber-Weg bei „Zufällig auswählen“ ────────────────────────────────────
+
+check('Gastgeber: Startbildschirm der Blindverkostung', canShowHostReveal({ blind: true, phase: 'start' }));
+check('Gastgeber: Entwurf auf dem Startbildschirm (Frage nach „Weitermachen“)', canShowHostReveal({ blind: true, phase: 'frage' }));
+check('Gastgeber: nach Beginn des ersten Schritts nicht', !canShowHostReveal({ blind: true, phase: 'bogen' }));
+check('Gastgeber: nach dem Speichern nicht', !canShowHostReveal({ blind: true, phase: 'fertig' }));
+check('Gastgeber: vor dem Laden nicht', !canShowHostReveal({ blind: true, phase: null }));
+check('Gastgeber: normale Verkostung nicht', !canShowHostReveal({ blind: false, phase: 'start' }));
+check('Gastgeber: blind als Text zählt nicht', !canShowHostReveal({ blind: '1', phase: 'start' }));
+check('Gastgeber: null', !canShowHostReveal(null));
+check('Gastgeber: Unsinn', !canShowHostReveal('start' as unknown as { phase: string }));
+eq('Gastgeber: Marktplatzwein zeigt Name und Jahrgang, kein Weingut',
+  hostRevealInfo({ wine: { name: 'Château X', vintage: 2018, winery: 'Merlot · Bordeaux · 2018' } as { name: string; vintage: number } }),
+  { name: 'Château X', weingut: null, jahrgang: '2018' });
+eq('Gastgeber: eigener Wein mit Weingut', hostRevealInfo({ wine: { name: 'Mein Riesling', vintage: 0 }, custom: { weingut: ' Weingut Muster ', jahrgang: 'NV' } }), {
+  name: 'Mein Riesling', weingut: 'Weingut Muster', jahrgang: 'NV',
+});
+eq('Gastgeber: eigener Wein ohne Weingut und Jahrgang', hostRevealInfo({ wine: { name: 'X', vintage: 0 }, custom: { weingut: '', jahrgang: null } }), {
+  name: 'X', weingut: null, jahrgang: null,
+});
+eq('Gastgeber: nur drei Angaben (keine Rebsorte, Region, Herkunft)', Object.keys(hostRevealInfo(eigenerWein(U3, { weinart: 'Weißwein', rebsorte: 'Riesling', herkunft: 'Deutschland', region: 'Mosel', jahrgang: '2020' }))).sort(), ['jahrgang', 'name', 'weingut']);
+eq('Gastgeber: null', hostRevealInfo(null), { name: '', weingut: null, jahrgang: null });
+eq('Gastgeber: Rückfrage', HOST_REVEAL_FRAGE, 'Das verrät den Wein. Zeige ihn nur dem Gastgeber.');
+eq('Gastgeber: Erklärung Zufällig', BLIND_ERKLAERUNG_ZUFALL, 'Zufällig: Die App wählt einen Wein. Ein Gastgeber kann ihn einsehen und einschenken.');
+eq('Gastgeber: Erklärung Selbst wählen', BLIND_ERKLAERUNG_SELBST, 'Selbst wählen: Du oder dein Gastgeber wählt die Flasche. Du siehst dann die Namen.');
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 
