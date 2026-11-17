@@ -1,6 +1,32 @@
-// Prüfskript des Verkostungsbogens: Kataloge, Validierung, Entwurf und Assistent (Teil B).
+// Prüfskript des Verkostungsbogens: Kataloge, Validierung, Entwurf, Assistent (Teil B)
+// und Verbindung zur Akademie (Teil C).
 // Ausführen mit: npm run check:tasting
 import { TIERS } from '../content/academy';
+import lektionenJson from '../content/tasting/lektionen.json';
+import { getLektion, getTierOfLektion, lektionLabel } from '../content/academy/helpers';
+import { isTierUnlocked } from '../lib/academy/unlock';
+import {
+  countTastingsByLesson,
+  draftLessonContext,
+  GESPERRT_HINWEIS,
+  hasTastingButton,
+  isTastableWine,
+  LESSON_TASKS,
+  LessonInfo,
+  lessonLinkText,
+  lessonTaskFor,
+  LessonTaskMap,
+  lessonTastingParams,
+  PICKER_HINWEIS_ANMELDEN,
+  PICKER_HINWEIS_LEER,
+  practiceCountLabel,
+  resolveLessonLink,
+  resolveLessonParams,
+  selectTastableWines,
+  startStepFor,
+  validateLessonTasks,
+  winePickerState,
+} from '../lib/tasting/lessonLinks';
 import {
   ABSCHNITTE,
   AROMEN,
@@ -767,6 +793,172 @@ eq('ratingToSave: geändert', ratingToSave(3, 5), 5);
 eq('ratingToSave: neu', ratingToSave(undefined, 2), 2);
 eq('ratingToSave: keine Wahl', ratingToSave(3, null), null);
 eq('ratingToSave: ungültig', ratingToSave(3, 7), null);
+
+// ── Teil C: Zuordnung Lektion → Schwerpunkt und Stufe ─────────────────────────
+
+eq('lektionen.json ist gültig', validateLessonTasks(lektionenJson, lektionIds), []);
+check('lektionen.json hat Einträge', Object.keys(LESSON_TASKS).length > 0);
+for (const [id, task] of Object.entries(LESSON_TASKS)) {
+  check(`lektionen.json ${id}: Lektion existiert`, lektionIds.has(id), id);
+  check(`lektionen.json ${id}: Schwerpunkt gültig`, (TASTING_STEPS as readonly string[]).includes(task.focus), task.focus);
+  check(`lektionen.json ${id}: Stufe gültig`, (TASTING_LEVELS as readonly string[]).includes(task.level), task.level);
+  check(`lektionen.json ${id}: Hinweis ist ein Satz`, /^[^\n]{10,200}[.!?]$/.test(task.hinweis), task.hinweis);
+  // Der Schwerpunkt muss in der vorgesehenen Stufe sichtbar sein, sonst öffnet der Assistent woanders.
+  eq(`lektionen.json ${id}: Schwerpunkt in der Stufe sichtbar`, startStepFor(task.focus, visibleSteps(task.level)), task.focus);
+  // Stufe nach Akademie-Tier: 1 → einfach, 2 → erweitert, 3 und 4 → profi (Bonus nach Inhalt).
+  const tier = getTierOfLektion(id)?.tier ?? null;
+  if (tier !== null) {
+    const erwartet: TastingLevel = tier === 1 ? 'einfach' : tier === 2 ? 'erweitert' : 'profi';
+    eq(`lektionen.json ${id}: Stufe passt zu Tier ${tier}`, task.level, erwartet);
+  }
+}
+// Jede Lektion: Button genau dann, wenn es einen Eintrag gibt.
+for (const id of lektionIds) {
+  eq(`Button-Logik ${id}`, hasTastingButton(id), Object.prototype.hasOwnProperty.call(lektionenJson, id));
+}
+// Lektionen ohne Verkostungsbezug bekommen keinen Button.
+const OHNE_VERKOSTUNG = ['l16', 'l21', 'l29', 'l38', 'l42', 'l43', 'l44', 'bonus-1', 'bonus-2'];
+for (const id of OHNE_VERKOSTUNG) {
+  check(`${id} existiert`, lektionIds.has(id));
+  eq(`${id}: kein Button`, hasTastingButton(id), false);
+  eq(`${id}: kein Eintrag`, lessonTaskFor(id), null);
+}
+eq('Button: unbekannte Lektion', hasTastingButton('l999'), false);
+eq('Button: kein Text', hasTastingButton(42), false);
+eq('Button: geerbte Objekt-Eigenschaft', hasTastingButton('toString'), false);
+eq('lessonTaskFor l03', lessonTaskFor('l03')?.focus, 'schmecken');
+eq('lessonTaskFor l12', lessonTaskFor('l12')?.focus, 'terroir');
+eq('lessonTaskFor l28', lessonTaskFor('l28'), { ...LESSON_TASKS.l28 });
+
+const IDS = new Set(['l01', 'l02']);
+eq('validateLessonTasks: kein Objekt', validateLessonTasks([], IDS), ['Die Zuordnung ist kein Objekt.']);
+eq('validateLessonTasks: gültig', validateLessonTasks({ l01: { focus: 'sehen', level: 'einfach', hinweis: 'Ein Satz.' } }, IDS), []);
+eq(
+  'validateLessonTasks: Fehler',
+  validateLessonTasks({ l99: { focus: 'hoeren', level: 'meister', hinweis: '', extra: 1 }, l02: 'x' }, IDS),
+  [
+    'l99: unbekannte Lektions-ID',
+    'l99: ungültiger Schwerpunkt hoeren',
+    'l99: ungültige Stufe meister',
+    'l99: Hinweis fehlt',
+    'l99: unbekannte Felder extra',
+    'l02: Eintrag ist kein Objekt',
+  ],
+);
+
+// ── Teil C: „Mehr dazu“ ───────────────────────────────────────────────────────
+
+// Freischalt-Logik als Parameter: ohne abgeschlossene Lektionen sind nur Tier 1 und Bonus frei.
+const infoFor = (id: string): LessonInfo | undefined => {
+  const l = getLektion(id);
+  return l ? { id: l.id, label: lektionLabel(l), titel: l.titel } : undefined;
+};
+const unlockedWith = (done: Set<string>) => (id: string) => {
+  const t = getTierOfLektion(id);
+  return !!t && isTierUnlocked(t, done);
+};
+const nichts = { getLesson: infoFor, isUnlocked: unlockedWith(new Set()) };
+const l03 = getLektion('l03');
+const l28 = getLektion('l28');
+eq('Verweis: null', resolveLessonLink(null, nichts), { kind: 'kein' });
+eq('Verweis: leer', resolveLessonLink('', nichts), { kind: 'kein' });
+eq('Verweis: kein Text', resolveLessonLink(3, nichts), { kind: 'kein' });
+eq('Verweis: unbekannte Lektion', resolveLessonLink('l999', nichts), { kind: 'kein' });
+eq('Verweis: Tier 1 frei', resolveLessonLink('l03', nichts), { kind: 'oeffnen', lesson: { id: 'l03', label: 'Lektion 3', titel: l03?.titel } });
+eq('Verweis: Tier 3 gesperrt', resolveLessonLink('l28', nichts).kind, 'gesperrt');
+eq('Verweis: Bonus frei', resolveLessonLink('bonus-1', nichts).kind, 'oeffnen');
+const tier1und2 = new Set(
+  TIERS.filter((t) => t.tier === 1 || t.tier === 2).flatMap((t) => t.lektionen.map((l) => l.id)),
+);
+eq('Verweis: Tier 3 nach Tier 1 und 2 frei', resolveLessonLink('l28', { getLesson: infoFor, isUnlocked: unlockedWith(tier1und2) }).kind, 'oeffnen');
+eq('Verweis: Tier 4 bleibt gesperrt', resolveLessonLink('l39', { getLesson: infoFor, isUnlocked: unlockedWith(tier1und2) }).kind, 'gesperrt');
+eq('Verweis: Freischaltung wird übergeben', resolveLessonLink('l03', { getLesson: infoFor, isUnlocked: () => false }).kind, 'gesperrt');
+eq('Text: öffnen', lessonLinkText(resolveLessonLink('l03', nichts)), { zeile: `Mehr dazu: Lektion 3 – ${l03?.titel}`, hinweis: null });
+eq('Text: gesperrt', lessonLinkText(resolveLessonLink('l28', nichts)), { zeile: `Lektion 28 – ${l28?.titel} (noch gesperrt)`, hinweis: GESPERRT_HINWEIS });
+eq('Text: kein Verweis', lessonLinkText({ kind: 'kein' }), null);
+eq('Text: Bonus', lessonLinkText(resolveLessonLink('bonus-2', nichts))?.zeile.startsWith('Mehr dazu: Bonus 2 – '), true);
+// Jeder Katalog-Verweis lässt sich auflösen (existiert oder ist null).
+for (const [name, lektion] of verweise) {
+  check(`${name}: Verweis auflösbar`, lektion === null || resolveLessonLink(lektion, nichts).kind !== 'kein', lektion);
+}
+
+// ── Teil C: Weinauswahl ───────────────────────────────────────────────────────
+
+const OTHER = '11111111-2222-4333-8444-555555555555';
+const keller = [
+  { id: 'a', ref: REF_M, persisted: true },
+  { id: 'b', ref: { kind: 'market', id: 'w1' } as WineRef, persisted: false },
+  { id: 'c', ref: REF_C, persisted: true },
+  { id: 'd', ref: { kind: 'custom', id: OTHER } as WineRef, persisted: false },
+  { id: 'e', ref: { kind: 'custom', id: 'lokal-1' } as WineRef, persisted: true },
+];
+eq('Weinauswahl: nur verkostbare', selectTastableWines(keller, true).map((e) => e.id), ['a', 'c']);
+eq('Weinauswahl: ohne Anmeldung leer', selectTastableWines(keller, false), []);
+eq('Weinauswahl: leerer Weinkeller', selectTastableWines([], true), []);
+eq('isTastableWine: gespeichert', isTastableWine(keller[0], true), true);
+eq('isTastableWine: nur vorübergehend', isTastableWine(keller[1], true), false);
+eq('isTastableWine: abgemeldet', isTastableWine(keller[0], false), false);
+eq('Weinauswahl-Zustand: abgemeldet', winePickerState(false, 3), 'anmelden');
+eq('Weinauswahl-Zustand: leer', winePickerState(true, 0), 'leer');
+eq('Weinauswahl-Zustand: Auswahl', winePickerState(true, 2), 'auswahl');
+eq('Hinweis leer', PICKER_HINWEIS_LEER, 'Dafür brauchst du einen Wein in deinem Weinkeller.');
+eq('Hinweis anmelden', PICKER_HINWEIS_ANMELDEN, 'Melde dich an, um zu verkosten.');
+eq('Route aus der Praxisaufgabe', lessonTastingParams(REF_C, 'l03', LESSON_TASKS.l03), {
+  id: CUSTOM, kind: 'custom', lesson: 'l03', focus: 'schmecken', level: 'einfach', from: 'lektion',
+});
+eq('Route wird vom Assistenten gelesen', parseTastingParams(lessonTastingParams(REF_M, 'l12', LESSON_TASKS.l12), (id) => lektionIds.has(id)), {
+  ref: REF_M, level: 'erweitert', focus: 'terroir', lessonId: 'l12',
+});
+
+// ── Teil C: Zählung je Lektion ────────────────────────────────────────────────
+
+eq('Zählung: leer', countTastingsByLesson([]), {});
+eq(
+  'Zählung: je Lektion',
+  countTastingsByLesson([
+    { lessonId: 'l03' }, { lessonId: 'l12' }, { lessonId: 'l03' }, { lessonId: null }, {}, { lessonId: '' },
+  ]),
+  { l03: 2, l12: 1 },
+);
+eq('Zeile: 0', practiceCountLabel(0), 'Noch nicht gemacht.');
+eq('Zeile: 1', practiceCountLabel(1), 'Du hast diese Aufgabe schon 1-mal gemacht.');
+eq('Zeile: 2', practiceCountLabel(2), 'Du hast diese Aufgabe schon 2-mal gemacht.');
+eq('Zeile: ungültig', practiceCountLabel(Number.NaN), 'Noch nicht gemacht.');
+eq('Zeile: negativ', practiceCountLabel(-3), 'Noch nicht gemacht.');
+
+// ── Teil C: Parameter des Assistenten ─────────────────────────────────────────
+
+const istLektion = (id: string) => lektionIds.has(id);
+eq('Parameter C: vollständig', resolveLessonParams({ lesson: 'l03', focus: 'riechen', level: 'profi' }, { isLesson: istLektion }), {
+  lessonId: 'l03', focus: 'riechen', level: 'profi',
+});
+eq('Parameter C: Rückfall auf Zuordnung', resolveLessonParams({ lesson: 'l12' }, { isLesson: istLektion }), {
+  lessonId: 'l12', focus: 'terroir', level: 'erweitert',
+});
+eq('Parameter C: ungültige Werte → Zuordnung', resolveLessonParams({ lesson: 'l12', focus: 'hoeren', level: 'meister' }, { isLesson: istLektion }), {
+  lessonId: 'l12', focus: 'terroir', level: 'erweitert',
+});
+eq('Parameter C: unbekannte Lektion ignoriert', resolveLessonParams({ lesson: 'l999', focus: 'sehen' }, { isLesson: istLektion }), {
+  lessonId: null, focus: 'sehen', level: null,
+});
+eq('Parameter C: Lektion ohne Zuordnung', resolveLessonParams({ lesson: 'l16' }, { isLesson: istLektion }), {
+  lessonId: 'l16', focus: null, level: null,
+});
+eq('Parameter C: leer', resolveLessonParams({}, { isLesson: istLektion }), { lessonId: null, focus: null, level: null });
+eq('Parameter C: Listen', resolveLessonParams({ lesson: ['l03'], focus: ['fazit'] }, { isLesson: istLektion }), {
+  lessonId: 'l03', focus: 'fazit', level: 'einfach',
+});
+eq('Parameter C: eigene Zuordnung', resolveLessonParams({ lesson: 'l01' }, { isLesson: istLektion, tasks: { l01: { focus: 'sehen', level: 'profi', hinweis: 'x.' } } as LessonTaskMap }), {
+  lessonId: 'l01', focus: 'sehen', level: 'profi',
+});
+eq('Startschritt: Schwerpunkt', startStepFor('schmecken', visibleSteps('einfach')), 'schmecken');
+eq('Startschritt: ohne Schwerpunkt', startStepFor(null, visibleSteps('einfach')), 'sehen');
+eq('Startschritt: Schwerpunkt in Stufe unsichtbar', startStepFor('terroir', visibleSteps('einfach')), 'sehen');
+eq('Startschritt: Terroir ab erweitert', startStepFor('terroir', visibleSteps('erweitert')), 'terroir');
+eq('Startschritt: keine Schritte', startStepFor('fazit', []), 'sehen');
+eq('Entwurf: Lektion bleibt', draftLessonContext({ lessonId: 'l03', focus: 'schmecken' }, istLektion), { lessonId: 'l03', focus: 'schmecken' });
+eq('Entwurf: unbekannte Lektion fällt weg', draftLessonContext({ lessonId: 'l999', focus: 'hoeren' as TastingStep }, istLektion), { lessonId: null, focus: null });
+eq('Entwurf: ohne Lektion', draftLessonContext({}, istLektion), { lessonId: null, focus: null });
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 

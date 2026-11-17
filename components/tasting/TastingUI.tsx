@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../../theme';
 import type { Farbe, Skala, Skalenwert, TastingStep } from '../../lib/tasting/types';
 import type { ProfileRow } from '../../lib/tasting/summary';
+import { lessonLinkText, type LessonLink } from '../../lib/tasting/lessonLinks';
 
 /** Mindestgröße für Tippflächen (Punkte). */
 export const TOUCH = 44;
@@ -232,18 +233,24 @@ export function StepProgress({
   labels,
   current,
   filled,
+  focus,
 }: {
   steps: TastingStep[];
   labels: Record<string, string>;
   current: TastingStep;
   filled: TastingStep[];
+  /** Schwerpunkt aus einer Praxisaufgabe (Teil C), wird als „Schwerpunkt dieser Lektion“ markiert */
+  focus?: TastingStep | null;
 }) {
   const index = steps.indexOf(current);
+  const showFocus = !!focus && steps.includes(focus);
   return (
     <View
       accessible
       accessibilityRole="progressbar"
-      accessibilityLabel={`Schritt ${index + 1} von ${steps.length}: ${labels[current] ?? ''}`}
+      accessibilityLabel={`Schritt ${index + 1} von ${steps.length}: ${labels[current] ?? ''}${
+        showFocus ? `. Schwerpunkt dieser Lektion: ${labels[focus as string] ?? ''}` : ''
+      }`}
     >
       <View style={styles.progressRow}>
         {steps.map((s) => (
@@ -253,17 +260,34 @@ export function StepProgress({
               styles.progressSeg,
               filled.includes(s) && styles.progressSegFilled,
               s === current && styles.progressSegCurrent,
+              showFocus && s === focus && styles.progressSegFocus,
             ]}
           />
         ))}
       </View>
       <View style={styles.progressLabels}>
         {steps.map((s) => (
-          <Text key={s} style={[styles.progressLabel, s === current && styles.progressLabelCurrent]} numberOfLines={1}>
+          <Text
+            key={s}
+            style={[
+              styles.progressLabel,
+              showFocus && s === focus && styles.progressLabelFocus,
+              s === current && styles.progressLabelCurrent,
+            ]}
+            numberOfLines={1}
+          >
             {labels[s] ?? s}
           </Text>
         ))}
       </View>
+      {showFocus && (
+        <View style={styles.focusRow}>
+          <Ionicons name="star" size={11} color={colors.accent} />
+          <Text style={styles.focusText}>
+            Schwerpunkt dieser Lektion: {labels[focus as string] ?? focus}
+          </Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -326,17 +350,59 @@ export function AromaChipList({ labels, rest }: { labels: string[]; rest: number
 
 // ── Erklärung als Sheet ───────────────────────────────────────────────────────
 
+/**
+ * Zeile „Mehr dazu“ unten im Info-Sheet (Teil C): öffnet die erklärende Lektion,
+ * oder zeigt ohne Button an, dass sie noch gesperrt ist.
+ */
+function LessonLinkRow({ link, onOpen }: { link: LessonLink; onOpen?: (lessonId: string) => void }) {
+  const text = lessonLinkText(link);
+  if (!text || link.kind === 'kein') return null;
+  if (link.kind === 'oeffnen' && onOpen) {
+    return (
+      <TouchableOpacity
+        style={styles.lessonLink}
+        onPress={() => onOpen(link.lesson.id)}
+        activeOpacity={0.8}
+        accessibilityRole="link"
+        accessibilityLabel={`${text.zeile}. Lektion öffnen`}
+      >
+        <Ionicons name="school-outline" size={18} color={colors.accent} />
+        <Text style={styles.lessonLinkText}>{text.zeile}</Text>
+        <Ionicons name="chevron-forward" size={18} color={colors.accent} />
+      </TouchableOpacity>
+    );
+  }
+  return (
+    <View
+      style={styles.lessonLocked}
+      accessible
+      accessibilityLabel={`${text.zeile}. ${text.hinweis ?? ''}`}
+    >
+      <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} />
+      <View style={styles.lessonLockedTextWrap}>
+        <Text style={styles.lessonLockedText}>{text.zeile}</Text>
+        {text.hinweis ? <Text style={styles.lessonLockedHint}>{text.hinweis}</Text> : null}
+      </View>
+    </View>
+  );
+}
+
 export function InfoSheet({
   visible,
   title,
   text,
   anker,
+  lessonLink,
+  onOpenLesson,
   onClose,
 }: {
   visible: boolean;
   title: string;
   text: string;
   anker?: string[];
+  /** Verweis auf die erklärende Lektion (Feld `lektion` im Katalog), aufgelöst mit `resolveLessonLink` */
+  lessonLink?: LessonLink;
+  onOpenLesson?: (lessonId: string) => void;
   onClose: () => void;
 }) {
   return (
@@ -360,6 +426,7 @@ export function InfoSheet({
               ))}
             </View>
           )}
+          {lessonLink && <LessonLinkRow link={lessonLink} onOpen={onOpenLesson} />}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -527,4 +594,33 @@ const styles = StyleSheet.create({
     backgroundColor: colors.card,
   },
   hintText: { color: colors.text, fontSize: 12, lineHeight: 17, flex: 1 },
+
+  lessonLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    minHeight: TOUCH,
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  lessonLinkText: { flex: 1, color: colors.accent, fontSize: 14, fontWeight: '600', lineHeight: 20 },
+  lessonLocked: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    paddingTop: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  lessonLockedTextWrap: { flex: 1 },
+  lessonLockedText: { color: colors.textMuted, fontSize: 14, lineHeight: 20 },
+  lessonLockedHint: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 2, fontStyle: 'italic' },
+
+  focusRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.xs },
+  focusText: { color: colors.accent, fontSize: 11, letterSpacing: 1 },
+  progressSegFocus: { borderWidth: 1, borderColor: colors.accent },
+  progressLabelFocus: { color: colors.accent, textDecorationLine: 'underline' },
 });
