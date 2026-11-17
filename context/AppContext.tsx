@@ -63,7 +63,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const wines: Wine[] = (data ?? [])
       .map((row) => {
-        const wineData = row.wines as Record<string, unknown> | null;
+        const wineData = row.wines as unknown as Record<string, unknown> | null; // Join auf wines liefert ein Objekt, die abgeleiteten Typen sagen Array
         return wineData ? mapRow(wineData) : null;
       })
       .filter((w): w is Wine => w !== null);
@@ -90,7 +90,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
     const items: CartItem[] = (data ?? [])
       .map((row) => {
-        const wineData = row.wines as Record<string, unknown> | null;
+        const wineData = row.wines as unknown as Record<string, unknown> | null; // Join auf wines liefert ein Objekt, die abgeleiteten Typen sagen Array
         if (!wineData) return null;
         return { wine: mapRow(wineData), quantity: row.quantity as number };
       })
