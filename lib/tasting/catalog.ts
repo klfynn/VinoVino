@@ -5,6 +5,8 @@ import farbenJson from '../../content/tasting/farben.json';
 import skalenJson from '../../content/tasting/skalen.json';
 import terroirJson from '../../content/tasting/terroir.json';
 import abschnitteJson from '../../content/tasting/abschnitte.json';
+import rebsortenJson from '../../content/tasting/rebsorten.json';
+import laenderJson from '../../content/tasting/laender.json';
 import {
   AbschnitteKatalog,
   Aroma,
@@ -14,6 +16,10 @@ import {
   AromenKatalog,
   Farbe,
   FarbenKatalog,
+  KatalogEintrag,
+  LaenderKatalog,
+  Rebsorte,
+  RebsortenKatalog,
   Skala,
   SkalenKatalog,
   TastingLevel,
@@ -27,6 +33,9 @@ export const FARBEN = farbenJson as unknown as FarbenKatalog;
 export const SKALEN = (skalenJson as unknown as SkalenKatalog).skalen;
 export const TERROIR = terroirJson as unknown as TerroirKatalog;
 export const ABSCHNITTE = (abschnitteJson as unknown as AbschnitteKatalog).abschnitte;
+/** Rebsorten und Länder für die Tipp-Auswahl der Blindverkostung (Teil D1). */
+export const REBSORTEN: Rebsorte[] = (rebsortenJson as unknown as RebsortenKatalog).rebsorten;
+export const LAENDER: KatalogEintrag[] = (laenderJson as unknown as LaenderKatalog).laender;
 
 /** Neutrale Standardkategorie, wenn die Weinart fehlt oder unbekannt ist. */
 export const DEFAULT_KATEGORIE: WeinKategorie = 'unbekannt';
@@ -196,6 +205,13 @@ export const isRandId = (id: string) => RAND_IDS.has(id);
 export const isEindruckId = (id: string) => EINDRUCK_IDS.has(id);
 export const isBodenId = (id: string) => BODEN_IDS.has(id);
 export const isKlimaId = (id: string) => KLIMA_IDS.has(id);
+
+const REBSORTEN_IDS = new Set(REBSORTEN.map((r) => r.id));
+const LAENDER_IDS = new Set(LAENDER.map((l) => l.id));
+export const isRebsorteId = (id: string) => REBSORTEN_IDS.has(id);
+export const isLandId = (id: string) => LAENDER_IDS.has(id);
+export const rebsorteLabel = (id: string) => REBSORTEN.find((r) => r.id === id)?.label;
+export const landLabel = (id: string) => LAENDER.find((l) => l.id === id)?.label;
 
 /** Label zu einer beliebigen Aroma- oder Fehler-ID (für spätere Anzeigen). */
 export function aromaLabel(id: string): string | undefined {

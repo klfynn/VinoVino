@@ -1,15 +1,45 @@
-// Prüfskript des Verkostungsbogens: Kataloge, Validierung, Entwurf, Assistent (Teil B)
-// und Verbindung zur Akademie (Teil C).
+// Prüfskript des Verkostungsbogens: Kataloge, Validierung, Entwurf, Assistent (Teil B),
+// Verbindung zur Akademie (Teil C) und Blindverkostung (Teil D1).
 // Ausführen mit: npm run check:tasting
 import { TIERS } from '../content/academy';
 import lektionenJson from '../content/tasting/lektionen.json';
 import { getLektion, getTierOfLektion, lektionLabel } from '../content/academy/helpers';
 import { isTierUnlocked } from '../lib/academy/unlock';
+import { wines as TESTWEINE } from '../data/wines';
+import {
+  BLIND_HINWEIS_ZU_WENIG,
+  BLIND_NAME,
+  blindSteps,
+  blindSummaryText,
+  blindTipps,
+  blindTruthFromEntry,
+  BlindKandidat,
+  buildBlindSaveData,
+  cleanJahrgangInput,
+  comparableFields,
+  ergebnisText,
+  isBlindEligible,
+  isBlindTippFilled,
+  katalogNamen,
+  matchLand,
+  matchRebsorten,
+  normalizeText,
+  parseBlindParam,
+  pickRandomBlindWine,
+  resumeWizardStep,
+  scoreBlindGuess,
+  searchCatalog,
+  selectBlindWines,
+  stepAfter,
+  stepBefore,
+  wizardSteps,
+} from '../lib/tasting/blind';
 import {
   countTastingsByLesson,
   draftLessonContext,
   GESPERRT_HINWEIS,
   hasTastingButton,
+  isBlindLessonTask,
   isTastableWine,
   LESSON_TASKS,
   LessonInfo,
@@ -37,6 +67,10 @@ import {
   getFehler,
   getRandFarben,
   getSkalen,
+  isLandId,
+  isRebsorteId,
+  LAENDER,
+  REBSORTEN,
   SKALEN,
   TERROIR,
   isWeinartWert,
@@ -50,7 +84,9 @@ import {
   sanitizeTastingData,
 } from '../lib/tasting/validate';
 import {
+  blindDraftPrefix,
   isDraftValid,
+  newestBlindDraft,
   parseDraft,
   serializeDraft,
   TASTING_DRAFT_MAX_AGE_MS,
@@ -59,6 +95,8 @@ import {
 } from '../lib/tasting/draft';
 import {
   LAGERPOTENZIAL_WERTE,
+  BlindWahrheit,
+  KatalogEintrag,
   NOTIZ_MAX_LENGTH,
   TASTING_LEVELS,
   TASTING_STEPS,
@@ -404,7 +442,8 @@ eq('sanitize: Notiz auf 1000 Zeichen gekürzt', gekuerzt.fazit?.notiz?.length, N
 eq('sanitize: Emoji-Notiz nicht zerschnitten', Array.from(sanitizeTastingData({ fazit: { notiz: '🍷'.repeat(1200) } }).fazit?.notiz ?? '').length, NOTIZ_MAX_LENGTH);
 eq('sanitize: Notiz nur Leerzeichen entfällt', sanitizeTastingData({ fazit: { notiz: '   ' } }), {});
 eq('sanitize: Steuerzeichen entfernt', sanitizeTastingData({ fazit: { notiz: 'a\u0000b\nc' } }).fazit?.notiz, 'ab\nc');
-eq('sanitize: Blind-Tipp gekürzt', sanitizeTastingData({ blind: { region_tipp: 'y'.repeat(150) } }).blind?.region_tipp?.length, 100);
+// Teil D1: Regions-Tipp höchstens 80 Zeichen (vorher 100, es gab noch keine gespeicherten Tipps).
+eq('sanitize: Blind-Tipp gekürzt', sanitizeTastingData({ blind: { region_tipp: 'y'.repeat(150) } }).blind?.region_tipp?.length, 80);
 const langeListe = sanitizeTastingData({ schmecken: { aromen_gaumen: aromaIds } });
 eq('sanitize: Liste auf Höchstlänge begrenzt', langeListe.schmecken?.aromen_gaumen?.length, Math.min(aromaIds.length, MAX_LIST_LENGTH));
 
@@ -976,6 +1015,444 @@ eq('Startschritt: keine Schritte', startStepFor('fazit', []), 'sehen');
 eq('Entwurf: Lektion bleibt', draftLessonContext({ lessonId: 'l03', focus: 'schmecken' }, istLektion), { lessonId: 'l03', focus: 'schmecken' });
 eq('Entwurf: unbekannte Lektion fällt weg', draftLessonContext({ lessonId: 'l999', focus: 'hoeren' as TastingStep }, istLektion), { lessonId: null, focus: null });
 eq('Entwurf: ohne Lektion', draftLessonContext({}, istLektion), { lessonId: null, focus: null });
+
+// ── Teil D1: Kataloge für die Tipp-Auswahl ────────────────────────────────────
+
+checkIds('Rebsorten', REBSORTEN.map((r) => r.id));
+checkIds('Länder', LAENDER.map((l) => l.id));
+check('Rebsorten: etwa 60 Einträge', REBSORTEN.length >= 55, REBSORTEN.length);
+check('Länder: etwa 25 Einträge', LAENDER.length >= 25, LAENDER.length);
+for (const r of REBSORTEN) {
+  check(`Rebsorte ${r.id}: Farbe rot oder weiss`, r.farbe === 'rot' || r.farbe === 'weiss', r.farbe);
+  check(`Rebsorte ${r.id}: Bezeichnung`, typeof r.label === 'string' && r.label.trim().length > 0);
+  check(`Rebsorte ${r.id}: aliases ist eine Liste von Texten`, Array.isArray(r.aliases) && r.aliases.every((a) => typeof a === 'string' && a.trim().length > 0));
+}
+for (const l of LAENDER) {
+  check(`Land ${l.id}: Bezeichnung`, typeof l.label === 'string' && l.label.trim().length > 0);
+  check(`Land ${l.id}: aliases ist eine Liste von Texten`, Array.isArray(l.aliases) && l.aliases.every((a) => typeof a === 'string' && a.trim().length > 0));
+}
+// Keine Schreibweise (Bezeichnung oder Alias) darf bei zwei verschiedenen Einträgen vorkommen.
+function aliasKollisionen(items: readonly KatalogEintrag[]): string[] {
+  const owner = new Map<string, string>();
+  const kollisionen: string[] = [];
+  for (const e of items) {
+    for (const n of katalogNamen(e)) {
+      const vorher = owner.get(n);
+      if (vorher && vorher !== e.id) kollisionen.push(`${n}: ${vorher} / ${e.id}`);
+      else owner.set(n, e.id);
+    }
+  }
+  return kollisionen;
+}
+eq('Rebsorten: Aliase eindeutig zwischen Einträgen', aliasKollisionen(REBSORTEN), []);
+eq('Länder: Aliase eindeutig zwischen Einträgen', aliasKollisionen(LAENDER), []);
+// Jede Rebsorte und jedes Herkunftsland aus den Testdaten wird erkannt.
+for (const w of TESTWEINE) {
+  for (const teil of w.grape.split(',')) {
+    eq(`Testdaten ${w.id}: Rebsorte „${teil.trim()}“ erkannt`, matchRebsorten(teil).length, 1);
+  }
+  check(`Testdaten ${w.id}: Land „${w.country}“ erkannt`, matchLand(w.country) !== null, w.country);
+}
+// Paare aus der Aufgabe landen bei derselben ID.
+const PAARE: [string, string[]][] = [
+  ['spaetburgunder', ['Spätburgunder', 'Pinot Noir']],
+  ['grauburgunder', ['Grauburgunder', 'Pinot Gris', 'Pinot Grigio']],
+  ['weissburgunder', ['Weißburgunder', 'Pinot Blanc']],
+  ['lemberger', ['Lemberger', 'Blaufränkisch']],
+  ['trollinger', ['Trollinger', 'Vernatsch']],
+  ['mueller_thurgau', ['Müller-Thurgau', 'Rivaner']],
+  ['syrah', ['Syrah', 'Shiraz']],
+  ['grenache', ['Grenache', 'Garnacha']],
+  ['zinfandel', ['Zinfandel', 'Primitivo']],
+];
+for (const [id, namen] of PAARE) {
+  for (const n of namen) eq(`Rebsorte „${n}“ → ${id}`, matchRebsorten(n), [id]);
+}
+for (const n of [
+  'Silvaner', 'Riesling', 'Chardonnay', 'Sauvignon Blanc', 'Cabernet Sauvignon', 'Merlot', 'Tempranillo',
+  'Sangiovese', 'Nebbiolo', 'Malbec', 'Pinotage', 'Gewürztraminer', 'Chenin Blanc', 'Grüner Veltliner',
+  'Albariño', 'Glera', 'Furmint',
+]) {
+  eq(`Rebsorte „${n}“ erkannt`, matchRebsorten(n).length, 1);
+}
+for (const n of [
+  'Deutschland', 'Österreich', 'Schweiz', 'Frankreich', 'Italien', 'Spanien', 'Portugal', 'Ungarn',
+  'Griechenland', 'USA', 'Argentinien', 'Chile', 'Südafrika', 'Australien', 'Neuseeland',
+]) {
+  check(`Land „${n}“ erkannt`, matchLand(n) !== null, n);
+}
+eq('Land: Germany', matchLand('Germany'), 'deutschland');
+eq('Land: Italia', matchLand('Italia'), 'italien');
+eq('Abschnitt blind heißt im Assistenten „Tipp“', ABSCHNITTE.find((a) => a.id === 'blind')?.label, 'Tipp');
+
+// ── Teil D1: normalizeText, matchRebsorten, matchLand, Suche ──────────────────
+
+eq('normalize: Bindestrich und Umlaut', normalizeText('Müller-Thurgau'), 'mueller thurgau');
+eq('normalize: Mittelpunkt', normalizeText('Xarel·lo'), 'xarel lo');
+eq('normalize: Akzente', normalizeText('Côtes du Rhône'), 'cotes du rhone');
+eq('normalize: Leerzeichen', normalizeText('  Grüner   Veltliner '), 'gruener veltliner');
+eq('normalize: ß', normalizeText('Straße'), 'strasse');
+eq('normalize: Großbuchstaben mit Umlaut', normalizeText('ÄÖÜ'), 'aeoeue');
+eq('normalize: Emoji entfällt', normalizeText('🍷 Wein'), 'wein');
+eq('normalize: leer', normalizeText(''), '');
+eq('normalize: kein Text', normalizeText(42), '');
+eq('normalize: null', normalizeText(null), '');
+
+eq('Rebsorten: Cuvée-Text', matchRebsorten('Cuvée aus Merlot und Cabernet Sauvignon'), ['merlot', 'cabernet_sauvignon']);
+eq('Rebsorten: Schrägstrich, Doppelte entfallen', matchRebsorten('Pinot Noir / Spätburgunder'), ['spaetburgunder']);
+eq('Rebsorten: Komma', matchRebsorten('Grenache, Syrah, Mourvèdre'), ['grenache', 'syrah', 'mourvedre']);
+eq('Rebsorten: Plus und Und-Zeichen', matchRebsorten('Merlot + Cabernet Franc & Petit Verdot'), ['merlot', 'cabernet_franc', 'petit_verdot']);
+eq('Rebsorten: „und“', matchRebsorten('Riesling und Silvaner'), ['riesling', 'silvaner']);
+eq('Rebsorten: Cabernet Sauvignon ist kein Sauvignon Blanc', matchRebsorten('Cabernet Sauvignon'), ['cabernet_sauvignon']);
+eq('Rebsorten: Sauvignon Blanc', matchRebsorten('Sauvignon Blanc'), ['sauvignon_blanc']);
+eq('Rebsorten: Welschriesling ist kein Riesling', matchRebsorten('Welschriesling'), ['welschriesling']);
+eq('Rebsorten: Kleinschreibung', matchRebsorten('pinot grigio'), ['grauburgunder']);
+eq('Rebsorten: Alias Tinta Roriz', matchRebsorten('Touriga Nacional, Tinta Roriz'), ['touriga_nacional', 'tempranillo']);
+eq('Rebsorten: Mittelpunkt', matchRebsorten('Xarel·lo, Macabeo, Parellada'), ['xarello', 'macabeo', 'parellada']);
+eq('Rebsorten: Unbekanntes ignoriert', matchRebsorten('Phantasietraube'), []);
+eq('Rebsorten: Unbekanntes neben Bekanntem', matchRebsorten('Phantasie, Merlot'), ['merlot']);
+eq('Rebsorten: Cabernet allein ist nichts', matchRebsorten('Cabernet / Sauvignon Blanc'), ['sauvignon_blanc']);
+eq('Rebsorten: leerer Text', matchRebsorten(''), []);
+eq('Rebsorten: null', matchRebsorten(null), []);
+eq('Rebsorten: Zahl', matchRebsorten(42), []);
+eq('Rebsorten: Liste', matchRebsorten(['Merlot']), []);
+
+eq('Land: Frankreich', matchLand('Frankreich'), 'frankreich');
+eq('Land: mit Region', matchLand('Österreich, Wachau'), 'oesterreich');
+eq('Land: Kleinschreibung', matchLand('germany'), 'deutschland');
+eq('Land: „Vin de France“ ist nicht Deutschland', matchLand('Vin de France'), 'frankreich');
+eq('Land: ohne Umlaut', matchLand('Sudafrika'), 'suedafrika');
+eq('Land: zweiteilig', matchLand('New Zealand'), 'neuseeland');
+eq('Land: unbekannt', matchLand('Atlantis'), null);
+eq('Land: leer', matchLand(''), null);
+eq('Land: undefined', matchLand(undefined), null);
+eq('Land: Objekt', matchLand({ x: 1 }), null);
+
+eq('Suche: Alias Pinot Noir', searchCatalog(REBSORTEN, 'pinot noir')[0]?.id, 'spaetburgunder');
+check('Suche: mitten im Namen', searchCatalog(REBSORTEN, 'grigio').some((r) => r.id === 'grauburgunder'));
+eq('Suche: ohne Text die ersten Einträge', searchCatalog(LAENDER, '').map((l) => l.id), LAENDER.slice(0, 8).map((l) => l.id));
+eq('Suche: Begrenzung', searchCatalog(REBSORTEN, 'a', 3).length, 3);
+eq('Suche: nichts gefunden', searchCatalog(REBSORTEN, 'xyzq'), []);
+eq('Suche: Land über Alias', searchCatalog(LAENDER, 'Italia')[0]?.id, 'italien');
+eq('Suche: kein Text', searchCatalog(LAENDER, 42 as unknown as string, 2).length, 2);
+
+// ── Teil D1: Eignung und Zufallsauswahl ───────────────────────────────────────
+
+const U1 = '11111111-1111-4111-8111-111111111111';
+const U2 = '22222222-2222-4222-8222-222222222222';
+const U3 = '33333333-3333-4333-8333-333333333333';
+const marktWein = (id: string, over: Partial<BlindKandidat['wine']> = {}): BlindKandidat => ({
+  ref: marketRef(id),
+  persisted: true,
+  wine: { type: 'Rotwein', vintage: 2018, country: 'Frankreich', region: 'Bordeaux', grape: 'Cabernet Sauvignon, Merlot', ...over },
+});
+const eigenerWein = (id: string, custom: NonNullable<BlindKandidat['custom']>): BlindKandidat => ({
+  ref: customRef(id),
+  persisted: true,
+  wine: { type: 'Rotwein', vintage: 0, country: '', region: '', grape: '' },
+  custom: { weinart: null, jahrgang: null, herkunft: null, region: null, rebsorte: null, ...custom },
+});
+check('Eignung: Marktplatzwein mit Angaben', isBlindEligible(marktWein(U1)));
+check('Eignung: lokale ID (keine UUID)', !isBlindEligible({ ...marktWein(U1), ref: marketRef('w1') }));
+check('Eignung: nur vorübergehend', !isBlindEligible({ ...marktWein(U1), persisted: false }));
+check('Eignung: Marktplatzwein nur mit Weinart', !isBlindEligible(marktWein(U1, { vintage: 0, country: '', region: '', grape: '' })));
+check('Eignung: eigener Wein nur mit Namen', !isBlindEligible(eigenerWein(U2, {})));
+check('Eignung: eigener Wein nur mit Weinart', !isBlindEligible(eigenerWein(U2, { weinart: 'Weißwein' })));
+check('Eignung: Weinart und Jahrgang NV reicht nicht', !isBlindEligible(eigenerWein(U2, { weinart: 'Schaumwein', jahrgang: 'NV' })));
+check('Eignung: Weinart und Jahrgang', isBlindEligible(eigenerWein(U2, { weinart: 'Weißwein', jahrgang: '2020' })));
+check('Eignung: Rebsorte und Land', isBlindEligible(eigenerWein(U2, { rebsorte: 'Riesling', herkunft: 'Deutschland' })));
+check('Eignung: unbekannte Rebsorte und unbekanntes Land zählen nicht', !isBlindEligible(eigenerWein(U2, { rebsorte: 'Phantasie', herkunft: 'Atlantis' })));
+check('Eignung: Region und unbekanntes Land', !isBlindEligible(eigenerWein(U2, { region: 'Mosel', herkunft: 'Atlantis' })));
+check('Eignung: null', !isBlindEligible(null));
+check('Eignung: Unsinn', !isBlindEligible({ ref: 'x', persisted: 'ja' } as unknown as BlindKandidat));
+eq('Vergleichbare Felder: Marktplatzwein', comparableFields(blindTruthFromEntry(marktWein(U1))), ['weinart', 'land', 'region', 'rebsorte', 'jahrgang']);
+eq('Vergleichbare Felder: leer', comparableFields(null), []);
+check('Hinweis bei zu wenigen Angaben', BLIND_HINWEIS_ZU_WENIG.includes('mindestens zwei Angaben'));
+eq('Name im Blind-Modus', BLIND_NAME, 'Blindwein');
+
+const geeignetA = marktWein(U1);
+const ungeeignet = eigenerWein(U2, {});
+const geeignetC = eigenerWein(U3, { rebsorte: 'Riesling', herkunft: 'Deutschland', jahrgang: '2020' });
+const pool = [geeignetA, ungeeignet, geeignetC];
+eq('Auswahl: nur geeignete', selectBlindWines(pool).map((w) => w.ref.id), [U1, U3]);
+eq('Zufall: rng 0 → erster', pickRandomBlindWine(pool, () => 0)?.ref.id, U1);
+eq('Zufall: rng 0.99 → letzter', pickRandomBlindWine(pool, () => 0.99)?.ref.id, U3);
+eq('Zufall: rng 0.5 → zweiter geeigneter', pickRandomBlindWine(pool, () => 0.5)?.ref.id, U3);
+eq('Zufall: rng über 1 wird begrenzt', pickRandomBlindWine(pool, () => 1.5)?.ref.id, U3);
+eq('Zufall: negatives rng wird begrenzt', pickRandomBlindWine(pool, () => -1)?.ref.id, U1);
+eq('Zufall: rng NaN', pickRandomBlindWine(pool, () => Number.NaN)?.ref.id, U1);
+eq('Zufall: rng wirft', pickRandomBlindWine(pool, () => { throw new Error('x'); })?.ref.id, U1);
+eq('Zufall: leere Liste', pickRandomBlindWine([], () => 0), null);
+eq('Zufall: kein geeigneter Wein', pickRandomBlindWine([ungeeignet], () => 0), null);
+eq('Zufall: null', pickRandomBlindWine(null, () => 0), null);
+
+eq('Wahrheit: Marktplatzwein', blindTruthFromEntry(marktWein(U1)), {
+  weinart: 'Rotwein', land: 'frankreich', region: 'Bordeaux', rebsorten: ['cabernet_sauvignon', 'merlot'], jahrgang: '2018',
+});
+eq('Wahrheit: eigener Wein nimmt custom_wines', blindTruthFromEntry(eigenerWein(U3, { weinart: 'Weißwein', rebsorte: 'Riesling', herkunft: 'Deutschland', region: 'Mosel', jahrgang: '2020' })), {
+  weinart: 'Weißwein', land: 'deutschland', region: 'Mosel', rebsorten: ['riesling'], jahrgang: '2020',
+});
+eq('Wahrheit: eigener Wein ohne Weinart (nicht der Ersatz-Typ Rotwein)', blindTruthFromEntry(eigenerWein(U3, { jahrgang: 'NV' })), { jahrgang: 'NV' });
+eq('Wahrheit: Jahrgang 0 entfällt', blindTruthFromEntry(marktWein(U1, { vintage: 0 })).jahrgang, undefined);
+eq('Wahrheit: null', blindTruthFromEntry(null), {});
+
+// ── Teil D1: Auswertung der Tipps ─────────────────────────────────────────────
+
+const WAHR: BlindWahrheit = { weinart: 'Rotwein', land: 'frankreich', region: 'Bordeaux', rebsorten: ['cabernet_sauvignon', 'merlot'], jahrgang: '2018' };
+const ergebnisse = (a: ReturnType<typeof scoreBlindGuess>) => Object.fromEntries(a.felder.map((f) => [f.feld, f.ergebnis]));
+const feld = (a: ReturnType<typeof scoreBlindGuess>, f: string) => a.felder.find((x) => x.feld === f);
+
+const alleRichtig = scoreBlindGuess(
+  { weinart_tipp: 'Rotwein', land_tipp: 'frankreich', region_tipp: 'bordeaux', rebsorten_tipp: ['merlot', 'cabernet_sauvignon'], jahrgang_tipp: '2018' },
+  WAHR,
+);
+eq('Auswertung: alles richtig', ergebnisse(alleRichtig), { weinart: 'richtig', land: 'richtig', region: 'richtig', rebsorte: 'richtig', jahrgang: 'richtig' });
+eq('Auswertung: Zählung alles richtig', [alleRichtig.richtig, alleRichtig.bewertet], [5, 5]);
+eq('Auswertung: Reihenfolge der Felder', alleRichtig.felder.map((f) => f.feld), ['weinart', 'land', 'region', 'rebsorte', 'jahrgang']);
+eq('Auswertung: Anzeige Land', [feld(alleRichtig, 'land')?.tipp, feld(alleRichtig, 'land')?.wirklich], ['Frankreich', 'Frankreich']);
+eq('Auswertung: Anzeige Rebsorten', feld(alleRichtig, 'rebsorte')?.wirklich, 'Cabernet Sauvignon, Merlot');
+
+const nichtsGetippt = scoreBlindGuess({}, WAHR);
+eq('Auswertung: nichts getippt', ergebnisse(nichtsGetippt), { weinart: 'nicht_getippt', land: 'nicht_getippt', region: 'nicht_getippt', rebsorte: 'nicht_getippt', jahrgang: 'nicht_getippt' });
+eq('Auswertung: nichts getippt, Zählung', [nichtsGetippt.richtig, nichtsGetippt.bewertet], [0, 0]);
+const ohneDaten = scoreBlindGuess({ weinart_tipp: 'Rotwein', land_tipp: 'italien', region_tipp: 'Toskana', rebsorten_tipp: ['sangiovese'], jahrgang_tipp: '2019' }, {});
+eq('Auswertung: Wein ohne Angaben', ergebnisse(ohneDaten), { weinart: 'nicht_bewertbar', land: 'nicht_bewertbar', region: 'nicht_bewertbar', rebsorte: 'nicht_bewertbar', jahrgang: 'nicht_bewertbar' });
+eq('Auswertung: nicht bewertbar zählt nicht', ohneDaten.bewertet, 0);
+
+// Weinart
+eq('Weinart: falsch', feld(scoreBlindGuess({ weinart_tipp: 'Weißwein' }, WAHR), 'weinart')?.ergebnis, 'falsch');
+eq('Weinart: gleiche Kategorie (Rosé / Roséwein)', feld(scoreBlindGuess({ weinart_tipp: 'Rosé' }, { weinart: 'Roséwein' }), 'weinart')?.ergebnis, 'richtig');
+eq('Weinart: Dessert- und Likörwein / Süßwein', feld(scoreBlindGuess({ weinart_tipp: 'Dessert- und Likörwein' }, { weinart: 'Süßwein' }), 'weinart')?.ergebnis, 'richtig');
+eq('Weinart: unbekannte Weinart beim Wein', feld(scoreBlindGuess({ weinart_tipp: 'Rotwein' }, { weinart: 'Hauswein' }), 'weinart')?.ergebnis, 'nicht_bewertbar');
+eq('Weinart: ungültiger Tipp gilt als nicht getippt', feld(scoreBlindGuess({ weinart_tipp: 'Bier' }, WAHR), 'weinart')?.ergebnis, 'nicht_getippt');
+// Land
+eq('Land: falsch', feld(scoreBlindGuess({ land_tipp: 'italien' }, WAHR), 'land')?.ergebnis, 'falsch');
+eq('Land: unbekannte ID gilt als nicht getippt', feld(scoreBlindGuess({ land_tipp: 'atlantis' }, WAHR), 'land')?.ergebnis, 'nicht_getippt');
+eq('Land: Wein ohne Land', feld(scoreBlindGuess({ land_tipp: 'italien' }, { region: 'x' }), 'land')?.ergebnis, 'nicht_bewertbar');
+// Region
+eq('Region: enthält den anderen', feld(scoreBlindGuess({ region_tipp: 'Bordeaux Supérieur' }, WAHR), 'region')?.ergebnis, 'richtig');
+eq('Region: Tipp in der Angabe enthalten', feld(scoreBlindGuess({ region_tipp: 'Mosel' }, { region: 'Mosel-Saar-Ruwer' }), 'region')?.ergebnis, 'richtig');
+eq('Region: Akzente und Großschreibung', feld(scoreBlindGuess({ region_tipp: 'PENEDES' }, { region: 'Penedès' }), 'region')?.ergebnis, 'richtig');
+eq('Region: falsch', feld(scoreBlindGuess({ region_tipp: 'Burgund' }, WAHR), 'region')?.ergebnis, 'falsch');
+eq('Region: Wortteil zählt nicht', feld(scoreBlindGuess({ region_tipp: 'Bor' }, WAHR), 'region')?.ergebnis, 'falsch');
+eq('Region: ein Zeichen zählt nicht', feld(scoreBlindGuess({ region_tipp: 'a' }, { region: 'A Coruña' }), 'region')?.ergebnis, 'falsch');
+eq('Region: nur Leerzeichen gilt als nicht getippt', feld(scoreBlindGuess({ region_tipp: '   ' }, WAHR), 'region')?.ergebnis, 'nicht_getippt');
+eq('Region: Wein ohne Region', feld(scoreBlindGuess({ region_tipp: 'Bordeaux' }, { land: 'frankreich' }), 'region')?.ergebnis, 'nicht_bewertbar');
+// Rebsorte
+eq('Rebsorte: Teilmenge = knapp', feld(scoreBlindGuess({ rebsorten_tipp: ['merlot'] }, WAHR), 'rebsorte')?.ergebnis, 'knapp');
+eq('Rebsorte: Überschneidung mit falscher = knapp', feld(scoreBlindGuess({ rebsorten_tipp: ['merlot', 'syrah'] }, WAHR), 'rebsorte')?.ergebnis, 'knapp');
+eq('Rebsorte: einzelne Rebsorte richtig', feld(scoreBlindGuess({ rebsorten_tipp: ['riesling'] }, { rebsorten: ['riesling'] }), 'rebsorte')?.ergebnis, 'richtig');
+eq('Rebsorte: Obermenge = knapp', feld(scoreBlindGuess({ rebsorten_tipp: ['riesling', 'silvaner'] }, { rebsorten: ['riesling'] }), 'rebsorte')?.ergebnis, 'knapp');
+eq('Rebsorte: falsch', feld(scoreBlindGuess({ rebsorten_tipp: ['riesling'] }, WAHR), 'rebsorte')?.ergebnis, 'falsch');
+eq('Rebsorte: unbekannte IDs gelten als nicht getippt', feld(scoreBlindGuess({ rebsorten_tipp: ['phantasie'] }, WAHR), 'rebsorte')?.ergebnis, 'nicht_getippt');
+eq('Rebsorte: Wein ohne erkannte Rebsorte', feld(scoreBlindGuess({ rebsorten_tipp: ['merlot'] }, { rebsorten: [] }), 'rebsorte')?.ergebnis, 'nicht_bewertbar');
+// Jahrgang
+const j2017 = feld(scoreBlindGuess({ jahrgang_tipp: '2017' }, WAHR), 'jahrgang');
+eq('Jahrgang: ein Jahr = knapp', [j2017?.ergebnis, j2017?.differenzJahre], ['knapp', 1]);
+const j2015 = feld(scoreBlindGuess({ jahrgang_tipp: '2015' }, WAHR), 'jahrgang');
+eq('Jahrgang: drei Jahre = falsch mit Differenz', [j2015?.ergebnis, j2015?.differenzJahre], ['falsch', 3]);
+eq('Jahrgang: ein Jahr später = knapp', feld(scoreBlindGuess({ jahrgang_tipp: '2019' }, WAHR), 'jahrgang')?.ergebnis, 'knapp');
+const jNV = feld(scoreBlindGuess({ jahrgang_tipp: '2018' }, { jahrgang: 'NV' }), 'jahrgang');
+eq('Jahrgang: NV = nicht bewertbar, Anzeige bleibt', [jNV?.ergebnis, jNV?.wirklich], ['nicht_bewertbar', 'NV']);
+eq('Jahrgang: zweistelliger Tipp gilt als nicht getippt', feld(scoreBlindGuess({ jahrgang_tipp: '18' }, WAHR), 'jahrgang')?.ergebnis, 'nicht_getippt');
+eq('Jahrgang: richtig hat keine Differenz', feld(alleRichtig, 'jahrgang')?.differenzJahre, undefined);
+
+// Zusammenfassung und Texte
+const gemischt = scoreBlindGuess({ weinart_tipp: 'Rotwein', land_tipp: 'frankreich', region_tipp: 'Bordeaux', jahrgang_tipp: '2015' }, WAHR);
+eq('Zusammenfassung: 3 von 4', [gemischt.richtig, gemischt.bewertet], [3, 4]);
+eq('Zusammenfassung: Text', blindSummaryText(gemischt), '3 von 4 getippten Feldern richtig.');
+eq('Zusammenfassung: Einzahl', blindSummaryText({ richtig: 1, bewertet: 1 }), '1 von 1 getippten Feld richtig.');
+eq('Zusammenfassung: knapp zählt nicht als richtig', blindSummaryText(scoreBlindGuess({ jahrgang_tipp: '2017' }, WAHR)), '0 von 1 getippten Feld richtig.');
+eq('Zusammenfassung: nichts bewertbar', blindSummaryText(nichtsGetippt), 'Kein bewertbares Feld getippt.');
+eq('Text: Jahrgang daneben', ergebnisText({ ergebnis: 'falsch', differenzJahre: 2 }), '2 Jahre daneben');
+eq('Text: Jahrgang knapp', ergebnisText({ ergebnis: 'knapp', differenzJahre: 1 }), 'Knapp daneben (1 Jahr)');
+eq('Text: Rebsorte knapp', ergebnisText({ ergebnis: 'knapp' }), 'Knapp daneben');
+eq('Text: daneben', ergebnisText({ ergebnis: 'falsch' }), 'Daneben');
+eq('Text: richtig', ergebnisText({ ergebnis: 'richtig' }), 'Richtig');
+eq('Text: nicht getippt', ergebnisText({ ergebnis: 'nicht_getippt' }), 'Nicht getippt');
+eq('Text: nicht bewertbar', ergebnisText({ ergebnis: 'nicht_bewertbar' }), 'Nicht bewertbar');
+// Robust gegen Unsinn
+eq('Auswertung: null', scoreBlindGuess(null, null).felder.map((f) => f.ergebnis), ['nicht_bewertbar', 'nicht_bewertbar', 'nicht_bewertbar', 'nicht_bewertbar', 'nicht_bewertbar']);
+let wirft = false;
+try {
+  scoreBlindGuess(42 as unknown as object, 'x' as unknown as BlindWahrheit);
+  scoreBlindGuess({ rebsorten_tipp: 'merlot' as unknown as string[], jahrgang_tipp: 2018 as unknown as string }, { rebsorten: 'merlot' as unknown as string[] });
+} catch {
+  wirft = true;
+}
+check('Auswertung: wirft nie', !wirft);
+
+// ── Teil D1: Datenmodell data.blind ───────────────────────────────────────────
+
+const blindVoll: TastingData = {
+  // Reihenfolge wie nach der Bereinigung, damit der Vergleich als Text klappt.
+  blind: {
+    region_tipp: 'Bordeaux',
+    jahrgang_tipp: '2018',
+    weinart_tipp: 'Rotwein',
+    land_tipp: 'frankreich',
+    rebsorten_tipp: ['merlot', 'cabernet_sauvignon'],
+    wahrheit: WAHR,
+  },
+};
+check('Blind: vollständig gültig', isValidTastingData(blindVoll));
+check('Blind: alte Felder ohne die neuen bleiben gültig', isValidTastingData({ blind: { rebsorte_tipp: 'Merlot', region_tipp: 'Bordeaux', jahrgang_tipp: '2018' } }));
+check('Blind: leeres Objekt gültig', isValidTastingData({ blind: {} }));
+check('Blind: Wahrheit mit NV gültig', isValidTastingData({ blind: { wahrheit: { jahrgang: 'NV' } } }));
+check('Blind: Region genau 80 Zeichen', isValidTastingData({ blind: { region_tipp: 'r'.repeat(80) } }));
+const blindKaputt: [string, unknown][] = [
+  ['Region 81 Zeichen', { blind: { region_tipp: 'r'.repeat(81) } }],
+  ['4 Rebsorten', { blind: { rebsorten_tipp: ['merlot', 'syrah', 'riesling', 'malbec'] } }],
+  ['unbekannte Rebsorte', { blind: { rebsorten_tipp: ['phantasie'] } }],
+  ['Rebsorten als Text', { blind: { rebsorten_tipp: 'merlot' } }],
+  ['unbekanntes Land', { blind: { land_tipp: 'atlantis' } }],
+  ['Land als Bezeichnung statt ID', { blind: { land_tipp: 'Frankreich' } }],
+  ['unbekannte Weinart', { blind: { weinart_tipp: 'Bier' } }],
+  ['Jahrgang zweistellig', { blind: { jahrgang_tipp: '18' } }],
+  ['Jahrgang NV als Tipp', { blind: { jahrgang_tipp: 'NV' } }],
+  ['Jahrgang als Zahl', { blind: { jahrgang_tipp: 2018 } }],
+  ['Jahrgang 3018', { blind: { jahrgang_tipp: '3018' } }],
+  ['Wahrheit kein Objekt', { blind: { wahrheit: 'Bordeaux' } }],
+  ['Wahrheit unbekanntes Land', { blind: { wahrheit: { land: 'atlantis' } } }],
+  ['Wahrheit unbekannte Rebsorte', { blind: { wahrheit: { rebsorten: ['phantasie'] } } }],
+  ['Wahrheit Region zu lang', { blind: { wahrheit: { region: 'r'.repeat(81) } } }],
+  ['Blind ist eine Liste', { blind: [] }],
+];
+for (const [name, d] of blindKaputt) check(`Blind ungültig: ${name}`, !isValidTastingData(d), d);
+
+eq('Blind sanitize: höchstens 3 Rebsorten', sanitizeTastingData({ blind: { rebsorten_tipp: ['merlot', 'syrah', 'riesling', 'malbec'] } }).blind?.rebsorten_tipp, ['merlot', 'syrah', 'riesling']);
+eq('Blind sanitize: unbekannte und doppelte IDs entfernt', sanitizeTastingData({ blind: { rebsorten_tipp: ['phantasie', 'merlot', 'merlot', 42] } }).blind?.rebsorten_tipp, ['merlot']);
+eq('Blind sanitize: nur unbekannte Rebsorten → Feld entfällt', sanitizeTastingData({ blind: { rebsorten_tipp: ['phantasie'] } }), {});
+eq('Blind sanitize: Region auf 80 gekürzt', sanitizeTastingData({ blind: { region_tipp: 'r'.repeat(81) } }).blind?.region_tipp?.length, 80);
+eq('Blind sanitize: Jahrgang getrimmt', sanitizeTastingData({ blind: { jahrgang_tipp: ' 2018 ' } }).blind?.jahrgang_tipp, '2018');
+eq('Blind sanitize: Jahrgang NV entfällt', sanitizeTastingData({ blind: { jahrgang_tipp: 'NV' } }), {});
+eq('Blind sanitize: unbekannte Weinart entfällt', sanitizeTastingData({ blind: { weinart_tipp: 'Bier', land_tipp: 'atlantis' } }), {});
+eq('Blind sanitize: Wahrheit bereinigt', sanitizeTastingData({ blind: { wahrheit: { land: 'atlantis', rebsorten: ['phantasie', 'riesling'], jahrgang: ' NV ', extra: 1 } } }).blind?.wahrheit, {
+  rebsorten: ['riesling'], jahrgang: 'NV',
+});
+eq('Blind sanitize: vollständig bleibt gleich', sanitizeTastingData(blindVoll), blindVoll);
+eq('Blind sanitize: Rebsorten der Wahrheit begrenzt', sanitizeTastingData({ blind: { wahrheit: { rebsorten: REBSORTEN.map((r) => r.id) } } }).blind?.wahrheit?.rebsorten?.length, 20);
+for (const [name, d] of blindKaputt) check(`Blind sanitize → isValid: ${name}`, isValidTastingData(sanitizeTastingData(d)));
+check('Blind sanitize ist idempotent', JSON.stringify(sanitizeTastingData(sanitizeTastingData(blindVoll))) === JSON.stringify(sanitizeTastingData(blindVoll)));
+check('Kataloge: isRebsorteId / isLandId', isRebsorteId('merlot') && !isRebsorteId('Merlot') && isLandId('italien') && !isLandId('Italien'));
+const maximalBlind = sanitizeTastingData({
+  ...maximal,
+  blind: {
+    rebsorte_tipp: '"'.repeat(100),
+    weinart_tipp: 'Dessert- und Likörwein',
+    land_tipp: 'suedafrika',
+    region_tipp: '🍷'.repeat(80),
+    rebsorten_tipp: REBSORTEN.slice(-3).map((r) => r.id),
+    jahrgang_tipp: '2019',
+    wahrheit: { weinart: '\\'.repeat(80), land: 'neuseeland', region: '"'.repeat(80), rebsorten: REBSORTEN.slice(0, 20).map((r) => r.id), jahrgang: '🍷'.repeat(80) },
+  },
+});
+const bytesBlind = utf8Bytes(JSON.stringify(maximalBlind));
+check('Größe: maximaler Bogen mit Blindverkostung unter 20 000 Byte', bytesBlind <= 20000, bytesBlind);
+
+// ── Teil D1: Entwurf im Blind-Modus ───────────────────────────────────────────
+
+const BREF = marketRef(U1);
+const JETZT = Date.parse('2026-11-17T12:00:00Z');
+eq('Blind-Schlüssel', tastingDraftKey('nutzer', BREF, true), `tasting_draft_v1:nutzer:blind:market:${U1}`);
+eq('Normaler Schlüssel unverändert', tastingDraftKey('nutzer', BREF), `tasting_draft_v1:nutzer:market:${U1}`);
+eq('Blind-Präfix ohne Anmeldung', blindDraftPrefix(null), 'tasting_draft_v1:anon:blind:');
+const blindEntwurf: TastingDraft = {
+  ref: BREF,
+  level: 'profi',
+  step: 'tipp',
+  blind: true,
+  lessonId: 'l32',
+  focus: 'sehen',
+  data: { sehen: { klarheit: 'klar' }, blind: { land_tipp: 'italien', rebsorten_tipp: ['sangiovese'] } },
+  savedAt: JETZT - 1000,
+};
+const blindRoundtrip = parseDraft(serializeDraft(blindEntwurf));
+eq('Blind-Entwurf: Roundtrip', [blindRoundtrip?.blind, blindRoundtrip?.step, blindRoundtrip?.data.blind], [true, 'tipp', { land_tipp: 'italien', rebsorten_tipp: ['sangiovese'] }]);
+check('Blind-Entwurf: gültig im Blind-Modus', isDraftValid(blindRoundtrip, BREF, JETZT, true));
+check('Blind-Entwurf: ungültig im normalen Modus', !isDraftValid(blindRoundtrip, BREF, JETZT, false));
+const normalerEntwurf = parseDraft(serializeDraft({ ...blindEntwurf, blind: false, step: 'sehen' }));
+check('Normaler Entwurf: ungültig im Blind-Modus', !isDraftValid(normalerEntwurf, BREF, JETZT, true));
+eq('Normaler Entwurf: Schritt Tipp wird verworfen', parseDraft(JSON.stringify({ ...JSON.parse(serializeDraft({ ...blindEntwurf, blind: false })), step: 'tipp' })), null);
+check('Normaler Entwurf: ohne Feld blind', !('blind' in JSON.parse(serializeDraft({ ...blindEntwurf, blind: false, step: 'sehen' }))));
+const eintraege: [string, string | null][] = [
+  [tastingDraftKey('nutzer', BREF, true), serializeDraft(blindEntwurf)],
+  [tastingDraftKey('nutzer', marketRef(U3), true), serializeDraft({ ...blindEntwurf, ref: marketRef(U3), savedAt: JETZT - 500 })],
+  [tastingDraftKey('anderer', marketRef(U2), true), serializeDraft({ ...blindEntwurf, ref: marketRef(U2), savedAt: JETZT - 10 })],
+  [tastingDraftKey('nutzer', marketRef(U2)), serializeDraft({ ...blindEntwurf, ref: marketRef(U2), blind: false, step: 'sehen', savedAt: JETZT - 10 })],
+  [`${blindDraftPrefix('nutzer')}kaputt`, '{kein json'],
+  [tastingDraftKey('nutzer', marketRef(U2), true), serializeDraft({ ...blindEntwurf, ref: BREF, savedAt: JETZT - 5 })],
+];
+eq('Blind-Entwurf finden: neuester passender', newestBlindDraft(eintraege, 'nutzer', JETZT)?.ref.id, U3);
+eq('Blind-Entwurf finden: Wein nicht mehr verfügbar', newestBlindDraft(eintraege, 'nutzer', JETZT, (r) => r.id !== U3)?.ref.id, U1);
+eq('Blind-Entwurf finden: nichts verfügbar', newestBlindDraft(eintraege, 'nutzer', JETZT, () => false), null);
+eq('Blind-Entwurf finden: abgelaufen', newestBlindDraft(eintraege, 'nutzer', JETZT + TASTING_DRAFT_MAX_AGE_MS + 10_000), null);
+eq('Blind-Entwurf finden: anderer Nutzer', newestBlindDraft(eintraege, 'dritter', JETZT), null);
+eq('Blind-Entwurf finden: null', newestBlindDraft(null, 'nutzer', JETZT), null);
+
+// ── Teil D1: Schritte, Parameter, Speichern ───────────────────────────────────
+
+eq('Blind-Schritte Einfach', blindSteps('einfach'), ['sehen', 'riechen', 'schmecken', 'tipp', 'fazit']);
+eq('Blind-Schritte Erweitert', blindSteps('erweitert'), ['sehen', 'riechen', 'schmecken', 'terroir', 'tipp', 'fazit']);
+eq('Blind-Schritte Profi', blindSteps('profi'), ['sehen', 'riechen', 'schmecken', 'terroir', 'tipp', 'fazit']);
+for (const l of TASTING_LEVELS) eq(`Normale Schritte unverändert (${l})`, wizardSteps(l, false), visibleSteps(l));
+eq('Nach Terroir kommt Tipp', stepAfter(blindSteps('profi'), 'terroir'), 'tipp');
+eq('Nach Tipp kommt Fazit', stepAfter(blindSteps('profi'), 'tipp'), 'fazit');
+eq('Fazit ist der letzte Schritt', stepAfter(blindSteps('profi'), 'fazit'), null);
+eq('Vor Tipp: Schmecken in Einfach', stepBefore(blindSteps('einfach'), 'tipp'), 'schmecken');
+eq('Vor dem ersten Schritt nichts', stepBefore(blindSteps('einfach'), 'sehen'), null);
+eq('Fortsetzen bei Tipp', resumeWizardStep('tipp', blindSteps('einfach')), 'tipp');
+eq('Fortsetzen: Tipp im normalen Modus → erster Schritt', resumeWizardStep('tipp', wizardSteps('einfach', false)), 'sehen');
+eq('Fortsetzen: Unsinn → erster Schritt', resumeWizardStep(42, blindSteps('profi')), 'sehen');
+eq('Parameter blind=1', parseBlindParam('1'), true);
+eq('Parameter blind als Liste', parseBlindParam(['1', '0']), true);
+for (const v of ['0', 'true', 'ja', '', ' 1', undefined, null]) eq(`Parameter blind=${String(v)} ignoriert`, parseBlindParam(v as string | undefined), false);
+eq('Jahrgangs-Eingabe: nur Ziffern', cleanJahrgangInput('20a19x'), '2019');
+eq('Jahrgangs-Eingabe: höchstens vier', cleanJahrgangInput('201999'), '2019');
+eq('Jahrgangs-Eingabe: kein Text', cleanJahrgangInput(null), '');
+check('Tipp ausgefüllt', isBlindTippFilled({ land_tipp: 'italien' }));
+check('Tipp leer', !isBlindTippFilled({ wahrheit: WAHR, rebsorte_tipp: 'x' }));
+check('Tipp: Unsinn', !isBlindTippFilled('x'));
+eq('Nur Tipps, ohne Wahrheit und altes Feld', blindTipps({ ...blindVoll.blind, rebsorte_tipp: 'alt' }), {
+  weinart_tipp: 'Rotwein', land_tipp: 'frankreich', region_tipp: 'Bordeaux', rebsorten_tipp: ['merlot', 'cabernet_sauvignon'], jahrgang_tipp: '2018',
+});
+const zuSpeichern = buildBlindSaveData(
+  {
+    schmecken: { tannin: 4, saeure: 3 },
+    fazit: { qualitaet: 4 },
+    blind: { land_tipp: 'deutschland', rebsorte_tipp: 'alt', wahrheit: { land: 'italien' } },
+  },
+  'weiss',
+  'profi',
+  { weinart: 'Weißwein', land: 'deutschland', rebsorten: ['riesling'], jahrgang: '2020' },
+);
+eq('Speichern: Tannin bei Weißwein entfällt, Tipps und neue Wahrheit dabei', zuSpeichern, {
+  schmecken: { saeure: 3 },
+  fazit: { qualitaet: 4 },
+  blind: { land_tipp: 'deutschland', wahrheit: { weinart: 'Weißwein', land: 'deutschland', rebsorten: ['riesling'], jahrgang: '2020' } },
+});
+check('Speichern: Ergebnis ist gültig', isValidTastingData(zuSpeichern));
+eq('Speichern: ohne Tipps nur die Wahrheit', buildBlindSaveData({}, 'rot', 'einfach', { jahrgang: '2019' }), { blind: { wahrheit: { jahrgang: '2019' } } });
+eq('Speichern: Unsinn', buildBlindSaveData(null, 'rot', 'einfach', null), {});
+
+// ── Teil D1: Lektion zur Blindverkostung ──────────────────────────────────────
+
+check('l32 ist die Lektion zur Blindverkostung', (getLektion('l32')?.titel ?? '').includes('Blindverkostung'), getLektion('l32')?.titel);
+eq('l32: blind in lektionen.json', LESSON_TASKS.l32?.blind, true);
+eq('l32: Stufe Profi', LESSON_TASKS.l32?.level, 'profi');
+check('l32: Button „Blindverkostung starten“', isBlindLessonTask(LESSON_TASKS.l32));
+eq('Nur l32 ist eine Blindverkostung', Object.entries(LESSON_TASKS).filter(([, t]) => isBlindLessonTask(t)).map(([id]) => id), ['l32']);
+for (const [id, wert] of Object.entries(lektionenJson as Record<string, Record<string, unknown>>)) {
+  check(`lektionen.json ${id}: blind fehlt oder ist true`, wert.blind === undefined || wert.blind === true, wert.blind);
+}
+eq('validateLessonTasks: blind true erlaubt', validateLessonTasks({ l01: { focus: 'sehen', level: 'einfach', hinweis: 'Ein Satz.', blind: true } }, new Set(['l01'])), []);
+eq('validateLessonTasks: blind false nicht erlaubt', validateLessonTasks({ l01: { focus: 'sehen', level: 'einfach', hinweis: 'Ein Satz.', blind: false } }, new Set(['l01'])), ['l01: blind darf nur true sein']);
+eq('validateLessonTasks: blind als Text nicht erlaubt', validateLessonTasks({ l01: { focus: 'sehen', level: 'einfach', hinweis: 'Ein Satz.', blind: 'ja' } }, new Set(['l01'])), ['l01: blind darf nur true sein']);
+eq('Praxisaufgabe l32: Parameter mit blind=1', lessonTastingParams(BREF, 'l32', LESSON_TASKS.l32), {
+  id: U1, kind: 'market', lesson: 'l32', focus: 'sehen', level: 'profi', from: 'lektion', blind: '1',
+});
+check('Praxisaufgabe l03: ohne blind', !('blind' in lessonTastingParams(BREF, 'l03', LESSON_TASKS.l03)));
+check('isBlindLessonTask: null', !isBlindLessonTask(null));
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 

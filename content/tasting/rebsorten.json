@@ -1,0 +1,635 @@
+{
+  "rebsorten": [
+    {
+      "id": "spaetburgunder",
+      "label": "Spätburgunder (Pinot Noir)",
+      "farbe": "rot",
+      "aliases": [
+        "Spätburgunder",
+        "Pinot Noir",
+        "Pinot Nero",
+        "Blauburgunder",
+        "Blauer Spätburgunder"
+      ]
+    },
+    {
+      "id": "fruehburgunder",
+      "label": "Frühburgunder",
+      "farbe": "rot",
+      "aliases": [
+        "Blauer Frühburgunder",
+        "Pinot Noir Précoce"
+      ]
+    },
+    {
+      "id": "lemberger",
+      "label": "Lemberger (Blaufränkisch)",
+      "farbe": "rot",
+      "aliases": [
+        "Lemberger",
+        "Blaufränkisch",
+        "Blauer Lemberger",
+        "Kékfrankos",
+        "Frankovka"
+      ]
+    },
+    {
+      "id": "trollinger",
+      "label": "Trollinger (Vernatsch)",
+      "farbe": "rot",
+      "aliases": [
+        "Trollinger",
+        "Vernatsch",
+        "Schiava",
+        "Blauer Trollinger"
+      ]
+    },
+    {
+      "id": "dornfelder",
+      "label": "Dornfelder",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "portugieser",
+      "label": "Portugieser",
+      "farbe": "rot",
+      "aliases": [
+        "Blauer Portugieser"
+      ]
+    },
+    {
+      "id": "regent",
+      "label": "Regent",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "zweigelt",
+      "label": "Zweigelt",
+      "farbe": "rot",
+      "aliases": [
+        "Blauer Zweigelt",
+        "Rotburger"
+      ]
+    },
+    {
+      "id": "st_laurent",
+      "label": "St. Laurent",
+      "farbe": "rot",
+      "aliases": [
+        "Sankt Laurent",
+        "Saint Laurent",
+        "Saint-Laurent"
+      ]
+    },
+    {
+      "id": "cabernet_sauvignon",
+      "label": "Cabernet Sauvignon",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "cabernet_franc",
+      "label": "Cabernet Franc",
+      "farbe": "rot",
+      "aliases": [
+        "Bouchet"
+      ]
+    },
+    {
+      "id": "merlot",
+      "label": "Merlot",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "petit_verdot",
+      "label": "Petit Verdot",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "carmenere",
+      "label": "Carmenère",
+      "farbe": "rot",
+      "aliases": [
+        "Carmenere",
+        "Grande Vidure"
+      ]
+    },
+    {
+      "id": "malbec",
+      "label": "Malbec",
+      "farbe": "rot",
+      "aliases": [
+        "Côt",
+        "Cot",
+        "Auxerrois Noir"
+      ]
+    },
+    {
+      "id": "syrah",
+      "label": "Syrah (Shiraz)",
+      "farbe": "rot",
+      "aliases": [
+        "Syrah",
+        "Shiraz"
+      ]
+    },
+    {
+      "id": "grenache",
+      "label": "Grenache (Garnacha)",
+      "farbe": "rot",
+      "aliases": [
+        "Grenache",
+        "Garnacha",
+        "Grenache Noir",
+        "Garnacha Tinta",
+        "Cannonau"
+      ]
+    },
+    {
+      "id": "mourvedre",
+      "label": "Mourvèdre (Monastrell)",
+      "farbe": "rot",
+      "aliases": [
+        "Mourvèdre",
+        "Monastrell",
+        "Mataro",
+        "Mataró"
+      ]
+    },
+    {
+      "id": "carignan",
+      "label": "Carignan (Cariñena)",
+      "farbe": "rot",
+      "aliases": [
+        "Carignan",
+        "Cariñena",
+        "Mazuelo",
+        "Carignano",
+        "Samsó"
+      ]
+    },
+    {
+      "id": "cinsault",
+      "label": "Cinsault",
+      "farbe": "rot",
+      "aliases": [
+        "Cinsaut"
+      ]
+    },
+    {
+      "id": "gamay",
+      "label": "Gamay",
+      "farbe": "rot",
+      "aliases": [
+        "Gamay Noir"
+      ]
+    },
+    {
+      "id": "grolleau",
+      "label": "Grolleau",
+      "farbe": "rot",
+      "aliases": [
+        "Groslot"
+      ]
+    },
+    {
+      "id": "tempranillo",
+      "label": "Tempranillo",
+      "farbe": "rot",
+      "aliases": [
+        "Tinta Roriz",
+        "Aragonez",
+        "Tinto Fino",
+        "Tinta del País",
+        "Tinta de Toro",
+        "Cencibel",
+        "Ull de Llebre"
+      ]
+    },
+    {
+      "id": "graciano",
+      "label": "Graciano",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "touriga_nacional",
+      "label": "Touriga Nacional",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "touriga_franca",
+      "label": "Touriga Franca",
+      "farbe": "rot",
+      "aliases": [
+        "Touriga Francesa"
+      ]
+    },
+    {
+      "id": "tinta_barroca",
+      "label": "Tinta Barroca",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "sangiovese",
+      "label": "Sangiovese",
+      "farbe": "rot",
+      "aliases": [
+        "Brunello",
+        "Prugnolo Gentile",
+        "Morellino",
+        "Sangioveto"
+      ]
+    },
+    {
+      "id": "nebbiolo",
+      "label": "Nebbiolo",
+      "farbe": "rot",
+      "aliases": [
+        "Spanna",
+        "Chiavennasca"
+      ]
+    },
+    {
+      "id": "barbera",
+      "label": "Barbera",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "dolcetto",
+      "label": "Dolcetto",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "montepulciano",
+      "label": "Montepulciano",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "corvina",
+      "label": "Corvina",
+      "farbe": "rot",
+      "aliases": [
+        "Corvina Veronese"
+      ]
+    },
+    {
+      "id": "nero_davola",
+      "label": "Nero d'Avola",
+      "farbe": "rot",
+      "aliases": [
+        "Nero d Avola",
+        "Calabrese"
+      ]
+    },
+    {
+      "id": "aglianico",
+      "label": "Aglianico",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "lagrein",
+      "label": "Lagrein",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "zinfandel",
+      "label": "Primitivo (Zinfandel)",
+      "farbe": "rot",
+      "aliases": [
+        "Primitivo",
+        "Zinfandel",
+        "Crljenak Kaštelanski",
+        "Tribidrag"
+      ]
+    },
+    {
+      "id": "pinotage",
+      "label": "Pinotage",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "tannat",
+      "label": "Tannat",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "xinomavro",
+      "label": "Xinomavro",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "agiorgitiko",
+      "label": "Agiorgitiko",
+      "farbe": "rot",
+      "aliases": []
+    },
+    {
+      "id": "riesling",
+      "label": "Riesling",
+      "farbe": "weiss",
+      "aliases": [
+        "Weißer Riesling",
+        "Rheinriesling",
+        "Johannisberg Riesling",
+        "Riesling Renano",
+        "White Riesling"
+      ]
+    },
+    {
+      "id": "welschriesling",
+      "label": "Welschriesling",
+      "farbe": "weiss",
+      "aliases": [
+        "Riesling Italico",
+        "Olaszrizling",
+        "Graševina",
+        "Grasevina",
+        "Laski Rizling"
+      ]
+    },
+    {
+      "id": "silvaner",
+      "label": "Silvaner",
+      "farbe": "weiss",
+      "aliases": [
+        "Sylvaner",
+        "Grüner Silvaner"
+      ]
+    },
+    {
+      "id": "mueller_thurgau",
+      "label": "Müller-Thurgau (Rivaner)",
+      "farbe": "weiss",
+      "aliases": [
+        "Müller-Thurgau",
+        "Mueller-Thurgau",
+        "Rivaner"
+      ]
+    },
+    {
+      "id": "grauburgunder",
+      "label": "Grauburgunder (Pinot Gris)",
+      "farbe": "weiss",
+      "aliases": [
+        "Grauburgunder",
+        "Pinot Gris",
+        "Pinot Grigio",
+        "Ruländer",
+        "Grauer Burgunder"
+      ]
+    },
+    {
+      "id": "weissburgunder",
+      "label": "Weißburgunder (Pinot Blanc)",
+      "farbe": "weiss",
+      "aliases": [
+        "Weißburgunder",
+        "Pinot Blanc",
+        "Pinot Bianco",
+        "Weißer Burgunder"
+      ]
+    },
+    {
+      "id": "chardonnay",
+      "label": "Chardonnay",
+      "farbe": "weiss",
+      "aliases": [
+        "Morillon"
+      ]
+    },
+    {
+      "id": "sauvignon_blanc",
+      "label": "Sauvignon Blanc",
+      "farbe": "weiss",
+      "aliases": [
+        "Fumé Blanc",
+        "Muskat-Sylvaner"
+      ]
+    },
+    {
+      "id": "scheurebe",
+      "label": "Scheurebe",
+      "farbe": "weiss",
+      "aliases": [
+        "Sämling 88"
+      ]
+    },
+    {
+      "id": "kerner",
+      "label": "Kerner",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "bacchus",
+      "label": "Bacchus",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "gutedel",
+      "label": "Gutedel (Chasselas)",
+      "farbe": "weiss",
+      "aliases": [
+        "Gutedel",
+        "Chasselas",
+        "Fendant"
+      ]
+    },
+    {
+      "id": "elbling",
+      "label": "Elbling",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "gewuerztraminer",
+      "label": "Gewürztraminer",
+      "farbe": "weiss",
+      "aliases": [
+        "Traminer",
+        "Roter Traminer",
+        "Savagnin Rose"
+      ]
+    },
+    {
+      "id": "muskateller",
+      "label": "Muskateller (Muscat)",
+      "farbe": "weiss",
+      "aliases": [
+        "Muskateller",
+        "Gelber Muskateller",
+        "Muscat",
+        "Moscato",
+        "Moscatel",
+        "Muscat Blanc à Petits Grains"
+      ]
+    },
+    {
+      "id": "gruener_veltliner",
+      "label": "Grüner Veltliner",
+      "farbe": "weiss",
+      "aliases": [
+        "Veltliner",
+        "Weißgipfler"
+      ]
+    },
+    {
+      "id": "chenin_blanc",
+      "label": "Chenin Blanc",
+      "farbe": "weiss",
+      "aliases": [
+        "Steen",
+        "Pineau de la Loire"
+      ]
+    },
+    {
+      "id": "viognier",
+      "label": "Viognier",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "semillon",
+      "label": "Sémillon",
+      "farbe": "weiss",
+      "aliases": [
+        "Semillon"
+      ]
+    },
+    {
+      "id": "albarino",
+      "label": "Albariño",
+      "farbe": "weiss",
+      "aliases": [
+        "Alvarinho"
+      ]
+    },
+    {
+      "id": "verdejo",
+      "label": "Verdejo",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "macabeo",
+      "label": "Macabeo (Viura)",
+      "farbe": "weiss",
+      "aliases": [
+        "Macabeo",
+        "Viura",
+        "Macabeu"
+      ]
+    },
+    {
+      "id": "xarello",
+      "label": "Xarel·lo",
+      "farbe": "weiss",
+      "aliases": [
+        "Xarello",
+        "Xarel lo",
+        "Pansa Blanca"
+      ]
+    },
+    {
+      "id": "parellada",
+      "label": "Parellada",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "vermentino",
+      "label": "Vermentino (Rolle)",
+      "farbe": "weiss",
+      "aliases": [
+        "Vermentino",
+        "Rolle",
+        "Pigato",
+        "Favorita"
+      ]
+    },
+    {
+      "id": "glera",
+      "label": "Glera",
+      "farbe": "weiss",
+      "aliases": [
+        "Prosecco-Traube"
+      ]
+    },
+    {
+      "id": "garganega",
+      "label": "Garganega",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "trebbiano",
+      "label": "Trebbiano (Ugni Blanc)",
+      "farbe": "weiss",
+      "aliases": [
+        "Trebbiano",
+        "Ugni Blanc"
+      ]
+    },
+    {
+      "id": "furmint",
+      "label": "Furmint",
+      "farbe": "weiss",
+      "aliases": [
+        "Šipon",
+        "Mosler"
+      ]
+    },
+    {
+      "id": "assyrtiko",
+      "label": "Assyrtiko",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "torrontes",
+      "label": "Torrontés",
+      "farbe": "weiss",
+      "aliases": [
+        "Torrontes"
+      ]
+    },
+    {
+      "id": "marsanne",
+      "label": "Marsanne",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "roussanne",
+      "label": "Roussanne",
+      "farbe": "weiss",
+      "aliases": []
+    },
+    {
+      "id": "melon_de_bourgogne",
+      "label": "Melon de Bourgogne (Muscadet)",
+      "farbe": "weiss",
+      "aliases": [
+        "Melon de Bourgogne",
+        "Melon",
+        "Muscadet"
+      ]
+    }
+  ]
+}

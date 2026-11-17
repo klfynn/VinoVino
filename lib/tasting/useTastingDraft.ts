@@ -9,12 +9,12 @@ import { WineRef } from './types';
  * Ungültige oder abgelaufene Entwürfe werden beim Laden gelöscht. Speicherfehler werden
  * protokolliert; der Bogen läuft dann einfach ohne Zwischenspeicher weiter.
  */
-export function useTastingDraft(wineRef: WineRef) {
+export function useTastingDraft(wineRef: WineRef, blind = false) {
   const { user } = useAuth();
   // Stabil über Renderdurchläufe, auch wenn der Aufrufer jedes Mal ein neues Objekt übergibt.
   const kind = wineRef.kind;
   const id = wineRef.id;
-  const key = tastingDraftKey(user?.id, { kind, id });
+  const key = tastingDraftKey(user?.id, { kind, id }, blind);
 
   const [draft, setDraft] = useState<TastingDraft | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -40,7 +40,7 @@ export function useTastingDraft(wineRef: WineRef) {
       try {
         const raw = await AsyncStorage.getItem(key);
         const parsed = parseDraft(raw);
-        if (isDraftValid(parsed, { kind, id })) next = parsed;
+        if (isDraftValid(parsed, { kind, id }, Date.now(), blind)) next = parsed;
         else if (raw !== null) enqueue(() => AsyncStorage.removeItem(key));
       } catch (err) {
         console.warn('[VinoVino] Verkostungs-Zwischenstand konnte nicht gelesen werden:', err);
@@ -53,15 +53,15 @@ export function useTastingDraft(wineRef: WineRef) {
     return () => {
       active = false;
     };
-  }, [key, kind, id, enqueue]);
+  }, [key, kind, id, blind, enqueue]);
 
   const save = useCallback(
-    (next: Omit<TastingDraft, 'ref' | 'savedAt'>) => {
-      const full: TastingDraft = { ...next, ref: { kind, id }, savedAt: Date.now() };
+    (next: Omit<TastingDraft, 'ref' | 'savedAt' | 'blind'>) => {
+      const full: TastingDraft = { ...next, ref: { kind, id }, blind, savedAt: Date.now() };
       setDraft(full);
       enqueue(() => AsyncStorage.setItem(key, serializeDraft(full)));
     },
-    [key, kind, id, enqueue],
+    [key, kind, id, blind, enqueue],
   );
 
   const clear = useCallback(() => {
