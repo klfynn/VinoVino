@@ -25,6 +25,8 @@ export interface Wine {
   anlass?: string[];
   passtZu?: string[];
   bioNaturVegan?: string[];
+  /** Flaschengröße aus wines (erster nicht leerer Wert); fehlt sie, zeigt die Detailansicht „0,75 l“. */
+  flaschengroesse?: string;
   reviews?: Review[];
   averageRating?: number;
 }

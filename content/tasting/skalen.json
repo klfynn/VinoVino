@@ -117,7 +117,7 @@
       "erklaerung": "Wie fein und ausdauernd steigen die Bläschen im Glas auf? 1 = grob und schnell vorbei, 5 = sehr fein und lange anhaltend",
       "anker": ["grob, kurz", "eher grob", "mittel", "fein", "sehr fein und anhaltend"],
       "kategorien": ["schaum"],
-      "stufe": "profi",
+      "stufe": "erweitert",
       "lektion": "l15"
     },
     {
@@ -127,7 +127,7 @@
       "erklaerung": "Wie fühlt sich der Schaum im Mund an? 1 = grob und kratzig, 5 = cremig und zart",
       "anker": ["grob und kratzig", "etwas rau", "mittel", "weich", "cremig und zart"],
       "kategorien": ["schaum"],
-      "stufe": "profi",
+      "stufe": "erweitert",
       "lektion": "l15"
     }
   ]

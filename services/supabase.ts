@@ -12,6 +12,18 @@ function toArray(value: unknown): string[] {
   return [];
 }
 
+// In wines gibt es zwei fast gleich benannte Spalten: „flaschengrösse“ (mit ö) und „flaschengroesse“
+// (mit oe). select('*') liefert beide; das ö kann als ein Zeichen oder als o + Trema gespeichert sein.
+function flaschengroesse(row: Record<string, unknown>): string | undefined {
+  const kandidaten = [row['flaschengr\u00f6sse'], row['flaschengro\u0308sse'], row.flaschengroesse];
+  for (const v of kandidaten) {
+    if (v === null || v === undefined) continue;
+    const text = String(v).trim();
+    if (text) return text;
+  }
+  return undefined;
+}
+
 export function mapRow(row: Record<string, unknown>): Wine {
   return {
     id: String(row.id),
@@ -32,6 +44,7 @@ export function mapRow(row: Record<string, unknown>): Wine {
     anlass: toArray(row.anlass),
     passtZu: toArray(row.passt_zu),
     bioNaturVegan: toArray(row.eigenschaften),
+    flaschengroesse: flaschengroesse(row),
   };
 }
 
