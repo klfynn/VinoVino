@@ -331,6 +331,9 @@ for (const w of WEINART_WERTE) {
   eq(`Anzeige-Typ passt zur Kategorie (${w})`, weinartToKategorie(typ), kat);
   eq(`eigener Wein ${w}: Typ`, customWineToWine(custom(C1, 'x', '2026-01-01', { weinart: w })).type, typ);
 }
+eq('eigener Wein ohne Weinart: Anzeige wie bisher Rotwein', customWineToWine(custom(C1, 'x', '2026-01-01', { weinart: null })).type, 'Rotwein');
+eq('eigener Wein ohne Weinart: ursprüngliche Angabe bleibt null', customWineToWine(custom(C1, 'x', '2026-01-01', { weinart: null })).weinartRoh, null);
+eq('eigener Wein Rosé: ursprüngliche Angabe bleibt', customWineToWine(custom(C1, 'x', '2026-01-01', { weinart: 'Rosé' })).weinartRoh, 'Rosé');
 
 // ── Private Notiz: Speicher-Payloads ──────────────────────────────────────────
 

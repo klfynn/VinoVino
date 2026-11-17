@@ -1149,7 +1149,7 @@ const U3 = '33333333-3333-4333-8333-333333333333';
 const marktWein = (id: string, over: Partial<BlindKandidat['wine']> = {}): BlindKandidat => ({
   ref: marketRef(id),
   persisted: true,
-  wine: { type: 'Rotwein', vintage: 2018, country: 'Frankreich', region: 'Bordeaux', grape: 'Cabernet Sauvignon, Merlot', ...over },
+  wine: { type: 'Rotwein', weinartRoh: 'Rotwein', vintage: 2018, country: 'Frankreich', region: 'Bordeaux', grape: 'Cabernet Sauvignon, Merlot', ...over },
 });
 const eigenerWein = (id: string, custom: NonNullable<BlindKandidat['custom']>): BlindKandidat => ({
   ref: customRef(id),
@@ -1458,6 +1458,36 @@ eq('Praxisaufgabe l32: Parameter mit blind=1', lessonTastingParams(BREF, 'l32', 
 });
 check('Praxisaufgabe l03: ohne blind', !('blind' in lessonTastingParams(BREF, 'l03', LESSON_TASKS.l03)));
 check('isBlindLessonTask: null', !isBlindLessonTask(null));
+
+// ── Fehlende Weinart nicht als „Rotwein“ werten ───────────────────────────────
+
+// Marktplatzwein: Anzeige-Typ „Rotwein“ (Rückfall), ursprüngliche Weinart fehlt.
+const OHNE_WEINART: [string, unknown][] = [['fehlend', undefined], ['null', null], ['leerer Text', ''], ['nur Leerzeichen', '   '], ['unbekannt', 'Hauswein']];
+for (const [name, roh] of OHNE_WEINART) {
+  const markt = marktWein(U1, { weinartRoh: roh as string | null | undefined, type: 'Rotwein' });
+  if (roh === undefined) delete (markt.wine as Record<string, unknown>).weinartRoh;
+  const nurJahrgang = marktWein(U1, { weinartRoh: roh as string | null | undefined, type: 'Rotwein', country: '', region: '', grape: '' });
+  if (roh === undefined) delete (nurJahrgang.wine as Record<string, unknown>).weinartRoh;
+  eq(`Weinart ${name}: Wahrheit Marktplatzwein ohne Weinart`, blindTruthFromEntry(markt).weinart, undefined);
+  eq(`Weinart ${name}: Weinart nicht vergleichbar`, comparableFields(blindTruthFromEntry(markt)).includes('weinart'), false);
+  check(`Weinart ${name}: Marktplatzwein nur mit Jahrgang ungeeignet (Rotwein zählt nicht)`, !isBlindEligible(nurJahrgang));
+  check(`Weinart ${name}: Marktplatzwein mit anderen Angaben bleibt geeignet`, isBlindEligible(markt));
+  eq(`Weinart ${name}: Auswertung Marktplatzwein`, feld(scoreBlindGuess({ weinart_tipp: 'Rotwein' }, blindTruthFromEntry(markt)), 'weinart')?.ergebnis, 'nicht_bewertbar');
+  eq(`Weinart ${name}: Auswertung zeigt keinen Wert`, feld(scoreBlindGuess({ weinart_tipp: 'Rotwein' }, blindTruthFromEntry(markt)), 'weinart')?.wirklich, null);
+  // Eigener Wein: gleiche Regel
+  const eigen = eigenerWein(U2, { weinart: roh as string | null | undefined, jahrgang: '2020' });
+  eq(`Weinart ${name}: Wahrheit eigener Wein`, blindTruthFromEntry(eigen), { jahrgang: '2020' });
+  check(`Weinart ${name}: eigener Wein nur mit Jahrgang ungeeignet`, !isBlindEligible(eigen));
+  eq(`Weinart ${name}: Auswertung eigener Wein`, feld(scoreBlindGuess({ weinart_tipp: 'Weißwein' }, blindTruthFromEntry(eigen)), 'weinart')?.ergebnis, 'nicht_bewertbar');
+  // Direkt an scoreBlindGuess übergeben
+  eq(`Weinart ${name}: scoreBlindGuess direkt`, feld(scoreBlindGuess({ weinart_tipp: 'Rotwein' }, { weinart: roh as string | undefined, jahrgang: '2018' }), 'weinart')?.ergebnis, 'nicht_bewertbar');
+}
+eq('Weinart: Wahrheit ohne Weinart, übrige Angaben bleiben', blindTruthFromEntry(marktWein(U1, { weinartRoh: null })), {
+  land: 'frankreich', region: 'Bordeaux', rebsorten: ['cabernet_sauvignon', 'merlot'], jahrgang: '2018',
+});
+eq('Weinart: Speichern ohne Weinart in der Wahrheit', buildBlindSaveData({}, 'rot', 'einfach', blindTruthFromEntry(marktWein(U1, { weinartRoh: '' }))).blind?.wahrheit?.weinart, undefined);
+eq('Weinart: ursprüngliche Angabe „Weißwein“ gewinnt gegen Anzeige-Typ', blindTruthFromEntry(marktWein(U1, { weinartRoh: 'Weißwein', type: 'Rotwein' })).weinart, 'Weißwein');
+eq('Weinart: „Rosé“ aus der Datenbank', blindTruthFromEntry(marktWein(U1, { weinartRoh: 'Rosé', type: 'Roséwein' })).weinart, 'Rosé');
 
 // ── Gastgeber-Weg bei „Zufällig auswählen“ ────────────────────────────────────
 

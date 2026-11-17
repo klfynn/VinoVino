@@ -45,6 +45,8 @@ export function mapRow(row: Record<string, unknown>): Wine {
     passtZu: toArray(row.passt_zu),
     bioNaturVegan: toArray(row.eigenschaften),
     flaschengroesse: flaschengroesse(row),
+    // Ohne Rückfall: leere oder fehlende Weinart bleibt erkennbar (Blindverkostung).
+    weinartRoh: typeof row.weinart === 'string' ? row.weinart : null,
   };
 }
 

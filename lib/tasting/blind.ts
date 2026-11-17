@@ -154,7 +154,16 @@ export function searchCatalog<T extends KatalogEintrag>(items: readonly T[], que
 export type BlindKandidat = {
   ref: WineRef;
   persisted: boolean;
-  wine: { type?: string | null; vintage?: number | null; country?: string | null; region?: string | null; grape?: string | null };
+  wine: {
+    /** Anzeige-Typ mit Rückfall auf „Rotwein“; wird in der Blindverkostung nicht verwendet. */
+    type?: string | null;
+    /** Ursprüngliche Weinart aus der Datenbank (Marktplatzweine), Text oder `null`. */
+    weinartRoh?: string | null;
+    vintage?: number | null;
+    country?: string | null;
+    region?: string | null;
+    grape?: string | null;
+  };
   custom?: {
     weinart?: string | null;
     jahrgang?: string | null;
@@ -167,9 +176,17 @@ export type BlindKandidat = {
 const textOf = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
 
+/** Weinart nur, wenn sie bekannt ist: leere, fehlende und unbekannte Werte ergeben `undefined`. */
+const bekannteWeinart = (v: unknown): string | undefined => {
+  const t = textOf(v);
+  return t && weinartToKategorie(t) !== 'unbekannt' ? t : undefined;
+};
+
 /**
  * Momentaufnahme der tatsächlichen Angaben eines Weins. Eigene Weine nehmen die Felder aus
- * `custom_wines`, Marktplatzweine die Felder des Weins (Weinart = Anzeige-Typ). Bereinigt.
+ * `custom_wines`, Marktplatzweine die Felder des Weins. Die Weinart kommt ausschließlich aus der
+ * ursprünglichen Angabe (`custom.weinart` bzw. `wine.weinartRoh`), nie aus dem Anzeige-Typ mit
+ * Rückfall auf „Rotwein“. Leer oder unbekannt: keine Weinart. Bereinigt.
  */
 export function blindTruthFromEntry(entry: BlindKandidat | null | undefined): BlindWahrheit {
   if (!isObj(entry) || !isObj(entry.wine)) return {};
@@ -177,7 +194,7 @@ export function blindTruthFromEntry(entry: BlindKandidat | null | undefined): Bl
   const c = isObj(entry.custom) ? entry.custom : null;
   const vintage = typeof w.vintage === 'number' && Number.isInteger(w.vintage) && w.vintage > 0 ? String(w.vintage) : undefined;
   const roh: BlindWahrheit = {
-    weinart: c ? textOf(c.weinart) : textOf(w.type),
+    weinart: bekannteWeinart(c ? c.weinart : w.weinartRoh),
     land: matchLand(c ? c.herkunft : w.country) ?? undefined,
     region: textOf(c ? c.region : w.region),
     rebsorten: matchRebsorten(c ? c.rebsorte : w.grape),
