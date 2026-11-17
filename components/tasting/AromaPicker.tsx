@@ -5,7 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing } from '../../theme';
 import { aromaLabel } from '../../lib/tasting/catalog';
-import type { AromaStufe, AromaStufeKatalog } from '../../lib/tasting/types';
+import type { AromaFamilie, AromaStufe, AromaStufeKatalog } from '../../lib/tasting/types';
 import { Chip, TOUCH } from './TastingUI';
 
 export function AromaPicker({
@@ -14,6 +14,7 @@ export function AromaPicker({
   isSelected,
   onToggle,
   emptyHint = 'Noch keine Aromen gewählt. Öffne eine Familie und tippe an, was du wahrnimmst.',
+  onFamilyHelp,
 }: {
   stufen: AromaStufeKatalog[];
   /** Alle gewählten Aromen in Auswahlreihenfolge (für die Zusammenfassung) */
@@ -21,6 +22,8 @@ export function AromaPicker({
   isSelected: (stufe: AromaStufe, id: string) => boolean;
   onToggle: (stufe: AromaStufe, id: string) => void;
   emptyHint?: string;
+  /** „?“ neben einer Familie: öffnet das Info-Sheet mit „Mehr dazu“ (Teil C) */
+  onFamilyHelp?: (stufe: AromaStufeKatalog, familie: AromaFamilie) => void;
 }) {
   const [open, setOpen] = useState<Record<string, boolean>>({});
 
@@ -66,22 +69,34 @@ export function AromaPicker({
             const count = familie.aromen.filter((a) => isSelected(stufe.id, a.id)).length;
             return (
               <View key={familie.id} style={styles.familie}>
-                <TouchableOpacity
-                  style={styles.familieHeader}
-                  onPress={() => setOpen((o) => ({ ...o, [key]: !isOpen }))}
-                  activeOpacity={0.8}
-                  accessibilityRole="button"
-                  accessibilityState={{ expanded: isOpen }}
-                  accessibilityLabel={`${familie.label}${count > 0 ? `, ${count} gewählt` : ''}, ${isOpen ? 'zuklappen' : 'aufklappen'}`}
-                >
-                  <Text style={styles.familieLabel}>{familie.label}</Text>
-                  {count > 0 && (
-                    <View style={styles.countBadge}>
-                      <Text style={styles.countText}>{count}</Text>
-                    </View>
+                <View style={styles.familieHeaderRow}>
+                  <TouchableOpacity
+                    style={styles.familieHeader}
+                    onPress={() => setOpen((o) => ({ ...o, [key]: !isOpen }))}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: isOpen }}
+                    accessibilityLabel={`${familie.label}${count > 0 ? `, ${count} gewählt` : ''}, ${isOpen ? 'zuklappen' : 'aufklappen'}`}
+                  >
+                    <Text style={styles.familieLabel}>{familie.label}</Text>
+                    {count > 0 && (
+                      <View style={styles.countBadge}>
+                        <Text style={styles.countText}>{count}</Text>
+                      </View>
+                    )}
+                    <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.accent} />
+                  </TouchableOpacity>
+                  {onFamilyHelp && (
+                    <TouchableOpacity
+                      style={styles.helpBtn}
+                      onPress={() => onFamilyHelp(stufe, familie)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Erklärung zu ${familie.label}`}
+                    >
+                      <Text style={styles.helpBtnText}>?</Text>
+                    </TouchableOpacity>
                   )}
-                  <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.accent} />
-                </TouchableOpacity>
+                </View>
                 {isOpen && (
                   <View style={[styles.chipWrap, styles.familieBody]}>
                     {familie.aromen.map((a) => {
@@ -129,7 +144,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.sm,
     overflow: 'hidden',
   },
+  familieHeaderRow: { flexDirection: 'row', alignItems: 'center' },
   familieHeader: {
+    flex: 1,
     minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
@@ -148,4 +165,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   countText: { color: colors.background, fontSize: 11, fontWeight: '700' },
+  // „?“ wie in FieldLabel (TastingUI)
+  helpBtn: { width: TOUCH, height: TOUCH, alignItems: 'center', justifyContent: 'center' },
+  helpBtnText: {
+    color: colors.accent,
+    fontSize: 13,
+    fontWeight: '700',
+    width: 24,
+    height: 24,
+    lineHeight: 22,
+    textAlign: 'center',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.accent,
+    overflow: 'hidden',
+  },
 });

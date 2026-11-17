@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
 import { useCellar, CellarWine } from '../../context/CellarContext';
 import { QuantityModal } from '../../components/QuantityModal';
@@ -347,11 +347,14 @@ function QuantityEditModal({
 
 function AddToCellarModal({
   visible,
+  initialMode = 'catalog',
   onClose,
   onAdd,
   onCreateCustom,
 }: {
   visible: boolean;
+  /** Mit welchem Reiter der Dialog öffnet (Teil C: „Eigenen Wein anlegen“ aus einer Lektion) */
+  initialMode?: 'catalog' | 'custom';
   onClose: () => void;
   onAdd: (wine: Wine, quantity: number) => void;
   onCreateCustom: (values: CustomWineFormState) => Promise<CellarResult<unknown>>;
@@ -364,8 +367,11 @@ function AddToCellarModal({
   const [formKey, setFormKey] = useState(0);
 
   useEffect(() => {
-    if (visible) setFormKey((k) => k + 1);
-  }, [visible]);
+    if (visible) {
+      setFormKey((k) => k + 1);
+      setMode(initialMode);
+    }
+  }, [visible, initialMode]);
 
   // Katalogauswahl: stammt weiterhin aus der lokalen Testliste data/wines.ts (keine UUIDs,
   // deshalb bleiben diese Einträge nur im Arbeitsspeicher).
@@ -714,6 +720,21 @@ export default function SammlungScreen() {
   const [qtyWine, setQtyWine] = useState<Wine | null>(null);
   const [editCellarItem, setEditCellarItem] = useState<CellarWine | null>(null);
   const [addModalVisible, setAddModalVisible] = useState(false);
+  const [addModalMode, setAddModalMode] = useState<'catalog' | 'custom'>('catalog');
+
+  // Teil C: Aus der Weinauswahl einer Lektion kommt `?tab=weinkeller&neu=eigener`.
+  // Dann den Weinkeller zeigen und den Dialog direkt bei „Eigenen Wein anlegen“ öffnen.
+  const { tab: tabParam, neu: neuParam } = useLocalSearchParams<{ tab?: string; neu?: string }>();
+  useEffect(() => {
+    if (tabParam !== 'weinkeller' && neuParam !== 'eigener') return;
+    if (tabParam === 'weinkeller') setActiveTab('weinkeller');
+    if (neuParam === 'eigener') {
+      setAddModalMode('custom');
+      setAddModalVisible(true);
+    }
+    // Parameter verbrauchen, damit der Dialog beim nächsten Besuch nicht erneut aufgeht.
+    router.setParams({ tab: undefined, neu: undefined });
+  }, [tabParam, neuParam, router]);
   const [reviewCellarWine, setReviewCellarWine] = useState<CellarWine | null>(null);
   const [editCustomItem, setEditCustomItem] = useState<CellarWine | null>(null);
 
@@ -939,7 +960,13 @@ export default function SammlungScreen() {
           )}
 
           {/* FAB */}
-          <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)}>
+          <TouchableOpacity
+            style={styles.fab}
+            onPress={() => {
+              setAddModalMode('catalog');
+              setAddModalVisible(true);
+            }}
+          >
             <Ionicons name="add" size={28} color={colors.background} />
           </TouchableOpacity>
         </View>
@@ -974,6 +1001,7 @@ export default function SammlungScreen() {
       {/* Add to cellar modal */}
       <AddToCellarModal
         visible={addModalVisible}
+        initialMode={addModalMode}
         onClose={() => setAddModalVisible(false)}
         onAdd={(wine, qty) => addToCellar(wine, qty, 'manual')}
         onCreateCustom={(values) => createCustomWine(values)}

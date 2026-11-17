@@ -87,6 +87,10 @@ export default function RootLayout() {
                     name="tasting/[id]"
                     options={{ headerShown: false, gestureEnabled: false }}
                   />
+                  <Stack.Screen
+                    name="lektion/[id]"
+                    options={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}
+                  />
                 </Stack>
                 <AuthGate />
                 <CoachMarkOverlay />

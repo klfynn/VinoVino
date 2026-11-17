@@ -1,6 +1,7 @@
 // Verkostungsbogen als Assistent: Sehen → Riechen → Schmecken → Terroir → Fazit.
-// Route: /tasting/[id]?kind=market|custom&level=…&focus=…&lesson=…
-// `focus` und `lesson` sind für Teil C vorgesehen; in Teil B setzt sie keine Oberfläche.
+// Route: /tasting/[id]?kind=market|custom&level=…&focus=…&lesson=…&from=lektion
+// `lesson`, `focus` und `level` setzt die Praxisaufgabe einer Lektion (Teil C), `from=lektion`
+// sagt, dass der Assistent aus der Lektion geöffnet wurde (für „Zurück zur Lektion“).
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -25,6 +26,7 @@ import { useCellar } from '../../context/CellarContext';
 import { getLektion } from '../../content/academy/helpers';
 import { CloseButton, LoadingState, PrimaryButton } from '../../components/academy/AcademyUI';
 import { AromaPicker } from '../../components/tasting/AromaPicker';
+import { LessonTaskBox } from '../../components/tasting/LessonTaskBox';
 import { TastingResultView } from '../../components/tasting/TastingResultView';
 import {
   Chip,
@@ -38,7 +40,9 @@ import {
   StepProgress,
   TOUCH,
 } from '../../components/tasting/TastingUI';
-import { ABSCHNITTE, TERROIR } from '../../lib/tasting/catalog';
+import { ABSCHNITTE, AROMEN, TERROIR } from '../../lib/tasting/catalog';
+import { draftLessonContext, resolveLessonParams, startStepFor } from '../../lib/tasting/lessonLinks';
+import { lessonInfo, useLessonLinks } from '../../lib/tasting/useLessonLinks';
 import { useTastingDraft } from '../../lib/tasting/useTastingDraft';
 import { saveTastingNote } from '../../services/tastingNotes';
 import { isUuid, sameWineRef } from '../../lib/tasting/wineRef';
@@ -82,7 +86,9 @@ import {
   wineInfoLine,
 } from '../../lib/tasting/wizard';
 import {
+  AromaFamilie,
   AromaStufe,
+  AromaStufeKatalog,
   Klarheit,
   Lagerpotenzial,
   NasenZustand,
@@ -109,16 +115,28 @@ const KEIN_WEIN: WineRef = { kind: 'market', id: 'kein-wein' };
 const LEERE_AROMEN: TastingAromen = { primaer: [], sekundaer: [], tertiaer: [] };
 
 type Section = Record<string, unknown>;
+type Help = { title: string; text: string; anker?: string[]; lektion?: unknown };
+type LessonContext = { lessonId: string | null; focus: TastingStep | null };
+
+const isLesson = (id: string) => !!getLektion(id);
 
 export default function TastingWizardScreen() {
   const router = useRouter();
   const rawParams = useLocalSearchParams();
   const params = useMemo(
-    () => parseTastingParams(rawParams as Record<string, string | string[] | undefined>, (id) => !!getLektion(id)),
+    () => parseTastingParams(rawParams as Record<string, string | string[] | undefined>, isLesson),
     // Die Werte sind Strings; ein neues Objekt mit gleichem Inhalt soll nichts neu berechnen.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [JSON.stringify(rawParams)],
   );
+  // Teil C: Lektionsbezug mit Rückfall auf die Zuordnung in lektionen.json (ungültige Werte werden ignoriert).
+  const lessonParams = useMemo(
+    () => resolveLessonParams(rawParams as Record<string, string | string[] | undefined>, { isLesson }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(rawParams)],
+  );
+  const fromLesson = (Array.isArray(rawParams.from) ? rawParams.from[0] : rawParams.from) === 'lektion';
+  const { linkFor } = useLessonLinks();
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const { cellarWines, loading: cellarLoading, setRating } = useCellar();
@@ -134,14 +152,19 @@ export default function TastingWizardScreen() {
   const draft = useTastingDraft(ref);
 
   const [phase, setPhase] = useState<Phase | null>(null);
-  const [level, setLevel] = useState<TastingLevel>(params.level ?? 'einfach');
+  const [level, setLevel] = useState<TastingLevel>(lessonParams.level ?? 'einfach');
+  // Lektion und Schwerpunkt dieser Verkostung: aus der Route, bei „Weitermachen“ aus dem Entwurf.
+  const [lessonCtx, setLessonCtx] = useState<LessonContext>({
+    lessonId: lessonParams.lessonId,
+    focus: lessonParams.focus,
+  });
   const [step, setStep] = useState<TastingStep>('sehen');
   const [data, setData] = useState<TastingData>({});
   const [stars, setStars] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ note: TastingNote; starsError: string | null } | null>(null);
-  const [help, setHelp] = useState<{ title: string; text: string; anker?: string[] } | null>(null);
+  const [help, setHelp] = useState<Help | null>(null);
   const scrollRef = useRef<ScrollViewInstance>(null);
 
   // ── Start: Entwurf oder Stufenwahl ───────────────────────────────────────────
@@ -161,9 +184,9 @@ export default function TastingWizardScreen() {
       } catch (err) {
         console.warn('[VinoVino] Zuletzt gewählte Stufe konnte nicht gelesen werden:', err);
       }
-      if (!levelTouched.current) setLevel(initialLevel(params.level, stored));
+      if (!levelTouched.current) setLevel(initialLevel(lessonParams.level, stored));
     })();
-  }, [draft.loaded, draft.draft, userId, params.level]);
+  }, [draft.loaded, draft.draft, userId, lessonParams.level]);
 
   // Sterne mit der vorhandenen Bewertung vorbelegen.
   const initialStars = entry?.rating ?? 0;
@@ -175,16 +198,16 @@ export default function TastingWizardScreen() {
   // ── Zwischenstand (entprellt) ────────────────────────────────────────────────
 
   const pending = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const latest = useRef({ level, step, data });
-  latest.current = { level, step, data };
+  const latest = useRef({ level, step, data, lessonCtx });
+  latest.current = { level, step, data, lessonCtx };
   const purchasedWineId =
     entry?.ref.kind === 'market' ? entry.purchases?.find((p) => isUuid(p.id))?.id ?? null : null;
 
   const writeDraft = useCallback(() => {
-    const { level: l, step: s, data: d } = latest.current;
+    const { level: l, step: s, data: d, lessonCtx: lc } = latest.current;
     if (!hasAnyInput(d)) return;
-    draft.save({ level: l, step: s, data: d, purchasedWineId, lessonId: params.lessonId, focus: params.focus });
-  }, [draft, purchasedWineId, params.lessonId, params.focus]);
+    draft.save({ level: l, step: s, data: d, purchasedWineId, lessonId: lc.lessonId, focus: lc.focus });
+  }, [draft, purchasedWineId]);
 
   const flush = useCallback(() => {
     if (pending.current) {
@@ -234,6 +257,34 @@ export default function TastingWizardScreen() {
     else router.replace('/(tabs)/watchlist');
   }, [router, params.ref]);
 
+  // Lektion auf den Stapel legen (nicht den Assistenten ersetzen). Der Assistent bleibt darunter
+  // geöffnet; zusätzlich wird der Zwischenstand sofort gespeichert.
+  const openLesson = useCallback(
+    (lessonId: string) => {
+      setHelp(null);
+      flush();
+      router.push({ pathname: '/lektion/[id]', params: { id: lessonId } });
+    },
+    [router, flush],
+  );
+
+  // Abschluss: zurück in die Lektion, aus der die Verkostung gestartet wurde.
+  const backToLesson = () => {
+    const id = lessonCtx.lessonId;
+    if (!id) return;
+    if (fromLesson && id === lessonParams.lessonId && router.canGoBack()) router.back();
+    else router.replace({ pathname: '/lektion/[id]', params: { id } });
+  };
+
+  // Abschluss: „Zum Wein“. Aus einer Lektion heraus läge darunter die Lektion, nicht der Wein.
+  const openWine = () => {
+    if (fromLesson && params.ref) {
+      router.replace({ pathname: '/cellar/[id]', params: { id: params.ref.id, kind: params.ref.kind } });
+    } else {
+      goToWine();
+    }
+  };
+
   // ── Aktionen ─────────────────────────────────────────────────────────────────
 
   const resumeDraft = () => {
@@ -241,6 +292,8 @@ export default function TastingWizardScreen() {
     if (!d) return;
     levelTouched.current = true;
     setLevel(d.level);
+    // Lektion und Schwerpunkt des Entwurfs bleiben erhalten (auch wenn die Route etwas anderes sagt).
+    setLessonCtx(draftLessonContext(d, isLesson));
     setData(d.data);
     setStep(resumeStep(d.step, d.level));
     setPhase('bogen');
@@ -249,6 +302,7 @@ export default function TastingWizardScreen() {
   const discardDraft = () => {
     draft.clear();
     setData({});
+    setLessonCtx({ lessonId: lessonParams.lessonId, focus: lessonParams.focus });
     setPhase('start');
   };
 
@@ -260,7 +314,8 @@ export default function TastingWizardScreen() {
         console.warn('[VinoVino] Stufe konnte nicht gemerkt werden:', err);
       }
     })();
-    setStep(visibleSteps(level)[0]);
+    // Mit Schwerpunkt aus einer Praxisaufgabe direkt bei diesem Schritt beginnen.
+    setStep(startStepFor(lessonCtx.focus, visibleSteps(level)));
     setPhase('bogen');
   };
 
@@ -280,8 +335,8 @@ export default function TastingWizardScreen() {
       level,
       data: pruneTastingData(data, kategorie, level),
       purchasedWineId,
-      focus: params.focus,
-      lessonId: params.lessonId,
+      focus: lessonCtx.focus,
+      lessonId: lessonCtx.lessonId,
     });
     if (!result.ok) {
       // Entwurf bleibt erhalten; der Nutzer kann es erneut versuchen.
@@ -316,6 +371,12 @@ export default function TastingWizardScreen() {
   const toggleNase = (stufe: AromaStufe, id: string) =>
     setField('riechen', 'aromen', { ...naseAromen, [stufe]: toggleId(naseAromen[stufe], id) });
   const gaumen = data.schmecken?.aromen_gaumen ?? [];
+  const familyHelp = (stufe: AromaStufeKatalog, familie: AromaFamilie) =>
+    setHelp({
+      title: familie.label,
+      text: `${stufe.beschreibung} Typisch für diese Familie: ${familie.aromen.map((a) => a.label).join(', ')}.`,
+      lektion: familie.lektion,
+    });
 
   // ── Darstellung ──────────────────────────────────────────────────────────────
 
@@ -330,6 +391,15 @@ export default function TastingWizardScreen() {
     return <Notice text={availabilityHint(availability) ?? ''} onBack={goToWine} />;
   }
   if (phase === null) return <Screen><LoadingState /></Screen>;
+
+  const taskLesson = lessonCtx.lessonId ? getLektion(lessonCtx.lessonId) : undefined;
+  const taskBox = taskLesson ? (
+    <LessonTaskBox
+      label={lessonInfo(taskLesson.id)?.label ?? taskLesson.titel}
+      praxisaufgabe={taskLesson.praxisaufgabe}
+      onOpenLesson={() => openLesson(taskLesson.id)}
+    />
+  ) : null;
 
   const header = (
     <View style={styles.wineHead}>
@@ -366,6 +436,7 @@ export default function TastingWizardScreen() {
       <Screen onClose={goToWine}>
         <ScrollView contentContainerStyle={styles.content}>
           {header}
+          {taskBox}
           <Text style={styles.sectionTitle}>WÄHLE DEINE STUFE</Text>
           <View style={styles.levelList} accessibilityRole="radiogroup" accessibilityLabel="Stufe">
             {TASTING_LEVELS.map((l) => {
@@ -421,7 +492,15 @@ export default function TastingWizardScreen() {
             </View>
           )}
           <TastingResultView data={saved.note.data} kategorie={kategorie} bodenEintrag={bodenEintrag} />
-          <PrimaryButton label="Zum Wein" onPress={goToWine} style={styles.fullButton} />
+          <PrimaryButton label="Zum Wein" onPress={openWine} style={styles.fullButton} />
+          {lessonCtx.lessonId && (
+            <PrimaryButton
+              label="Zurück zur Lektion"
+              variant="outline"
+              onPress={backToLesson}
+              style={styles.fullButtonSecondary}
+            />
+          )}
         </ScrollView>
       </Screen>
     );
@@ -443,7 +522,7 @@ export default function TastingWizardScreen() {
           skala={sk}
           value={sectionOf(s)[skalaKey(sk)] as Skalenwert | undefined}
           onChange={(v) => setField(s, skalaKey(sk), v)}
-          onHelp={() => setHelp({ title: sk.label, text: sk.erklaerung, anker: sk.anker })}
+          onHelp={() => setHelp({ title: sk.label, text: sk.erklaerung, anker: sk.anker, lektion: sk.lektion })}
         />
       ));
 
@@ -507,6 +586,17 @@ export default function TastingWizardScreen() {
           />
           {fehler.length > 0 && (
             <View style={styles.subBlock}>
+              <FieldLabel
+                label={AROMEN.fehler.label}
+                onHelp={() =>
+                  setHelp({
+                    title: AROMEN.fehler.label,
+                    text: AROMEN.fehler.beschreibung,
+                    anker: AROMEN.fehler.aromen.map((a) => a.label),
+                    lektion: AROMEN.fehler.lektion,
+                  })
+                }
+              />
               <Text style={styles.fieldHint}>Was fällt dir auf? Mehrfachauswahl möglich.</Text>
               <View style={styles.chipWrap}>
                 {fehler.map((f) => {
@@ -533,6 +623,7 @@ export default function TastingWizardScreen() {
               selectedIds={[...naseAromen.primaer, ...naseAromen.sekundaer, ...naseAromen.tertiaer]}
               isSelected={(stufe, id) => naseAromen[stufe].includes(id)}
               onToggle={toggleNase}
+              onFamilyHelp={familyHelp}
             />
           </View>
         )}
@@ -551,6 +642,7 @@ export default function TastingWizardScreen() {
               isSelected={(_, id) => gaumen.includes(id)}
               onToggle={(_, id) => setField('schmecken', 'aromen_gaumen', toggleId(gaumen, id))}
               emptyHint="Welche Aromen schmeckst du im Mund? Öffne eine Familie und tippe an."
+              onFamilyHelp={familyHelp}
             />
           </View>
         )}
@@ -566,7 +658,16 @@ export default function TastingWizardScreen() {
       <>
         {isFieldVisible('eindruecke', level) && (
           <View style={styles.field}>
-            <FieldLabel label={TERROIR.eindruecke.label} />
+            <FieldLabel
+              label={TERROIR.eindruecke.label}
+              onHelp={() =>
+                setHelp({
+                  title: TERROIR.eindruecke.label,
+                  text: 'Herkunftseindrücke beschreiben, was der Wein über Boden, Klima und Lage verraten könnte. Wähle alles, was dir auffällt.',
+                  lektion: TERROIR.eindruecke.lektion,
+                })
+              }
+            />
             <Text style={styles.fieldHint}>Mehrfachauswahl möglich.</Text>
             <View style={styles.optionList}>
               {TERROIR.eindruecke.optionen.map((o) => {
@@ -598,7 +699,17 @@ export default function TastingWizardScreen() {
         )}
         {isFieldVisible('klima_eindruck', level) && (
           <View style={styles.field}>
-            <FieldLabel label={TERROIR.klima_eindruck.label} />
+            <FieldLabel
+              label={TERROIR.klima_eindruck.label}
+              onHelp={() =>
+                setHelp({
+                  title: TERROIR.klima_eindruck.label,
+                  text: 'Säure, Reife der Frucht und Alkohol geben Hinweise darauf, ob die Trauben in einem kühlen oder warmen Klima gewachsen sind.',
+                  anker: TERROIR.klima_eindruck.optionen.map((o) => `${o.label}: ${o.erklaerung ?? ''}`),
+                  lektion: TERROIR.klima_eindruck.lektion,
+                })
+              }
+            />
             <OptionRow<string>
               groupLabel="Klimaeindruck"
               options={TERROIR.klima_eindruck.optionen.map((o) => ({ id: o.id, label: o.label }))}
@@ -610,7 +721,10 @@ export default function TastingWizardScreen() {
         )}
         {isFieldVisible('boden_tipp', level) && (
           <View style={styles.field}>
-            <FieldLabel label={TERROIR.boeden.label} />
+            <FieldLabel
+              label={TERROIR.boeden.label}
+              onHelp={() => setHelp({ title: TERROIR.boeden.label, text: TERROIR.hinweis, lektion: TERROIR.boeden.lektion })}
+            />
             <Text style={styles.fieldHint}>Auf welchen Boden tippst du? Einfachauswahl, freiwillig.</Text>
             <OptionRow<string>
               groupLabel="Dein Tipp zum Boden"
@@ -707,11 +821,12 @@ export default function TastingWizardScreen() {
             </Text>
           </View>
           <View style={styles.progressWrap}>
-            <StepProgress steps={steps} labels={STEP_LABELS} current={step} filled={filled} />
+            <StepProgress steps={steps} labels={STEP_LABELS} current={step} filled={filled} focus={lessonCtx.focus} />
           </View>
         </View>
 
         <ScrollView ref={scrollRef} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          {taskBox}
           <Text style={styles.stepTitle}>{STEP_LABELS[step]}</Text>
           <Text style={styles.stepText}>{STEP_TEXTE[step]}</Text>
           <View style={styles.divider} />
@@ -755,6 +870,8 @@ export default function TastingWizardScreen() {
         title={help?.title ?? ''}
         text={help?.text ?? ''}
         anker={help?.anker}
+        lessonLink={help ? linkFor(help.lektion) : undefined}
+        onOpenLesson={openLesson}
         onClose={() => setHelp(null)}
       />
     </SafeAreaView>

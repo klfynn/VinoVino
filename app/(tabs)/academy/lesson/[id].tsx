@@ -29,6 +29,8 @@ import UnlockModal from '../../../../components/academy/UnlockModal';
 import { useQuizDraft } from '../../../../lib/academy/useQuizDraft';
 import { resumeIndex } from '../../../../lib/academy/quizDraft';
 import { loadSeenUnlocks, markUnlocksSeen } from '../../../../lib/academy/seenUnlocks';
+import { lessonTaskFor } from '../../../../lib/tasting/lessonLinks';
+import { LessonPracticeTasting } from '../../../../components/tasting/LessonPracticeTasting';
 
 type Phase = 'slides' | 'quiz' | 'ergebnis';
 type SaveState = 'idle' | 'saving' | 'saved' | 'error' | 'anonym';
@@ -408,6 +410,8 @@ function ResultPhase({
   onNext: () => void;
   onOverview: () => void;
 }) {
+  // Teil C: Verkostung als Praxisaufgabe nur bei Lektionen mit Eintrag in lektionen.json.
+  const practiceTask = lessonTaskFor(lektion.id);
   return (
     <ScrollView contentContainerStyle={styles.resultContent} showsVerticalScrollIndicator={false}>
       <Text style={styles.quizLabel}>Ergebnis</Text>
@@ -458,6 +462,7 @@ function ResultPhase({
       <View style={styles.practice}>
         <Text style={styles.practiceTitle}>🍷 Praxisaufgabe</Text>
         <RichText text={lektion.praxisaufgabe} />
+        {practiceTask && <LessonPracticeTasting lessonId={lektion.id} task={practiceTask} />}
       </View>
 
       <View style={styles.resultButtons}>

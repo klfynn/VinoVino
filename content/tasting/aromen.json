@@ -141,7 +141,7 @@
         {
           "id": "hefe_gaerung",
           "label": "Hefe und Gärung",
-          "lektion": "l13",
+          "lektion": "l15",
           "aromen": [
             { "id": "brioche", "label": "Brioche" },
             { "id": "hefe", "label": "Hefe" },
