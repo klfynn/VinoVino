@@ -297,7 +297,8 @@ eq('Skalen erweitert (rot)', getSkalen('rot', 'erweitert').map((s) => s.id), [
 ]);
 eq('Skalen erweitert (weiss) ohne Tannin', getSkalen('weiss', 'erweitert').some((s) => s.id === 'tannin'), false);
 check('Mousse und Perlage nur bei Schaumwein (Profi)', getSkalen('schaum', 'profi').some((s) => s.id === 'mousse') && getSkalen('schaum', 'profi').some((s) => s.id === 'perlage') && !getSkalen('rot', 'profi').some((s) => s.id === 'mousse'));
-eq('Mousse nicht in Stufe erweitert', getSkalen('schaum', 'erweitert').some((s) => s.id === 'mousse'), false);
+eq('Mousse und Perlage ab Stufe erweitert (Schaumwein)', ['mousse', 'perlage'].map((id) => getSkalen('schaum', 'erweitert').some((s) => s.id === id)), [true, true]);
+eq('Mousse und Perlage nicht in Stufe einfach (Schaumwein)', ['mousse', 'perlage'].map((id) => getSkalen('schaum', 'einfach').some((s) => s.id === id)), [false, false]);
 eq('Balance erst in Profi', [getSkalen('weiss', 'erweitert').some((s) => s.id === 'balance'), getSkalen('weiss', 'profi').some((s) => s.id === 'balance')], [false, true]);
 
 // ── Aromen filtern ────────────────────────────────────────────────────────────
@@ -581,6 +582,22 @@ check('Tannin bei Rotwein ab Erweitert', skalenIds('schmecken', 'rot', 'erweiter
 for (const k of WEIN_KATEGORIEN) {
   eq(`Perlage nur bei Schaumwein (${k})`, skalenIds('sehen', k, 'profi').includes('perlage'), k === 'schaum');
   eq(`Mousse nur bei Schaumwein (${k})`, skalenIds('schmecken', k, 'profi').includes('mousse'), k === 'schaum');
+  // Lektion 15 (Schaumwein) verweist auf die Stufe Erweitert: dort müssen beide Felder erscheinen.
+  for (const l of ALLE_STUFEN) {
+    const erwartet = k === 'schaum' && l !== 'einfach';
+    eq(`Perlage im Schritt Sehen (${k}, ${l})`, skalenIds('sehen', k, l).includes('perlage'), erwartet);
+    eq(`Mousse im Schritt Schmecken (${k}, ${l})`, skalenIds('schmecken', k, l).includes('mousse'), erwartet);
+  }
+}
+// Pruning: Perlage und Mousse bleiben bei Schaumwein in Erweitert erhalten, in Einfach nicht.
+{
+  const d = { sehen: { perlage: 4 }, schmecken: { mousse: 3 } } as TastingData;
+  const erw = pruneTastingData(d, 'schaum', 'erweitert') as TastingData;
+  eq('Pruning Erweitert behält Perlage und Mousse (Schaumwein)', [erw.sehen?.perlage, erw.schmecken?.mousse], [4, 3]);
+  const einf = pruneTastingData(d, 'schaum', 'einfach') as TastingData;
+  eq('Pruning Einfach entfernt Perlage und Mousse (Schaumwein)', [einf.sehen?.perlage, einf.schmecken?.mousse], [undefined, undefined]);
+  const rot = pruneTastingData(d, 'rot', 'erweitert') as TastingData;
+  eq('Pruning entfernt Perlage und Mousse bei Rotwein', [rot.sehen?.perlage, rot.schmecken?.mousse], [undefined, undefined]);
 }
 // Stufe Einfach zeigt keine Profi- (und keine Erweitert-) Felder
 for (const k of WEIN_KATEGORIEN) {
