@@ -1,0 +1,223 @@
+{
+  "laender": [
+    {
+      "id": "deutschland",
+      "label": "Deutschland",
+      "aliases": [
+        "Germany",
+        "Allemagne",
+        "Germania",
+        "Alemania"
+      ]
+    },
+    {
+      "id": "oesterreich",
+      "label": "Österreich",
+      "aliases": [
+        "Austria",
+        "Autriche",
+        "Osterreich"
+      ]
+    },
+    {
+      "id": "schweiz",
+      "label": "Schweiz",
+      "aliases": [
+        "Switzerland",
+        "Suisse",
+        "Svizzera"
+      ]
+    },
+    {
+      "id": "frankreich",
+      "label": "Frankreich",
+      "aliases": [
+        "France",
+        "Francia"
+      ]
+    },
+    {
+      "id": "italien",
+      "label": "Italien",
+      "aliases": [
+        "Italy",
+        "Italia",
+        "Italie"
+      ]
+    },
+    {
+      "id": "spanien",
+      "label": "Spanien",
+      "aliases": [
+        "Spain",
+        "España",
+        "Espagne",
+        "Spagna"
+      ]
+    },
+    {
+      "id": "portugal",
+      "label": "Portugal",
+      "aliases": []
+    },
+    {
+      "id": "ungarn",
+      "label": "Ungarn",
+      "aliases": [
+        "Hungary",
+        "Magyarország",
+        "Hongrie"
+      ]
+    },
+    {
+      "id": "griechenland",
+      "label": "Griechenland",
+      "aliases": [
+        "Greece",
+        "Hellas",
+        "Grèce",
+        "Grecia"
+      ]
+    },
+    {
+      "id": "slowenien",
+      "label": "Slowenien",
+      "aliases": [
+        "Slovenia",
+        "Slovenija"
+      ]
+    },
+    {
+      "id": "kroatien",
+      "label": "Kroatien",
+      "aliases": [
+        "Croatia",
+        "Hrvatska"
+      ]
+    },
+    {
+      "id": "rumaenien",
+      "label": "Rumänien",
+      "aliases": [
+        "Romania",
+        "România"
+      ]
+    },
+    {
+      "id": "bulgarien",
+      "label": "Bulgarien",
+      "aliases": [
+        "Bulgaria"
+      ]
+    },
+    {
+      "id": "georgien",
+      "label": "Georgien",
+      "aliases": [
+        "Georgia",
+        "Sakartvelo"
+      ]
+    },
+    {
+      "id": "libanon",
+      "label": "Libanon",
+      "aliases": [
+        "Lebanon",
+        "Liban"
+      ]
+    },
+    {
+      "id": "israel",
+      "label": "Israel",
+      "aliases": []
+    },
+    {
+      "id": "usa",
+      "label": "USA",
+      "aliases": [
+        "Vereinigte Staaten",
+        "United States",
+        "Vereinigte Staaten von Amerika",
+        "Kalifornien",
+        "California"
+      ]
+    },
+    {
+      "id": "kanada",
+      "label": "Kanada",
+      "aliases": [
+        "Canada"
+      ]
+    },
+    {
+      "id": "argentinien",
+      "label": "Argentinien",
+      "aliases": [
+        "Argentina",
+        "Argentine"
+      ]
+    },
+    {
+      "id": "chile",
+      "label": "Chile",
+      "aliases": [
+        "Chili"
+      ]
+    },
+    {
+      "id": "uruguay",
+      "label": "Uruguay",
+      "aliases": []
+    },
+    {
+      "id": "brasilien",
+      "label": "Brasilien",
+      "aliases": [
+        "Brazil",
+        "Brasil"
+      ]
+    },
+    {
+      "id": "suedafrika",
+      "label": "Südafrika",
+      "aliases": [
+        "South Africa",
+        "Afrique du Sud",
+        "Sudafrika"
+      ]
+    },
+    {
+      "id": "australien",
+      "label": "Australien",
+      "aliases": [
+        "Australia",
+        "Australie"
+      ]
+    },
+    {
+      "id": "neuseeland",
+      "label": "Neuseeland",
+      "aliases": [
+        "New Zealand",
+        "Nouvelle-Zélande",
+        "Aotearoa"
+      ]
+    },
+    {
+      "id": "england",
+      "label": "England",
+      "aliases": [
+        "Großbritannien",
+        "Vereinigtes Königreich",
+        "United Kingdom"
+      ]
+    },
+    {
+      "id": "luxemburg",
+      "label": "Luxemburg",
+      "aliases": [
+        "Luxembourg"
+      ]
+    }
+  ]
+}

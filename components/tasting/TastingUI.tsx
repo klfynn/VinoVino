@@ -235,10 +235,11 @@ export function StepProgress({
   filled,
   focus,
 }: {
-  steps: TastingStep[];
+  /** Schritte des Bogens; im Blind-Modus zusätzlich „tipp“ (Teil D1) */
+  steps: readonly string[];
   labels: Record<string, string>;
-  current: TastingStep;
-  filled: TastingStep[];
+  current: string;
+  filled: readonly string[];
   /** Schwerpunkt aus einer Praxisaufgabe (Teil C), wird als „Schwerpunkt dieser Lektion“ markiert */
   focus?: TastingStep | null;
 }) {

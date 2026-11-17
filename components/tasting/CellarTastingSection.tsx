@@ -16,6 +16,7 @@ import {
 } from '../../lib/tasting/summary';
 import type { TastingNote, WeinKategorie } from '../../lib/tasting/types';
 import { AromaChipList, HintBox, ProfileBars, SectionTitle, TOUCH, tastingStyles } from './TastingUI';
+import { BlindBadge } from './BlindUI';
 
 export function CellarTastingSection({
   notes,
@@ -77,7 +78,10 @@ export function CellarTastingSection({
 
       {latest && (
         <View style={[tastingStyles.card, styles.block]}>
-          <Text style={styles.cardTitle}>Letzte Verkostung</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.cardTitle}>Letzte Verkostung</Text>
+            {latest.blind && <BlindBadge />}
+          </View>
           <Text style={styles.cardSub}>
             {formatTastingDate(latest.tastedAt)} · {levelLabel(latest.level)}
           </Text>
@@ -107,13 +111,16 @@ export function CellarTastingSection({
               onPress={() => onOpen(n)}
               activeOpacity={0.85}
               accessibilityRole="button"
-              accessibilityLabel={`Verkostung vom ${formatTastingDate(n.tastedAt)}, Stufe ${levelLabel(n.level)}, ${summarySentence(n.data, kategorie)}. Öffnen`}
+              accessibilityLabel={`${n.blind ? 'Blindverkostung' : 'Verkostung'} vom ${formatTastingDate(n.tastedAt)}, Stufe ${levelLabel(n.level)}, ${summarySentence(n.data, kategorie)}. Öffnen`}
             >
               <View style={styles.itemText}>
-                <Text style={styles.itemTitle}>
-                  {formatTastingDate(n.tastedAt)}
-                  <Text style={styles.itemLevel}>{'  ·  '}{levelLabel(n.level).toUpperCase()}</Text>
-                </Text>
+                <View style={styles.titleRow}>
+                  <Text style={styles.itemTitle}>
+                    {formatTastingDate(n.tastedAt)}
+                    <Text style={styles.itemLevel}>{'  ·  '}{levelLabel(n.level).toUpperCase()}</Text>
+                  </Text>
+                  {n.blind && <BlindBadge />}
+                </View>
                 <Text style={styles.itemSub} numberOfLines={1}>{summarySentence(n.data, kategorie)}</Text>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.accent} />
@@ -132,6 +139,7 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', gap: spacing.sm },
   emptyText: { color: colors.text, fontSize: 14, textAlign: 'center' },
   cardTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' },
   cardSub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },
   trinkreife: { color: colors.textMuted, fontSize: 13, marginTop: spacing.md },
   trinkreifeValue: { color: colors.text, fontWeight: '600' },

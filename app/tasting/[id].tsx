@@ -1,7 +1,10 @@
 // Verkostungsbogen als Assistent: Sehen → Riechen → Schmecken → Terroir → Fazit.
-// Route: /tasting/[id]?kind=market|custom&level=…&focus=…&lesson=…&from=lektion
+// Route: /tasting/[id]?kind=market|custom&level=…&focus=…&lesson=…&from=lektion&blind=1
 // `lesson`, `focus` und `level` setzt die Praxisaufgabe einer Lektion (Teil C), `from=lektion`
 // sagt, dass der Assistent aus der Lektion geöffnet wurde (für „Zurück zur Lektion“).
+// `blind=1` (Teil D1): Blindverkostung. Name und Angaben des Weins sind ausgeblendet („Blindwein“),
+// nach Terroir kommt der Schritt Tipp, im Fazit gibt es keine Sterne, „Auflösen“ speichert und
+// zeigt danach die Auflösung. Andere Werte von `blind` werden ignoriert.
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -28,6 +31,7 @@ import { CloseButton, LoadingState, PrimaryButton } from '../../components/acade
 import { AromaPicker } from '../../components/tasting/AromaPicker';
 import { LessonTaskBox } from '../../components/tasting/LessonTaskBox';
 import { TastingResultView } from '../../components/tasting/TastingResultView';
+import { BlindResolution, CatalogPicker } from '../../components/tasting/BlindUI';
 import {
   Chip,
   ColorSwatches,
@@ -40,7 +44,22 @@ import {
   StepProgress,
   TOUCH,
 } from '../../components/tasting/TastingUI';
-import { ABSCHNITTE, AROMEN, TERROIR } from '../../lib/tasting/catalog';
+import { ABSCHNITTE, AROMEN, LAENDER, REBSORTEN, TERROIR } from '../../lib/tasting/catalog';
+import {
+  BLIND_NAME,
+  BLIND_TIPP_EINLEITUNG,
+  blindTruthFromEntry,
+  buildBlindSaveData,
+  cleanJahrgangInput,
+  isBlindTippFilled,
+  parseBlindParam,
+  resumeWizardStep,
+  stepAfter,
+  stepBefore,
+  WEINART_TIPP_WERTE,
+  WizardStep,
+  wizardSteps,
+} from '../../lib/tasting/blind';
 import { draftLessonContext, resolveLessonParams, startStepFor } from '../../lib/tasting/lessonLinks';
 import { lessonInfo, useLessonLinks } from '../../lib/tasting/useLessonLinks';
 import { useTastingDraft } from '../../lib/tasting/useTastingDraft';
@@ -50,10 +69,7 @@ import {
   filledSteps,
   hasAnyInput,
   isFieldVisible,
-  nextStep,
-  previousStep,
   pruneTastingData,
-  resumeStep,
   skalaKey,
   stepSkalen,
   visibleAromaStufen,
@@ -93,10 +109,13 @@ import {
   Lagerpotenzial,
   NasenZustand,
   NOTIZ_MAX_LENGTH,
+  REBSORTEN_TIPP_MAX,
+  REGION_TIPP_MAX_LENGTH,
   Skala,
   Skalenwert,
   TASTING_LEVELS,
   TastingAromen,
+  TastingBlind,
   TastingData,
   TastingLevel,
   TastingNote,
@@ -107,8 +126,13 @@ import {
 
 type Phase = 'frage' | 'start' | 'bogen' | 'fertig';
 
-const STEP_LABELS: Record<string, string> = Object.fromEntries(ABSCHNITTE.map((a) => [a.id, a.label]));
-const STEP_TEXTE: Record<string, string> = Object.fromEntries(ABSCHNITTE.map((a) => [a.id, a.beschreibung]));
+// Der Schritt Tipp der Blindverkostung nutzt den Abschnitt „blind“ aus abschnitte.json.
+const STEP_LABELS: Record<string, string> = Object.fromEntries(
+  ABSCHNITTE.map((a) => [a.id === 'blind' ? 'tipp' : a.id, a.label]),
+);
+const STEP_TEXTE: Record<string, string> = Object.fromEntries(
+  ABSCHNITTE.map((a) => [a.id === 'blind' ? 'tipp' : a.id, a.beschreibung]),
+);
 const DRAFT_DEBOUNCE_MS = 500;
 // Platzhalter, damit der Entwurfs-Hook auch ohne gültige Route aufgerufen werden kann.
 const KEIN_WEIN: WineRef = { kind: 'market', id: 'kein-wein' };
@@ -136,6 +160,8 @@ export default function TastingWizardScreen() {
     [JSON.stringify(rawParams)],
   );
   const fromLesson = (Array.isArray(rawParams.from) ? rawParams.from[0] : rawParams.from) === 'lektion';
+  // Teil D1: Blind-Modus nur bei `blind=1`.
+  const blind = parseBlindParam(rawParams.blind as string | string[] | undefined);
   const { linkFor } = useLessonLinks();
   const { user } = useAuth();
   const userId = user?.id ?? null;
@@ -149,7 +175,8 @@ export default function TastingWizardScreen() {
   const availability = tastingAvailability({ signedIn: !!userId, persisted: !!entry?.persisted, ref: params.ref });
   const bodenEintrag = entry?.custom?.boden ?? null;
 
-  const draft = useTastingDraft(ref);
+  // Blindverkostungen haben einen eigenen Zwischenstand (siehe tastingDraftKey).
+  const draft = useTastingDraft(ref, blind);
 
   const [phase, setPhase] = useState<Phase | null>(null);
   const [level, setLevel] = useState<TastingLevel>(lessonParams.level ?? 'einfach');
@@ -158,12 +185,19 @@ export default function TastingWizardScreen() {
     lessonId: lessonParams.lessonId,
     focus: lessonParams.focus,
   });
-  const [step, setStep] = useState<TastingStep>('sehen');
+  const [step, setStep] = useState<WizardStep>('sehen');
   const [data, setData] = useState<TastingData>({});
   const [stars, setStars] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saved, setSaved] = useState<{ note: TastingNote; starsError: string | null } | null>(null);
+  // Sterne in der Auflösung der Blindverkostung (gespeichert über den Weinkeller)
+  const [afterStars, setAfterStars] = useState<{ value: number; saving: boolean; error: string | null; ok: boolean }>({
+    value: 0,
+    saving: false,
+    error: null,
+    ok: false,
+  });
   const [help, setHelp] = useState<Help | null>(null);
   const scrollRef = useRef<ScrollViewInstance>(null);
 
@@ -253,9 +287,10 @@ export default function TastingWizardScreen() {
 
   const goToWine = useCallback(() => {
     if (router.canGoBack()) router.back();
-    else if (params.ref) router.replace({ pathname: '/cellar/[id]', params: { id: params.ref.id, kind: params.ref.kind } });
+    // Im Blind-Modus nie auf die Detailseite springen, das würde den Wein verraten.
+    else if (params.ref && !blind) router.replace({ pathname: '/cellar/[id]', params: { id: params.ref.id, kind: params.ref.kind } });
     else router.replace('/(tabs)/watchlist');
-  }, [router, params.ref]);
+  }, [router, params.ref, blind]);
 
   // Lektion auf den Stapel legen (nicht den Assistenten ersetzen). Der Assistent bleibt darunter
   // geöffnet; zusätzlich wird der Zwischenstand sofort gespeichert.
@@ -276,9 +311,10 @@ export default function TastingWizardScreen() {
     else router.replace({ pathname: '/lektion/[id]', params: { id } });
   };
 
-  // Abschluss: „Zum Wein“. Aus einer Lektion heraus läge darunter die Lektion, nicht der Wein.
+  // Abschluss: „Zum Wein“. Aus einer Lektion heraus läge darunter die Lektion, nicht der Wein;
+  // bei der Blindverkostung die Weinkeller-Liste.
   const openWine = () => {
-    if (fromLesson && params.ref) {
+    if ((fromLesson || blind) && params.ref) {
       router.replace({ pathname: '/cellar/[id]', params: { id: params.ref.id, kind: params.ref.kind } });
     } else {
       goToWine();
@@ -295,7 +331,7 @@ export default function TastingWizardScreen() {
     // Lektion und Schwerpunkt des Entwurfs bleiben erhalten (auch wenn die Route etwas anderes sagt).
     setLessonCtx(draftLessonContext(d, isLesson));
     setData(d.data);
-    setStep(resumeStep(d.step, d.level));
+    setStep(resumeWizardStep(d.step, wizardSteps(d.level, blind)));
     setPhase('bogen');
   };
 
@@ -319,7 +355,7 @@ export default function TastingWizardScreen() {
     setPhase('bogen');
   };
 
-  const goStep = (next: TastingStep | null) => {
+  const goStep = (next: WizardStep | null) => {
     if (!next) return;
     setStep(next);
     scrollRef.current?.scrollTo({ y: 0, animated: false });
@@ -333,10 +369,14 @@ export default function TastingWizardScreen() {
     const result = await saveTastingNote({
       ref: params.ref,
       level,
-      data: pruneTastingData(data, kategorie, level),
+      // Blindverkostung: Tipps und Momentaufnahme der tatsächlichen Angaben (`wahrheit`) dazu.
+      data: blind
+        ? buildBlindSaveData(data, kategorie, level, blindTruthFromEntry(entry))
+        : pruneTastingData(data, kategorie, level),
       purchasedWineId,
       focus: lessonCtx.focus,
       lessonId: lessonCtx.lessonId,
+      blind,
     });
     if (!result.ok) {
       // Entwurf bleibt erhalten; der Nutzer kann es erneut versuchen.
@@ -347,18 +387,28 @@ export default function TastingWizardScreen() {
     }
     draft.clear();
     let starsError: string | null = null;
-    const neueSterne = ratingToSave(entry.rating, stars);
+    // Im Blind-Modus gibt es im Fazit keine Sterne; bewertet wird erst in der Auflösung.
+    const neueSterne = blind ? null : ratingToSave(entry.rating, stars);
     if (neueSterne !== null) {
       // Über den Weinkeller speichern, damit Sterne und private Notiz zusammen bleiben.
       const r = await setRating(entry, neueSterne, entry.notes ?? '');
       if (!r.ok) starsError = r.error;
     }
     setSaved({ note: result.data, starsError });
+    setAfterStars({ value: entry.rating ?? 0, saving: false, error: null, ok: false });
     setSaving(false);
     setPhase('fertig');
   };
 
   // ── Daten ändern ─────────────────────────────────────────────────────────────
+
+  // Sterne nach der Auflösung: über die bestehende Weinkeller-Funktion.
+  const rateAfterReveal = async (n: number) => {
+    if (!entry || afterStars.saving) return;
+    setAfterStars((a) => ({ ...a, value: n, saving: true, error: null, ok: false }));
+    const r = await setRating(entry, n, entry.notes ?? '');
+    setAfterStars((a) => ({ ...a, saving: false, error: r.ok ? null : r.error, ok: r.ok }));
+  };
 
   const sectionOf = (s: TastingStep): Section => ((data as Record<string, Section | undefined>)[s] ?? {}) as Section;
   const setField = (s: TastingStep, key: string, value: unknown) =>
@@ -366,6 +416,10 @@ export default function TastingWizardScreen() {
       const current = ((d as Record<string, Section | undefined>)[s] ?? {}) as Section;
       return { ...d, [s]: { ...current, [key]: value } } as TastingData;
     });
+
+  const tipps: TastingBlind = data.blind ?? {};
+  const setTipp = <K extends keyof TastingBlind>(key: K, value: TastingBlind[K] | undefined) =>
+    setData((d) => ({ ...d, blind: { ...(d.blind ?? {}), [key]: value } }));
 
   const naseAromen: TastingAromen = { ...LEERE_AROMEN, ...(data.riechen?.aromen ?? {}) };
   const toggleNase = (stufe: AromaStufe, id: string) =>
@@ -401,11 +455,14 @@ export default function TastingWizardScreen() {
     />
   ) : null;
 
+  // Im Blind-Modus steht überall „Blindwein“ statt des Namens, ohne Weinart und Jahrgang.
+  const wineTitle = blind ? BLIND_NAME : entry.wine.name;
   const header = (
     <View style={styles.wineHead}>
-      <Text style={styles.eyebrow}>VERKOSTUNG</Text>
-      <Text style={styles.wineName} numberOfLines={2}>{entry.wine.name}</Text>
-      {wineInfoLine(entry) ? <Text style={styles.wineInfo}>{wineInfoLine(entry)}</Text> : null}
+      <Text style={styles.eyebrow}>{blind ? 'BLINDVERKOSTUNG' : 'VERKOSTUNG'}</Text>
+      <Text style={styles.wineName} numberOfLines={2}>{wineTitle}</Text>
+      {!blind && wineInfoLine(entry) ? <Text style={styles.wineInfo}>{wineInfoLine(entry)}</Text> : null}
+      {blind ? <Text style={styles.wineInfo}>Name und Angaben siehst du erst bei der Auflösung.</Text> : null}
     </View>
   );
 
@@ -417,7 +474,9 @@ export default function TastingWizardScreen() {
           {header}
           <View style={styles.card}>
             <Ionicons name="time-outline" size={28} color={colors.accent} />
-            <Text style={styles.questionTitle}>Du hast eine angefangene Verkostung.</Text>
+            <Text style={styles.questionTitle}>
+              {blind ? 'Du hast eine angefangene Blindverkostung.' : 'Du hast eine angefangene Verkostung.'}
+            </Text>
             <Text style={[styles.mutedText, styles.center]}>
               Stufe {levelLabel(draft.draft.level)}, zuletzt bearbeitet am{' '}
               {formatTastingDate(new Date(draft.draft.savedAt).toISOString())}.
@@ -468,7 +527,49 @@ export default function TastingWizardScreen() {
             })}
           </View>
           <Text style={styles.footHint}>Jeder Schritt ist freiwillig. Du kannst alles überspringen.</Text>
-          <PrimaryButton label="Verkostung beginnen" onPress={begin} style={styles.fullButton} />
+          <PrimaryButton label={blind ? 'Blindverkostung beginnen' : 'Verkostung beginnen'} onPress={begin} style={styles.fullButton} />
+        </ScrollView>
+      </Screen>
+    );
+  }
+
+  // Auflösung der Blindverkostung (erst nach erfolgreichem Speichern)
+  if (phase === 'fertig' && saved && blind) {
+    return (
+      <Screen>
+        <ScrollView contentContainerStyle={styles.content}>
+          <BlindResolution
+            wineName={entry.wine.name}
+            blind={saved.note.data.blind}
+            bodenTipp={saved.note.data.terroir?.boden_tipp ?? null}
+            bodenEintrag={bodenEintrag}
+          />
+          <TastingResultView data={saved.note.data} kategorie={kategorie} bodenEintrag={bodenEintrag} ohneBodenVergleich />
+          <View style={[styles.starCard, styles.gapTop]}>
+            <FieldLabel label="Wie bewertest du den Wein jetzt, wo du ihn kennst?" />
+            <StarInput value={afterStars.value} onChange={rateAfterReveal} />
+            {afterStars.saving ? <ActivityIndicator color={colors.accent} style={styles.gapTopSmall} /> : null}
+            {afterStars.ok ? (
+              <View style={styles.gapTopSmall}>
+                <HintBox tone="success" text="Deine Sterne sind im Weinkeller gespeichert." />
+              </View>
+            ) : null}
+            {afterStars.error ? (
+              <View style={styles.gapTopSmall}>
+                <HintBox tone="error" text={`Die Sterne wurden nicht gespeichert: ${afterStars.error}`} />
+              </View>
+            ) : null}
+            <Text style={styles.fieldHintBelow}>Freiwillig. Die Sterne werden als deine Bewertung im Weinkeller gespeichert.</Text>
+          </View>
+          <PrimaryButton label="Zum Wein" onPress={openWine} style={styles.fullButton} />
+          {lessonCtx.lessonId && (
+            <PrimaryButton
+              label="Zurück zur Lektion"
+              variant="outline"
+              onPress={backToLesson}
+              style={styles.fullButtonSecondary}
+            />
+          )}
         </ScrollView>
       </Screen>
     );
@@ -508,10 +609,13 @@ export default function TastingWizardScreen() {
 
   // ── Bogen ────────────────────────────────────────────────────────────────────
 
-  const steps = visibleSteps(level);
-  const filled = filledSteps(data, kategorie, level);
-  const isLast = nextStep(step, level) === null;
-  const prev = previousStep(step, level);
+  const steps = wizardSteps(level, blind);
+  const filled: WizardStep[] = [
+    ...filledSteps(data, kategorie, level),
+    ...(blind && isBlindTippFilled(data.blind) ? (['tipp'] as WizardStep[]) : []),
+  ];
+  const isLast = stepAfter(steps, step) === null;
+  const prev = stepBefore(steps, step);
 
   const renderSkalen = (s: TastingStep, nur?: string[]) =>
     stepSkalen(s, kategorie, level)
@@ -653,7 +757,8 @@ export default function TastingWizardScreen() {
     const klima = TERROIR.klima_eindruck.optionen.find((o) => o.id === data.terroir?.klima_eindruck);
     const tipp = data.terroir?.boden_tipp ?? null;
     const tippOption = TERROIR.boeden.optionen.find((o) => o.id === tipp);
-    const vergleich = bodenVergleichText(compareBoden(tipp, bodenEintrag));
+    // Im Blind-Modus kein Vergleich mit dem Eintrag (der würde den Wein verraten); er folgt in der Auflösung.
+    const vergleich = blind ? null : bodenVergleichText(compareBoden(tipp, bodenEintrag));
     body = (
       <>
         {isFieldVisible('eindruecke', level) && (
@@ -743,6 +848,73 @@ export default function TastingWizardScreen() {
         )}
       </>
     );
+  } else if (step === 'tipp') {
+    const jahrgang = tipps.jahrgang_tipp ?? '';
+    body = (
+      <>
+        <View style={styles.field}>
+          <FieldLabel label="Weinart" />
+          <OptionRow<string>
+            groupLabel="Weinart"
+            options={WEINART_TIPP_WERTE.map((w) => ({ id: w, label: w }))}
+            value={tipps.weinart_tipp}
+            onChange={(v) => setTipp('weinart_tipp', v)}
+          />
+        </View>
+        <View style={styles.field}>
+          <FieldLabel label="Land" />
+          <CatalogPicker
+            items={LAENDER}
+            selected={tipps.land_tipp ? [tipps.land_tipp] : []}
+            max={1}
+            onChange={(ids) => setTipp('land_tipp', ids[0])}
+            placeholder="Land suchen, zum Beispiel Italien"
+            groupLabel="Land"
+          />
+        </View>
+        <View style={styles.field}>
+          <FieldLabel label="Region" />
+          <TextInput
+            style={styles.input}
+            value={tipps.region_tipp ?? ''}
+            onChangeText={(t) => setTipp('region_tipp', t)}
+            placeholder="Zum Beispiel Mosel oder Rioja"
+            placeholderTextColor={colors.textMuted}
+            maxLength={REGION_TIPP_MAX_LENGTH}
+            autoCorrect={false}
+            accessibilityLabel="Dein Tipp zur Region"
+          />
+        </View>
+        <View style={styles.field}>
+          <FieldLabel label="Rebsorte" />
+          <Text style={styles.fieldHint}>Bis zu {REBSORTEN_TIPP_MAX}. Auch andere Namen werden gefunden, zum Beispiel Pinot Noir.</Text>
+          <CatalogPicker
+            items={REBSORTEN}
+            selected={tipps.rebsorten_tipp ?? []}
+            max={REBSORTEN_TIPP_MAX}
+            onChange={(ids) => setTipp('rebsorten_tipp', ids)}
+            placeholder="Rebsorte suchen"
+            groupLabel="Rebsorte"
+          />
+        </View>
+        <View style={styles.field}>
+          <FieldLabel label="Jahrgang" />
+          <TextInput
+            style={[styles.input, styles.inputShort]}
+            value={jahrgang}
+            onChangeText={(t) => setTipp('jahrgang_tipp', cleanJahrgangInput(t))}
+            placeholder="z. B. 2019"
+            placeholderTextColor={colors.textMuted}
+            keyboardType="number-pad"
+            maxLength={4}
+            accessibilityLabel="Dein Tipp zum Jahrgang, vierstellig"
+          />
+          {jahrgang.length > 0 && jahrgang.length < 4 ? (
+            <Text style={styles.fieldHintBelow}>Bitte vierstellig, zum Beispiel 2019.</Text>
+          ) : null}
+        </View>
+      </>
+    );
   } else if (step === 'fazit') {
     const notiz = data.fazit?.notiz ?? '';
     body = (
@@ -789,17 +961,20 @@ export default function TastingWizardScreen() {
             <Text style={styles.privateHintText}>{Array.from(notiz).length}/{NOTIZ_MAX_LENGTH}</Text>
           </View>
         </View>
-        <View style={styles.field}>
-          <FieldLabel label="Gesamtnote" />
-          <StarInput
-            value={stars}
-            onChange={(n) => {
-              starsTouched.current = true;
-              setStars(n);
-            }}
-          />
-          <Text style={styles.fieldHintBelow}>Die Sterne werden als deine Bewertung im Weinkeller gespeichert.</Text>
-        </View>
+        {/* Blindverkostung: keine Sterne im Fazit, das würde ohne Kenntnis des Weins bewerten. */}
+        {!blind && (
+          <View style={styles.field}>
+            <FieldLabel label="Gesamtnote" />
+            <StarInput
+              value={stars}
+              onChange={(n) => {
+                starsTouched.current = true;
+                setStars(n);
+              }}
+            />
+            <Text style={styles.fieldHintBelow}>Die Sterne werden als deine Bewertung im Weinkeller gespeichert.</Text>
+          </View>
+        )}
         {saveError && (
           <View style={styles.field}>
             <HintBox tone="error" text={`${saveError} Dein Zwischenstand bleibt erhalten.`} />
@@ -816,7 +991,7 @@ export default function TastingWizardScreen() {
           <View style={styles.topRow}>
             <CloseButton onPress={goToWine} />
             <Text style={styles.topTitle} numberOfLines={1}>
-              {entry.wine.name}
+              {wineTitle}
               <Text style={styles.topLevel}>{'  ·  '}{levelLabel(level).toUpperCase()}</Text>
             </Text>
           </View>
@@ -847,18 +1022,24 @@ export default function TastingWizardScreen() {
               onPress={save}
               disabled={saving}
               accessibilityRole="button"
-              accessibilityLabel={saveError ? 'Erneut speichern' : 'Verkostung speichern'}
+              accessibilityLabel={
+                blind
+                  ? saveError ? 'Erneut auflösen' : 'Auflösen: Verkostung speichern und Wein zeigen'
+                  : saveError ? 'Erneut speichern' : 'Verkostung speichern'
+              }
             >
               {saving ? (
                 <ActivityIndicator color={colors.background} />
               ) : (
-                <Text style={styles.saveButtonText}>{saveError ? 'Erneut speichern' : 'Speichern'}</Text>
+                <Text style={styles.saveButtonText}>
+                  {blind ? (saveError ? 'Erneut auflösen' : 'Auflösen') : saveError ? 'Erneut speichern' : 'Speichern'}
+                </Text>
               )}
             </TouchableOpacity>
           ) : (
             <PrimaryButton
               label={filled.includes(step) ? 'Weiter' : 'Überspringen'}
-              onPress={() => goStep(nextStep(step, level))}
+              onPress={() => goStep(stepAfter(steps, step))}
               style={styles.footerButton}
             />
           )}
@@ -959,6 +1140,27 @@ const styles = StyleSheet.create({
   doneHead: { alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg },
   doneTitle: { color: colors.accent, fontSize: 20, fontWeight: '700' },
   gapBottom: { marginBottom: spacing.md },
+  gapTop: { marginTop: spacing.md },
+  gapTopSmall: { marginTop: spacing.sm },
+  starCard: {
+    backgroundColor: colors.card,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    padding: spacing.md,
+  },
+  input: {
+    minHeight: TOUCH,
+    backgroundColor: colors.card,
+    borderRadius: radii.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    color: colors.text,
+    fontSize: 14,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+  },
+  inputShort: { width: 140 },
 
   stepTitle: { color: colors.accent, fontSize: 24, fontWeight: '300', fontStyle: 'italic', lineHeight: 31 },
   stepText: { color: colors.textMuted, fontSize: 14, lineHeight: 20, marginTop: spacing.xs },

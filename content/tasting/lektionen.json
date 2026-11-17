@@ -27,7 +27,7 @@
   "l28": { "focus": "riechen", "level": "profi", "hinweis": "Prüfe die Nase gezielt auf Fehlnoten, bevor du den Wein als Geschmackssache abtust." },
   "l30": { "focus": "fazit", "level": "profi", "hinweis": "Achte auf Primärfrucht gegenüber Tertiäraromen und schätze Trinkreife und Lagerpotenzial ein." },
   "l31": { "focus": "riechen", "level": "profi", "hinweis": "Riech am Korken und am Wein und achte darauf, ob sich der Duft in einem anderen Glas verändert." },
-  "l32": { "focus": "sehen", "level": "profi", "hinweis": "Gehe Aussehen, Nase und Gaumen systematisch durch und notiere jede Stufe, bevor du Schlüsse ziehst." },
+  "l32": { "focus": "sehen", "level": "profi", "hinweis": "Gehe Aussehen, Nase und Gaumen systematisch durch und notiere jede Stufe, bevor du Schlüsse ziehst.", "blind": true },
   "l33": { "focus": "terroir", "level": "profi", "hinweis": "Achte auf Alkohol und Säure und überlege, ob der Wein eher aus einem kühlen oder einem warmen Jahr stammt." },
   "l34": { "focus": "schmecken", "level": "profi", "hinweis": "Verkoste den Wein zuerst pur und achte dann darauf, wie Säure, Süße und Tannin mit dem Essen zusammenspielen." },
   "l35": { "focus": "riechen", "level": "profi", "hinweis": "Achte auf Komplexität und Frucht in der Nase und auf Hefenoten wie Brioche oder Brot." },

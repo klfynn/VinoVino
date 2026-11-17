@@ -7,14 +7,21 @@ import {
   isFarbId,
   isFehlerId,
   isKlimaId,
+  isLandId,
   isRandId,
+  isRebsorteId,
+  isWeinartWert,
 } from './catalog';
 import {
   AROMA_STUFEN,
+  BlindWahrheit,
   KLARHEIT_WERTE,
   LAGERPOTENZIAL_WERTE,
   NASEN_ZUSTAENDE,
   NOTIZ_MAX_LENGTH,
+  REBSORTEN_TIPP_MAX,
+  REBSORTEN_WAHRHEIT_MAX,
+  REGION_TIPP_MAX_LENGTH,
   Skalenwert,
   TastingAromen,
   TastingBlind,
@@ -27,6 +34,7 @@ import {
   TastingTerroir,
   TIPP_MAX_LENGTH,
   TRINKREIFE_WERTE,
+  WAHRHEIT_TEXT_MAX_LENGTH,
 } from './types';
 
 /** Obergrenze je Liste, damit `data` deutlich unter der Datenbankgrenze (20 000 Byte) bleibt. */
@@ -114,12 +122,32 @@ function validFazit(v: unknown): boolean {
   );
 }
 
-const BLIND_FELDER = ['rebsorte_tipp', 'region_tipp', 'jahrgang_tipp'] as const;
+/** Vierstellige Jahreszahl (1900 bis 2099) als Text, zum Beispiel „2018“. */
+export const isJahrgangTipp = (v: unknown): v is string => typeof v === 'string' && /^(19|20)\d{2}$/.test(v);
+const isText = (max: number) => (x: unknown) => typeof x === 'string' && charLength(x) <= max;
+
+function validWahrheit(v: unknown): boolean {
+  if (!isObj(v)) return false;
+  return (
+    optional(v, 'weinart', isText(WAHRHEIT_TEXT_MAX_LENGTH)) &&
+    optional(v, 'land', (x) => typeof x === 'string' && isLandId(x)) &&
+    optional(v, 'region', isText(REGION_TIPP_MAX_LENGTH)) &&
+    optional(v, 'rebsorten', (x) => idList(x, isRebsorteId) && (x as unknown[]).length <= REBSORTEN_WAHRHEIT_MAX) &&
+    optional(v, 'jahrgang', isText(WAHRHEIT_TEXT_MAX_LENGTH))
+  );
+}
 
 function validBlind(v: unknown): boolean {
   if (!isObj(v)) return false;
-  return BLIND_FELDER.every((k) =>
-    optional(v, k, (x) => typeof x === 'string' && charLength(x) <= TIPP_MAX_LENGTH),
+  return (
+    // Aus Teil A vorgemerkt; bleibt gültig, wird aber nicht mehr geschrieben.
+    optional(v, 'rebsorte_tipp', isText(TIPP_MAX_LENGTH)) &&
+    optional(v, 'region_tipp', isText(REGION_TIPP_MAX_LENGTH)) &&
+    optional(v, 'jahrgang_tipp', isJahrgangTipp) &&
+    optional(v, 'weinart_tipp', isWeinartWert) &&
+    optional(v, 'land_tipp', (x) => typeof x === 'string' && isLandId(x)) &&
+    optional(v, 'rebsorten_tipp', (x) => idList(x, isRebsorteId) && (x as unknown[]).length <= REBSORTEN_TIPP_MAX) &&
+    optional(v, 'wahrheit', validWahrheit)
   );
 }
 
@@ -238,12 +266,29 @@ function sanitizeFazit(v: unknown): TastingFazit | undefined {
   });
 }
 
+function sanitizeWahrheit(v: unknown): BlindWahrheit | undefined {
+  if (!isObj(v)) return undefined;
+  return compact<BlindWahrheit>({
+    weinart: cleanText(v.weinart, WAHRHEIT_TEXT_MAX_LENGTH),
+    land: pickId(v.land, isLandId),
+    region: cleanText(v.region, REGION_TIPP_MAX_LENGTH),
+    rebsorten: nonEmpty(cleanIds(v.rebsorten, isRebsorteId).slice(0, REBSORTEN_WAHRHEIT_MAX)),
+    jahrgang: cleanText(v.jahrgang, WAHRHEIT_TEXT_MAX_LENGTH),
+  });
+}
+
 function sanitizeBlind(v: unknown): TastingBlind | undefined {
   if (!isObj(v)) return undefined;
+  const jahrgang = typeof v.jahrgang_tipp === 'string' ? v.jahrgang_tipp.trim() : undefined;
   return compact<TastingBlind>({
     rebsorte_tipp: cleanText(v.rebsorte_tipp, TIPP_MAX_LENGTH),
-    region_tipp: cleanText(v.region_tipp, TIPP_MAX_LENGTH),
-    jahrgang_tipp: cleanText(v.jahrgang_tipp, TIPP_MAX_LENGTH),
+    region_tipp: cleanText(v.region_tipp, REGION_TIPP_MAX_LENGTH),
+    jahrgang_tipp: isJahrgangTipp(jahrgang) ? jahrgang : undefined,
+    weinart_tipp: isWeinartWert(v.weinart_tipp) ? v.weinart_tipp : undefined,
+    land_tipp: pickId(v.land_tipp, isLandId),
+    // Unbekannte IDs fallen weg, Doppelte auch; höchstens drei.
+    rebsorten_tipp: nonEmpty(cleanIds(v.rebsorten_tipp, isRebsorteId).slice(0, REBSORTEN_TIPP_MAX)),
+    wahrheit: sanitizeWahrheit(v.wahrheit),
   });
 }
 

@@ -15,6 +15,8 @@ export type LessonTask = {
   level: TastingLevel;
   /** ein Satz, worauf beim Verkosten zu achten ist */
   hinweis: string;
+  /** Teil D1: Die Praxisaufgabe startet eine Blindverkostung. Nur `true` ist erlaubt. */
+  blind?: true;
 };
 export type LessonTaskMap = Record<string, LessonTask>;
 
@@ -27,6 +29,11 @@ const isOneOf = <T extends string>(werte: readonly T[], v: unknown): v is T =>
 export function lessonTaskFor(lessonId: unknown, tasks: LessonTaskMap = LESSON_TASKS): LessonTask | null {
   if (typeof lessonId !== 'string' || !Object.prototype.hasOwnProperty.call(tasks, lessonId)) return null;
   return tasks[lessonId] ?? null;
+}
+
+/** true, wenn die Praxisaufgabe eine Blindverkostung startet (Button „Blindverkostung starten“). */
+export function isBlindLessonTask(task: LessonTask | null | undefined): boolean {
+  return !!task && task.blind === true;
 }
 
 /** true, wenn an der Praxisaufgabe der Button „Verkostung starten“ erscheint. */
@@ -51,7 +58,8 @@ export function validateLessonTasks(raw: unknown, lessonIds: ReadonlySet<string>
     if (!isOneOf(TASTING_STEPS, e.focus)) fehler.push(`${id}: ungültiger Schwerpunkt ${String(e.focus)}`);
     if (!isOneOf(TASTING_LEVELS, e.level)) fehler.push(`${id}: ungültige Stufe ${String(e.level)}`);
     if (typeof e.hinweis !== 'string' || e.hinweis.trim().length === 0) fehler.push(`${id}: Hinweis fehlt`);
-    const extra = Object.keys(e).filter((k) => !['focus', 'level', 'hinweis'].includes(k));
+    if (e.blind !== undefined && e.blind !== true) fehler.push(`${id}: blind darf nur true sein`);
+    const extra = Object.keys(e).filter((k) => !['focus', 'level', 'hinweis', 'blind'].includes(k));
     if (extra.length > 0) fehler.push(`${id}: unbekannte Felder ${extra.join(', ')}`);
   }
   return fehler;
@@ -191,6 +199,8 @@ export function lessonTastingParams(
   ref: WineRef,
   lessonId: string,
   task: LessonTask,
-): { id: string; kind: WineRef['kind']; lesson: string; focus: TastingStep; level: TastingLevel; from: 'lektion' } {
-  return { id: ref.id, kind: ref.kind, lesson: lessonId, focus: task.focus, level: task.level, from: 'lektion' };
+): { id: string; kind: WineRef['kind']; lesson: string; focus: TastingStep; level: TastingLevel; from: 'lektion'; blind?: '1' } {
+  const params = { id: ref.id, kind: ref.kind, lesson: lessonId, focus: task.focus, level: task.level, from: 'lektion' as const };
+  // Teil D1: Blindverkostung nur, wenn die Zuordnung es vorsieht.
+  return isBlindLessonTask(task) ? { ...params, blind: '1' } : params;
 }

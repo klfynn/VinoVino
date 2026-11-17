@@ -102,11 +102,46 @@ export type TastingFazit = {
   notiz?: string;
 };
 
-/** Nur vorgemerkt für Teil D (Blindverkostung). */
+/** Höchstlänge des Regions-Tipps und der Region in der Momentaufnahme (Zeichen). */
+export const REGION_TIPP_MAX_LENGTH = 80;
+/** Höchstzahl getippter Rebsorten. */
+export const REBSORTEN_TIPP_MAX = 3;
+/** Höchstzahl Rebsorten in der Momentaufnahme (Cuvées können viele haben). */
+export const REBSORTEN_WAHRHEIT_MAX = 20;
+/** Höchstlänge von Weinart und Jahrgang in der Momentaufnahme (zum Beispiel „NV“). */
+export const WAHRHEIT_TEXT_MAX_LENGTH = 80;
+
+/**
+ * Momentaufnahme der tatsächlichen Angaben zum Zeitpunkt der Blindverkostung, damit die Auflösung
+ * stabil bleibt, auch wenn der Wein später bearbeitet oder gelöscht wird.
+ */
+export type BlindWahrheit = {
+  /** Weinart, wie sie im Bestand steht (zum Beispiel „Rotwein“) */
+  weinart?: string;
+  /** ID aus laender.json */
+  land?: string;
+  region?: string;
+  /** IDs aus rebsorten.json */
+  rebsorten?: string[];
+  /** Jahrgang als Text, auch nicht numerisch (zum Beispiel „NV“) */
+  jahrgang?: string;
+};
+
+/** Blindverkostung (Teil D1). Alle Felder sind optional, `schema_version` bleibt 1. */
 export type TastingBlind = {
+  /** Vorgemerkt aus Teil A, wird in Teil D1 nicht mehr geschrieben */
   rebsorte_tipp?: string;
+  /** Freier Text, höchstens 80 Zeichen */
   region_tipp?: string;
+  /** Vierstellige Jahreszahl als Text */
   jahrgang_tipp?: string;
+  /** Weinart-Bezeichnung wie im Bestand (WEINART_WERTE) */
+  weinart_tipp?: string;
+  /** ID aus laender.json */
+  land_tipp?: string;
+  /** IDs aus rebsorten.json, höchstens 3 */
+  rebsorten_tipp?: string[];
+  wahrheit?: BlindWahrheit;
 };
 
 /** Der eigentliche Bogen. Alle Felder sind optional. */
@@ -278,3 +313,9 @@ export type Abschnitt = {
 };
 
 export type AbschnitteKatalog = { abschnitte: Abschnitt[] };
+
+/** Eintrag in rebsorten.json oder laender.json. */
+export type KatalogEintrag = { id: string; label: string; aliases: string[] };
+export type Rebsorte = KatalogEintrag & { farbe: 'rot' | 'weiss' };
+export type RebsortenKatalog = { rebsorten: Rebsorte[] };
+export type LaenderKatalog = { laender: KatalogEintrag[] };
