@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import {
-  Modal, View, Text, StyleSheet, Image, ScrollView, Dimensions, TouchableOpacity,
+  Modal, View, Text, StyleSheet, ScrollView, Dimensions, TouchableOpacity,
   Animated, PanResponder, Easing,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -10,6 +10,8 @@ import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { useCellar } from '../context/CellarContext';
 import { colors, radii, spacing } from '../theme';
+import { WineImage } from './WineImage';
+import { wineImageWeinart } from '../lib/wineImage';
 
 const { height: SCREEN_H } = Dimensions.get('window');
 
@@ -115,7 +117,14 @@ export function WineDetailModal({
 
           <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
             <View style={styles.imageWrap}>
-              <Image source={{ uri: wine.image }} style={styles.image} resizeMode="cover" />
+              <WineImage
+                uri={wine.image}
+                weinart={wineImageWeinart(wine)}
+                name={wine.name}
+                size="detail"
+                fill
+                style={styles.image}
+              />
               <LinearGradient colors={['transparent', 'rgba(26,10,15,0.5)', colors.card]} style={styles.imageGradient} />
               <TouchableOpacity style={styles.closeBtn} onPress={close}>
                 <Ionicons name="close" size={24} color={colors.text} />

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -37,6 +36,8 @@ import type { TastingDraft } from '../../lib/tasting/draft';
 import { wines as ALL_WINES } from '../../data/wines';
 import { Wine, WineType } from '../../types';
 import { colors, radii, spacing } from '../../theme';
+import { WineImage } from '../../components/WineImage';
+import { wineImageWeinart } from '../../lib/wineImage';
 
 // ── Sorting helpers ───────────────────────────────────────────────────────────
 
@@ -134,7 +135,7 @@ function WatchlistCard({
 }) {
   return (
     <View style={styles.wCard}>
-      <Image source={{ uri: wine.image }} style={styles.wImg} resizeMode="cover" />
+      <WineImage uri={wine.image} weinart={wineImageWeinart(wine)} name={wine.name} size="liste" fill style={styles.wImg} />
       <View style={styles.wInfo}>
         <Text style={styles.wType}>{wine.type.toUpperCase()}</Text>
         <Text style={styles.wName} numberOfLines={2}>{wine.name}</Text>
@@ -196,7 +197,14 @@ function CellarCard({
       accessibilityRole="button"
       accessibilityLabel={`${item.wine.name}${countLabel ? `, ${countLabel}` : ''}. Details öffnen`}
     >
-      <Image source={{ uri: item.wine.image }} style={styles.wImg} resizeMode="cover" />
+      <WineImage
+        uri={item.wine.image}
+        weinart={wineImageWeinart(item.wine)}
+        name={item.wine.name}
+        size="liste"
+        fill
+        style={styles.wImg}
+      />
       <View style={styles.wInfo}>
         <Text style={styles.wType}>{item.wine.type.toUpperCase()}</Text>
         {(isCustom || showTemporary || !!countLabel) && (
@@ -467,7 +475,13 @@ function AddToCellarModal({
                       style={[styles.modalItem, selected && styles.modalItemSelected]}
                       onPress={() => setSelWine(selected ? null : item)}
                     >
-                      <Image source={{ uri: item.image }} style={styles.modalImg} resizeMode="cover" />
+                      <WineImage
+                        uri={item.image}
+                        weinart={wineImageWeinart(item)}
+                        name={item.name}
+                        size="klein"
+                        style={styles.modalImg}
+                      />
                       <View style={styles.modalItemInfo}>
                         <Text style={styles.modalItemName} numberOfLines={1}>{item.name}</Text>
                         <Text style={styles.modalItemSub}>{item.winery} · {item.vintage}</Text>
@@ -1456,7 +1470,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   modalItemSelected: { borderColor: colors.accent },
-  modalImg: { width: 48, height: 48, borderRadius: radii.sm },
+  modalImg: { width: 48 },
   modalItemInfo: { flex: 1 },
   modalItemName: { color: colors.text, fontSize: 14, fontWeight: '700' },
   modalItemSub: { color: colors.textMuted, fontSize: 12, marginTop: 2 },

@@ -4,7 +4,6 @@ import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
-  Image,
   Modal,
   ScrollView,
   StyleSheet,
@@ -17,6 +16,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { colors, radii, spacing } from '../../theme';
+import { WineImage } from '../../components/WineImage';
+import { wineImageWeinart } from '../../lib/wineImage';
 import { useAuth } from '../../context/AuthContext';
 import { useCellar } from '../../context/CellarContext';
 import { BackButton, CloseButton, LoadingState, PrimaryButton } from '../../components/academy/AcademyUI';
@@ -135,7 +136,14 @@ export default function CellarDetailScreen() {
     <SafeAreaView style={styles.container} edges={['bottom']}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         <View style={styles.imageWrap}>
-          <Image source={{ uri: entry.wine.image }} style={styles.image} resizeMode="cover" />
+          <WineImage
+            uri={entry.wine.image}
+            weinart={wineImageWeinart(entry.wine)}
+            name={entry.wine.name}
+            size="detail"
+            fill
+            style={styles.image}
+          />
           <LinearGradient colors={['transparent', 'rgba(26,10,15,0.5)', colors.background]} style={styles.imageGradient} />
           <SafeAreaView edges={['top']} style={styles.backWrap}>
             <BackButton onPress={goBack} />

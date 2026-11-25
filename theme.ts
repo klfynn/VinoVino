@@ -10,6 +10,10 @@ export const colors = {
   like: '#7ecfa0',
   skip: '#c0607a',
   overlay: 'rgba(26, 10, 15, 0.85)',
+  /** Helle, neutrale Fläche hinter Weinbildern (warmes Hellgrau). Nur die Bildfläche ist hell. */
+  imageSurface: '#f2efea',
+  /** Sehr dezenter Rand der Bildfläche (`border` mit niedriger Deckkraft). */
+  imageSurfaceBorder: 'rgba(92, 37, 53, 0.22)',
 };
 
 export const radii = {
