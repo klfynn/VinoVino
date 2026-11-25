@@ -1,6 +1,8 @@
 // Prüfskript für „Mein Weinkeller“: Eingaben eigener Weine, Zusammenführen, Sortierung,
 // Weine ohne UUID, Mengenänderung, Weinart-Zuordnung und private Notiz (nie in reviews.review_text).
 // Außerdem: Weinbild-Darstellung (gültige Bildadresse, Platzhalterfarbe, Größen-Voreinstellungen).
+// Außerdem: Swipe-Filter (Jahrgang und Preis nur, wenn eingeschränkt), Zähler aktiver Filter
+// und Neuladen des Swipe-Stapels (aktuelle Karte bleibt, neue Weine hinten).
 // Ausführen mit: npm run check:cellar
 import {
   canPersistMarketWine,
@@ -37,6 +39,19 @@ import { CELLAR_PLACEHOLDER_IMAGE, CellarWine, CustomWine, PurchaseRow } from '.
 import { TERROIR, WEINART_WERTE, weinartToKategorie } from '../lib/tasting/catalog';
 import { wineRefKey } from '../lib/tasting/wineRef';
 import type { Wine } from '../types';
+import {
+  countActiveFilters,
+  DEFAULT_FILTER,
+  FilterbarerWein,
+  FilterState,
+  filterWines,
+  isJahrgangFilterAktiv,
+  isPreisFilterAktiv,
+  JAHRGANG_MAX,
+  jahrgangsObergrenze,
+  wineMatchesFilter,
+} from '../lib/filter';
+import { folgeIndex, mergeWineLists, NEULADEN_ABSTAND_MS, sollNeuLaden } from '../lib/reload';
 import {
   isLoadableWineImageUri,
   isValidWineImagePreset,
@@ -468,6 +483,135 @@ eq('Größen: Rand bei 82 % Füllgrad', wineImageInsetPercent(0.82), '9%');
 eq('Silhouette: hoher Bereich', silhouetteIconSize(100, 300), 220);
 eq('Silhouette: breiter Bereich', silhouetteIconSize(300, 100), 100);
 eq('Silhouette: ohne Maße', silhouetteIconSize(0, 0), 0);
+
+// ── Swipe-Filter: Jahrgang und Preis nur, wenn eingeschränkt ──────────────────
+
+const fw = (teil: Partial<FilterbarerWein> = {}): FilterbarerWein => ({
+  type: 'Roséwein',
+  taste: ['trocken'],
+  country: 'Deutschland',
+  region: 'Pfalz',
+  grape: 'Spätburgunder',
+  vintage: 2022,
+  price: 12,
+  anlass: [],
+  bioNaturVegan: [],
+  passtZu: [],
+  rating: 0,
+  ...teil,
+});
+const mitFilter = (teil: Partial<FilterState>): FilterState => ({ ...DEFAULT_FILTER, ...teil });
+const passt = (w: Partial<FilterbarerWein>, f: Partial<FilterState> = {}) => wineMatchesFilter(fw(w), mitFilter(f));
+
+for (const v of [2025, 2026, 0, 1960]) {
+  check(`Filter: Standardbereich, Jahrgang ${v} sichtbar`, passt({ vintage: v }));
+}
+for (const p of [0, 3, 700]) {
+  check(`Filter: Standardbereich, Preis ${p} sichtbar`, passt({ price: p }));
+}
+check('Filter: Standardbereich, ohne Jahrgang und ohne Preis sichtbar', passt({ vintage: 0, price: 0 }));
+check('Filter: Rosé Pfaffmann (Deutschland, Jahrgang 2025) ohne Filter sichtbar',
+  passt({ type: 'Roséwein', country: 'Deutschland', vintage: 2025 }));
+
+const J = { jahrgang: { min: 2000, max: 2020 } };
+check('Filter: Jahrgang 2000–2020, 2019 sichtbar', passt({ vintage: 2019 }, J));
+check('Filter: Jahrgang 2000–2020, 2025 unsichtbar', !passt({ vintage: 2025 }, J));
+check('Filter: Jahrgang 2000–2020, 0 unsichtbar', !passt({ vintage: 0 }, J));
+check('Filter: Jahrgang 2000–2020, Grenzen 2000 und 2020 sichtbar', passt({ vintage: 2000 }, J) && passt({ vintage: 2020 }, J));
+check('Filter: nur Obergrenze eingeschränkt wirkt', !passt({ vintage: 2023 }, { jahrgang: { min: DEFAULT_FILTER.jahrgang.min, max: 2020 } }));
+check('Filter: nur Untergrenze eingeschränkt wirkt', !passt({ vintage: 0 }, { jahrgang: { min: 1995, max: DEFAULT_FILTER.jahrgang.max } }));
+
+const P = { preis: { min: 10, max: 50 } };
+check('Filter: Preis 10–50, 30 sichtbar', passt({ price: 30 }, P));
+check('Filter: Preis 10–50, 0 unsichtbar', !passt({ price: 0 }, P));
+check('Filter: Preis 10–50, 80 unsichtbar', !passt({ price: 80 }, P));
+check('Filter: nur Preis-Obergrenze 100, 700 unsichtbar', !passt({ price: 700 }, { preis: { min: DEFAULT_FILTER.preis.min, max: 100 } }));
+
+const JP = { ...J, ...P };
+check('Filter kombiniert: 2019 und 30 € sichtbar', passt({ vintage: 2019, price: 30 }, JP));
+check('Filter kombiniert: 2019 und 80 € unsichtbar', !passt({ vintage: 2019, price: 80 }, JP));
+check('Filter kombiniert: 2025 und 30 € unsichtbar', !passt({ vintage: 2025, price: 30 }, JP));
+check('Filter kombiniert: Jahrgang eingeschränkt, Preis Standard, Preis 0 sichtbar', passt({ vintage: 2019, price: 0 }, J));
+check('Filter kombiniert: Weinart Rosé und Jahrgang, passend', passt({ vintage: 2019 }, { ...J, weinart: ['Rosé'] }));
+check('Filter kombiniert: Weinart Rotwein schließt Rosé aus', !passt({ vintage: 2019 }, { ...J, weinart: ['Rotwein'] }));
+
+// Weinart, Herkunft, Rebsorte, Anlass und Bewertung wie bisher
+check('Filter Weinart: Rosé passt zu Roséwein', passt({}, { weinart: ['Rosé'] }));
+check('Filter Weinart: Dessert- und Likörwein passt zu Süßwein', passt({ type: 'Süßwein' }, { weinart: ['Dessert- und Likörwein'] }));
+check('Filter Weinart: Rotwein passt nicht zu Roséwein', !passt({}, { weinart: ['Rotwein'] }));
+check('Filter Weinart: mehrere Weinarten (oder)', passt({}, { weinart: ['Rotwein', 'Rosé'] }));
+check('Filter Herkunft: Deutschland passt', passt({}, { herkunft: ['Deutschland'] }));
+check('Filter Herkunft: Italien passt nicht', !passt({}, { herkunft: ['Italien'] }));
+check('Filter Herkunft: Neue Welt mit Chile', passt({ country: 'Chile' }, { herkunft: ['Neue Welt'] }));
+check('Filter Herkunft: Neue Welt ohne Deutschland', !passt({}, { herkunft: ['Neue Welt'] }));
+check('Filter Herkunft: exakter Vergleich (Leerzeichen zählt)', !passt({ country: 'Deutschland ' }, { herkunft: ['Deutschland'] }));
+check('Filter Rebsorte: Teiltext passt', passt({ grape: 'Spätburgunder, Dornfelder' }, { rebsorte: ['Dornfelder'] }));
+check('Filter Rebsorte: fremde Rebsorte passt nicht', !passt({}, { rebsorte: ['Riesling'] }));
+check('Filter Region: Pfalz passt', passt({}, { region: ['Pfalz'] }));
+check('Filter Geschmack: Trocken passt zu „trocken“', passt({}, { geschmack: ['Trocken'] }));
+check('Filter Anlass: ohne Anlass am Wein unsichtbar', !passt({}, { anlass: ['Grillabend'] }));
+check('Filter Anlass: passender Anlass sichtbar', passt({ anlass: ['Grillabend'] }, { anlass: ['Grillabend'] }));
+check('Filter Bewertung: Standard (1) lässt Bewertung 0 durch', passt({ rating: 0 }));
+check('Filter Bewertung: 3 Sterne verlangt 88', !passt({ rating: 87 }, { bewertungMin: 3 }) && passt({ rating: 88 }, { bewertungMin: 3 }));
+
+eq('Filter: filterWines behält Reihenfolge',
+  filterWines([fw({ vintage: 2019 }), fw({ vintage: 2025 }), fw({ vintage: 2001 })], mitFilter(J)).map((w) => w.vintage),
+  [2019, 2001]);
+
+// Jahrgangs-Obergrenze folgt dem aktuellen Jahr
+eq('Jahrgang: Obergrenze ist das aktuelle Jahr', JAHRGANG_MAX, new Date().getFullYear());
+eq('Jahrgang: Standard nutzt dieselbe Obergrenze', DEFAULT_FILTER.jahrgang.max, JAHRGANG_MAX);
+eq('Jahrgang: Obergrenze für ein festes Datum', jahrgangsObergrenze(new Date(2031, 5, 1)), 2031);
+check('Jahrgang: Obergrenze nicht mehr 2024', JAHRGANG_MAX > 2024);
+check('Jahrgang: eingeschränkt auf alten Standard 2024 wirkt jetzt als Filter',
+  isJahrgangFilterAktiv({ min: DEFAULT_FILTER.jahrgang.min, max: 2024 }));
+check('Jahrgang: Wein aus dem aktuellen Jahr bei Standard sichtbar', passt({ vintage: JAHRGANG_MAX }));
+
+// Zähler aktiver Filter passt zur Filterwirkung
+eq('Aktive Filter: Standard', countActiveFilters(DEFAULT_FILTER), 0);
+eq('Aktive Filter: Jahrgang eingeschränkt', countActiveFilters(mitFilter(J)), 1);
+eq('Aktive Filter: Preis eingeschränkt', countActiveFilters(mitFilter(P)), 1);
+eq('Aktive Filter: Jahrgang, Preis und Weinart', countActiveFilters(mitFilter({ ...JP, weinart: ['Rosé'] })), 3);
+check('Aktive Filter: Standardbereich Jahrgang ist kein Filter', !isJahrgangFilterAktiv(DEFAULT_FILTER.jahrgang));
+check('Aktive Filter: Standardbereich Preis ist kein Filter', !isPreisFilterAktiv(DEFAULT_FILTER.preis));
+for (const f of [DEFAULT_FILTER, mitFilter(J), mitFilter(P), mitFilter(JP)]) {
+  eq(`Aktive Filter: Zähler stimmt mit Wirkung überein (${JSON.stringify([f.jahrgang, f.preis])})`,
+    isJahrgangFilterAktiv(f.jahrgang) || isPreisFilterAktiv(f.preis), countActiveFilters(f) > 0);
+}
+
+// ── Neuladen des Swipe-Stapels ───────────────────────────────────────────────
+
+type RW = { id: string; name: string };
+const rw = (id: string, name = id): RW => ({ id, name });
+const ids = (l: readonly RW[]) => l.map((w) => w.id);
+const ALT: RW[] = [rw('a'), rw('b'), rw('c'), rw('d')];
+
+eq('Neuladen: unverändert', ids(mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('b'), rw('c'), rw('d')] })), ['a', 'b', 'c', 'd']);
+eq('Neuladen: neuer Wein kommt hinten dazu', ids(mergeWineLists(ALT, { ok: true, wines: [rw('e'), rw('a'), rw('b'), rw('c'), rw('d')] })), ['a', 'b', 'c', 'd', 'e']);
+eq('Neuladen: entfernter Wein ist weg', ids(mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('c'), rw('d')] })), ['a', 'c', 'd']);
+eq('Neuladen: andere Reihenfolge der Datenbank ändert den Stapel nicht', ids(mergeWineLists(ALT, { ok: true, wines: [rw('d'), rw('c'), rw('b'), rw('a')] })), ['a', 'b', 'c', 'd']);
+eq('Neuladen: geänderte Daten werden übernommen', mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('b', 'Neu'), rw('c'), rw('d')] })[1].name, 'Neu');
+eq('Neuladen: leere neue Liste leert den Stapel', mergeWineLists(ALT, { ok: true, wines: [] }), []);
+eq('Neuladen: leere alte Liste übernimmt die neue', ids(mergeWineLists<RW>([], { ok: true, wines: [rw('x'), rw('y')] })), ['x', 'y']);
+check('Neuladen: Fehlerfall behält dieselbe Liste', mergeWineLists(ALT, { ok: false }) === ALT);
+eq('Neuladen: doppelte id in der neuen Liste nur einmal', ids(mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('e'), rw('e')] })), ['a', 'e']);
+
+eq('Position: aktuelle Karte bleibt (unverändert)', folgeIndex(ALT, ALT, 2), 2);
+eq('Position: aktuelle Karte bleibt, wenn davor ein Wein entfernt wurde', folgeIndex(ALT, [rw('a'), rw('c'), rw('d')], 2), 1);
+eq('Position: aktuelle Karte bleibt, wenn hinten ein Wein dazukommt', folgeIndex(ALT, [...ALT, rw('e')], 1), 1);
+eq('Position: aktuelle Karte entfernt, nächste rückt nach', folgeIndex(ALT, [rw('a'), rw('b'), rw('d')], 2), 2);
+eq('Position: aktuelle Karte entfernt, die davor auch', folgeIndex(ALT, [rw('a'), rw('d')], 2), 1);
+eq('Position: Stapel am Ende zeigt neuen Wein', folgeIndex(ALT, [...ALT, rw('e')], 4), 4);
+eq('Position: leere neue Liste', folgeIndex(ALT, [], 2), 0);
+eq('Position: leere alte Liste', folgeIndex([], [rw('x')], 0), 0);
+eq('Position: Fehlerfall (Liste unverändert)', folgeIndex(ALT, mergeWineLists(ALT, { ok: false }), 3), 3);
+
+eq('Neuladen-Abstand: 60 Sekunden', NEULADEN_ABSTAND_MS, 60_000);
+check('Neuladen-Abstand: ohne bisheriges Laden nicht', !sollNeuLaden(null, 1_000_000));
+check('Neuladen-Abstand: nach 10 Sekunden nicht', !sollNeuLaden(1_000_000, 1_010_000));
+check('Neuladen-Abstand: nach 59,9 Sekunden nicht', !sollNeuLaden(1_000_000, 1_059_900));
+check('Neuladen-Abstand: nach 60 Sekunden ja', sollNeuLaden(1_000_000, 1_060_000));
+check('Neuladen-Abstand: nach 5 Minuten ja', sollNeuLaden(1_000_000, 1_300_000));
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 

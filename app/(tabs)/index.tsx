@@ -1,7 +1,7 @@
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { fetchActiveWines } from '../../services/supabase';
 import { useApp } from '../../context/AppContext';
 import { useFilter } from '../../context/FilterContext';
@@ -9,18 +9,9 @@ import { SwipeableCard } from '../../components/SwipeableCard';
 import { QuantityModal } from '../../components/QuantityModal';
 import { WineDetailModal } from '../../components/WineDetailModal';
 import { Wine } from '../../types';
+import { filterWines } from '../../lib/filter';
+import { folgeIndex, mergeWineLists, sollNeuLaden } from '../../lib/reload';
 import { colors, radii, spacing } from '../../theme';
-
-const WEINART_MAP: Record<string, string> = {
-  Rotwein: 'Rotwein',
-  Weißwein: 'Weißwein',
-  Rosé: 'Roséwein',
-  Schaumwein: 'Schaumwein',
-  'Dessert- und Likörwein': 'Süßwein',
-};
-
-const NEUE_WELT = ['USA', 'Australien', 'Neuseeland', 'Chile', 'Argentinien', 'Südafrika'];
-const STAR_MIN = [0, 0, 85, 88, 90, 95];
 
 function CartHeaderIcon() {
   const { cartCount } = useApp();
@@ -61,50 +52,93 @@ export default function SwipeScreen() {
   const [qtyWine, setQtyWine] = useState<Wine | null>(null);
   const [detailWine, setDetailWine] = useState<Wine | null>(null);
 
+  // Zeitpunkt des letzten Ladens (Start, „Erneut versuchen“ oder Neuladen beim Zurückkehren).
+  const lastLoadRef = useRef<number | null>(null);
+  const reloadingRef = useRef(false);
+  // Neu geladene Liste, die noch auf das Ende einer Geste, Animation oder Mengenauswahl wartet.
+  const pendingRef = useRef<Wine[] | null>(null);
+  const touchActiveRef = useRef(false);
+  const touchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
+    lastLoadRef.current = Date.now();
     fetchActiveWines()
       .then((wines) => { setAllWines(wines); setLoadError(false); })
       .catch(() => { setLoadError(true); setAllWines([]); })
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredWines = useMemo(() => {
-    return allWines.filter((w) => {
-      if (weinart.length > 0) {
-        const mapped = weinart.map((wa) => WEINART_MAP[wa]);
-        if (!mapped.includes(w.type)) return false;
-      }
-      if (geschmack.length > 0) {
-        const mapped = geschmack.map((g) => g.toLowerCase());
-        if (!mapped.some((g) => w.taste.includes(g))) return false;
-      }
-      if (herkunft.length > 0) {
-        const matches = herkunft.some((h) =>
-          h === 'Neue Welt' ? NEUE_WELT.includes(w.country) : w.country === h,
-        );
-        if (!matches) return false;
-      }
-      if (region.length > 0) {
-        if (!region.some((r) => w.region === r)) return false;
-      }
-      if (rebsorte.length > 0) {
-        if (!rebsorte.some((r) => w.grape.includes(r))) return false;
-      }
-      if (w.vintage < jahrgang.min || w.vintage > jahrgang.max) return false;
-      if (w.price < preis.min || w.price > preis.max) return false;
-      if (anlass.length > 0) {
-        if (!anlass.some((a) => w.anlass?.includes(a))) return false;
-      }
-      if (bioNaturVegan.length > 0) {
-        if (!bioNaturVegan.some((b) => w.bioNaturVegan?.includes(b))) return false;
-      }
-      if (passtZu.length > 0) {
-        if (!passtZu.some((p) => w.passtZu?.includes(p))) return false;
-      }
-      if (w.rating < STAR_MIN[bewertungMin]) return false;
-      return true;
-    });
-  }, [allWines, weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin]);
+  // Jahrgang und Preis filtern nur, wenn der Nutzer den Bereich eingeschränkt hat (lib/filter.ts).
+  const kriterien = useMemo(
+    () => ({ weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin }),
+    [weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin],
+  );
+  const filteredWines = useMemo(() => filterWines(allWines, kriterien), [allWines, kriterien]);
+
+  // Aktueller Stand für Zeitgeber und Ladeantworten, die nach dem Rendern eintreffen.
+  const stateRef = useRef({ allWines, filteredWines, index, kriterien, loadError, busy: false });
+  stateRef.current = {
+    allWines,
+    filteredWines,
+    index,
+    kriterien,
+    loadError,
+    busy: touchActiveRef.current || !!qtyWine || !!detailWine,
+  };
+
+  // Übernimmt eine neu geladene Liste, sobald keine Geste, Animation oder Mengenauswahl läuft.
+  // Die aktuelle Karte bleibt die aktuelle Karte (gleiche id), neue Weine kommen hinten dazu.
+  const applyPending = useCallback(() => {
+    const neu = pendingRef.current;
+    const st = stateRef.current;
+    if (!neu || st.busy || touchActiveRef.current) return;
+    pendingRef.current = null;
+    const merged = mergeWineLists(st.allWines, { ok: true, wines: neu });
+    const neuSichtbar = filterWines(merged, st.kriterien);
+    setAllWines(merged);
+    setIndex(folgeIndex(st.filteredWines, neuSichtbar, st.index));
+  }, []);
+
+  // Beim Zurückkehren auf den Tab neu laden, höchstens alle 60 Sekunden. Ein Fehler beim
+  // Neuladen lässt die bisherige Liste stehen und zeigt keine Meldung.
+  useFocusEffect(
+    useCallback(() => {
+      if (reloadingRef.current || stateRef.current.loadError) return;
+      if (!sollNeuLaden(lastLoadRef.current, Date.now())) return;
+      reloadingRef.current = true;
+      lastLoadRef.current = Date.now();
+      fetchActiveWines()
+        .then((wines) => {
+          pendingRef.current = wines;
+          applyPending();
+        })
+        .catch(() => {})
+        .finally(() => { reloadingRef.current = false; });
+    }, [applyPending]),
+  );
+
+  // Nach dem Schließen der Mengenauswahl oder Detailansicht wartende Liste übernehmen.
+  useEffect(() => {
+    if (!qtyWine && !detailWine) applyPending();
+  }, [qtyWine, detailWine, applyPending]);
+
+  useEffect(() => () => {
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+  }, []);
+
+  // Berührung des Kartenstapels nur beobachten (kein Eingriff in die Gesten). Nach dem Loslassen
+  // läuft die Wisch-Animation noch 260 ms; erst danach darf die Liste ausgetauscht werden.
+  const handleDeckTouchStart = useCallback(() => {
+    touchActiveRef.current = true;
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+  }, []);
+  const handleDeckTouchEnd = useCallback(() => {
+    if (touchTimerRef.current) clearTimeout(touchTimerRef.current);
+    touchTimerRef.current = setTimeout(() => {
+      touchActiveRef.current = false;
+      applyPending();
+    }, 600);
+  }, [applyPending]);
 
   useEffect(() => {
     setIndex(0);
@@ -141,7 +175,12 @@ export default function SwipeScreen() {
   return (
     <View style={styles.container}>
       {/* Card deck – fills screen from top edge to action buttons */}
-      <View style={styles.deck}>
+      <View
+        style={styles.deck}
+        onTouchStart={handleDeckTouchStart}
+        onTouchEnd={handleDeckTouchEnd}
+        onTouchCancel={handleDeckTouchEnd}
+      >
         {loading ? (
           <View style={styles.empty}>
             <ActivityIndicator size="large" color={colors.accent} />
@@ -156,6 +195,7 @@ export default function SwipeScreen() {
               onPress={() => {
                 setLoading(true);
                 setLoadError(false);
+                lastLoadRef.current = Date.now();
                 fetchActiveWines()
                   .then((wines) => { setAllWines(wines); setLoadError(false); })
                   .catch(() => setLoadError(true))

@@ -1,49 +1,20 @@
 import React, { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
-export type Weinart = 'Rotwein' | 'Weißwein' | 'Rosé' | 'Schaumwein' | 'Dessert- und Likörwein';
-export type Geschmack = 'Trocken' | 'Halbtrocken' | 'Lieblich';
-export type Anlass =
-  | 'Romantisches Dinner'
-  | 'Grillabend'
-  | 'Geburtstag'
-  | 'Feierabend'
-  | 'Festliche Anlässe'
-  | 'Picknick';
-export type BioNaturVeganOption = 'Bio' | 'Natur' | 'Vegan' | 'Vegetarisch';
+import {
+  countActiveFilters,
+  DEFAULT_FILTER,
+  type FilterState,
+} from '../lib/filter';
 
-export interface FilterState {
-  weinart: Weinart[];
-  geschmack: Geschmack[];
-  herkunft: string[];
-  region: string[];
-  rebsorte: string[];
-  jahrgang: { min: number; max: number };
-  preis: { min: number; max: number };
-  anlass: Anlass[];
-  bioNaturVegan: BioNaturVeganOption[];
-  passtZu: string[];
-  bewertungMin: number;
-}
+// Typen und Standardwerte stehen in lib/filter.ts (reine Funktionen, im Prüfskript getestet).
+export type { Weinart, Geschmack, Anlass, BioNaturVeganOption, FilterState } from '../lib/filter';
+export { DEFAULT_FILTER } from '../lib/filter';
 
 interface FilterContextValue extends FilterState {
   setFilter: <K extends keyof FilterState>(key: K, value: FilterState[K]) => void;
   resetFilters: () => void;
   activeFilterCount: number;
 }
-
-export const DEFAULT_FILTER: FilterState = {
-  weinart: [],
-  geschmack: [],
-  herkunft: [],
-  region: [],
-  rebsorte: [],
-  jahrgang: { min: 1990, max: 2024 },
-  preis: { min: 5, max: 500 },
-  anlass: [],
-  bioNaturVegan: [],
-  passtZu: [],
-  bewertungMin: 1,
-};
 
 const FilterContext = createContext<FilterContextValue | undefined>(undefined);
 
@@ -56,27 +27,8 @@ export function FilterProvider({ children }: { children: React.ReactNode }) {
 
   const resetFilters = useCallback(() => setFilters(DEFAULT_FILTER), []);
 
-  const activeFilterCount = useMemo(() => {
-    let count = 0;
-    if (filters.weinart.length > 0) count++;
-    if (filters.geschmack.length > 0) count++;
-    if (filters.herkunft.length > 0) count++;
-    if (filters.region.length > 0) count++;
-    if (filters.rebsorte.length > 0) count++;
-    if (
-      filters.jahrgang.min > DEFAULT_FILTER.jahrgang.min ||
-      filters.jahrgang.max < DEFAULT_FILTER.jahrgang.max
-    ) count++;
-    if (
-      filters.preis.min > DEFAULT_FILTER.preis.min ||
-      filters.preis.max < DEFAULT_FILTER.preis.max
-    ) count++;
-    if (filters.anlass.length > 0) count++;
-    if (filters.bioNaturVegan.length > 0) count++;
-    if (filters.passtZu.length > 0) count++;
-    if (filters.bewertungMin > 1) count++;
-    return count;
-  }, [filters]);
+  // Ein Jahrgangs- oder Preisbereich zählt nur als aktiv, wenn er enger ist als der Standard.
+  const activeFilterCount = useMemo(() => countActiveFilters(filters), [filters]);
 
   const value = useMemo<FilterContextValue>(
     () => ({ ...filters, setFilter, resetFilters, activeFilterCount }),
