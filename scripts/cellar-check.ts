@@ -1,5 +1,6 @@
 // Prüfskript für „Mein Weinkeller“: Eingaben eigener Weine, Zusammenführen, Sortierung,
 // Weine ohne UUID, Mengenänderung, Weinart-Zuordnung und private Notiz (nie in reviews.review_text).
+// Außerdem: Weinbild-Darstellung (gültige Bildadresse, Platzhalterfarbe, Größen-Voreinstellungen).
 // Ausführen mit: npm run check:cellar
 import {
   canPersistMarketWine,
@@ -36,6 +37,21 @@ import { CELLAR_PLACEHOLDER_IMAGE, CellarWine, CustomWine, PurchaseRow } from '.
 import { TERROIR, WEINART_WERTE, weinartToKategorie } from '../lib/tasting/catalog';
 import { wineRefKey } from '../lib/tasting/wineRef';
 import type { Wine } from '../types';
+import {
+  isLoadableWineImageUri,
+  isValidWineImagePreset,
+  normalizeWineImageUri,
+  silhouetteIconSize,
+  WINE_IMAGE_LABEL_LEER,
+  WINE_IMAGE_PRESETS,
+  WINE_IMAGE_SIZE_NAMES,
+  WINE_TINTS,
+  wineImageInsetPercent,
+  wineImageLabel,
+  wineImagePreset,
+  wineImageTint,
+  wineImageWeinart,
+} from '../lib/wineImage';
 
 let passed = 0;
 const failures: string[] = [];
@@ -384,6 +400,74 @@ eq('Fehler: Spalte notiz fehlt (Migration nicht ausgeführt)', cellarErrorMessag
 check('Fehler: RLS', cellarErrorMessage({ code: '42501', message: 'new row violates row-level security policy' }).includes('Berechtigung'));
 check('Fehler: Check-Constraint', cellarErrorMessage({ code: '23514', message: 'violates check constraint' }).includes('ungültig'));
 check('Fehler: unbekannt ergibt deutsche Meldung', cellarErrorMessage(new Error('boom')).startsWith('Konnte nicht gespeichert'));
+
+// ── Weinbild: Bildadresse ─────────────────────────────────────────────────────
+
+check('Bild: https-Adresse gültig', isLoadableWineImageUri('https://abc.supabase.co/storage/v1/object/public/test-bilder/flasche.png'));
+check('Bild: https mit Suche gültig', isLoadableWineImageUri('https://example.com/a.png?w=300'));
+eq('Bild: Leerzeichen am Rand werden entfernt', normalizeWineImageUri('  https://example.com/a.png  '), 'https://example.com/a.png');
+for (const [name, wert] of [
+  ['leer', ''],
+  ['null', null],
+  ['undefined', undefined],
+  ['http://', 'http://example.com/a.png'],
+  ['Text ohne Schema', 'test'],
+  ['Domain ohne Schema', 'example.com/a.png'],
+  ['nur Leerzeichen', '   '],
+  ['nur https://', 'https://'],
+  ['https ohne Punkt im Host', 'https://localhost/a.png'],
+  ['Leerzeichen in der Adresse', 'https://example.com/a b.png'],
+  ['data-Adresse', 'data:image/png;base64,AAAA'],
+  ['Zahl', 42],
+] as [string, unknown][]) {
+  check(`Bild: ${name} ist kein Bild`, !isLoadableWineImageUri(wert), wert);
+  eq(`Bild: ${name} ergibt null`, normalizeWineImageUri(wert), null);
+}
+check('Bild: Platzhalter im Weinkeller ist „kein Bild“', !isLoadableWineImageUri(CELLAR_PLACEHOLDER_IMAGE));
+
+// ── Weinbild: Platzhalterfarbe je Weinart ─────────────────────────────────────
+
+eq('Tönung: Rotwein', wineImageTint('Rotwein'), WINE_TINTS.rot);
+eq('Tönung: Weißwein', wineImageTint('Weißwein'), WINE_TINTS.weiss);
+eq('Tönung: Rosé', wineImageTint('Rosé'), WINE_TINTS.rose);
+eq('Tönung: Roséwein', wineImageTint('Roséwein'), WINE_TINTS.rose);
+eq('Tönung: Schaumwein', wineImageTint('Schaumwein'), WINE_TINTS.schaum);
+eq('Tönung: Orange', wineImageTint('Orangewein'), WINE_TINTS.orange);
+eq('Tönung: Süßwein', wineImageTint('Dessert- und Likörwein'), WINE_TINTS.suess);
+eq('Tönung: unbekannt', wineImageTint('Obstwein'), WINE_TINTS.unbekannt);
+eq('Tönung: leer', wineImageTint(''), WINE_TINTS.unbekannt);
+eq('Tönung: null', wineImageTint(null), WINE_TINTS.unbekannt);
+eq('Tönung: undefined', wineImageTint(undefined), WINE_TINTS.unbekannt);
+check('Tönung: unbekannt ist nicht rot', WINE_TINTS.unbekannt !== WINE_TINTS.rot);
+check('Tönung: alle Farben verschieden', new Set(Object.values(WINE_TINTS)).size === Object.keys(WINE_TINTS).length);
+check('Tönung: alle Farben sind Hex-Werte', Object.values(WINE_TINTS).every((c) => /^#[0-9a-f]{6}$/i.test(c)));
+eq('Tönung: Weinart ohne Angabe (weinartRoh null) bleibt neutral',
+  wineImageTint(wineImageWeinart({ type: 'Rotwein', weinartRoh: null })), WINE_TINTS.unbekannt);
+eq('Tönung: weinartRoh hat Vorrang vor type',
+  wineImageWeinart({ type: 'Rotwein', weinartRoh: 'Rosé' }), 'Rosé');
+eq('Tönung: ohne weinartRoh gilt type (Scanner)', wineImageWeinart({ type: 'Weißwein' }), 'Weißwein');
+
+// ── Weinbild: Barrierefreiheit ────────────────────────────────────────────────
+
+eq('Label: mit Bild', wineImageLabel('Barolo Riserva', true), 'Flasche Barolo Riserva');
+eq('Label: ohne Bild', wineImageLabel('Barolo Riserva', false), WINE_IMAGE_LABEL_LEER);
+eq('Label: ohne Namen', wineImageLabel('  ', true), 'Flasche');
+
+// ── Weinbild: Größen-Voreinstellungen ─────────────────────────────────────────
+
+eq('Größen: alle vier vorhanden', [...WINE_IMAGE_SIZE_NAMES].sort(), ['detail', 'karte', 'klein', 'liste']);
+for (const name of WINE_IMAGE_SIZE_NAMES) {
+  check(`Größen: ${name} gültig`, isValidWineImagePreset(WINE_IMAGE_PRESETS[name]), WINE_IMAGE_PRESETS[name]);
+}
+check('Größen: Karte und Detail Hochformat', WINE_IMAGE_PRESETS.karte.aspectRatio < 1 && WINE_IMAGE_PRESETS.detail.aspectRatio < 1);
+check('Größen: Liste und Klein quadratisch', WINE_IMAGE_PRESETS.liste.aspectRatio === 1 && WINE_IMAGE_PRESETS.klein.aspectRatio === 1);
+eq('Größen: unbekannter Name ergibt Liste', wineImagePreset('riesig'), WINE_IMAGE_PRESETS.liste);
+check('Größen: ungültige Werte werden erkannt', !isValidWineImagePreset({ aspectRatio: 0, radius: -1, fuellgrad: 2, freiUnten: Number.NaN }));
+eq('Größen: Rand bei 84 % Füllgrad', wineImageInsetPercent(0.84), '8%');
+eq('Größen: Rand bei 82 % Füllgrad', wineImageInsetPercent(0.82), '9%');
+eq('Silhouette: hoher Bereich', silhouetteIconSize(100, 300), 220);
+eq('Silhouette: breiter Bereich', silhouetteIconSize(300, 100), 100);
+eq('Silhouette: ohne Maße', silhouetteIconSize(0, 0), 0);
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 

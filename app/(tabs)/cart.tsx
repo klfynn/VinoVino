@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useApp } from '../../context/AppContext';
 import { colors, radii, spacing } from '../../theme';
+import { WineImage } from '../../components/WineImage';
+import { wineImageWeinart } from '../../lib/wineImage';
 
 export default function CartScreen() {
   const { cart, cartLoading, cartError, updateCartQuantity, removeFromCart, cartTotal, cartCount } = useApp();
@@ -59,7 +61,14 @@ export default function CartScreen() {
               const lineTotal = item.wine.price * item.quantity;
               return (
                 <View style={styles.card}>
-                  <Image source={{ uri: item.wine.image }} style={styles.img} />
+                  <WineImage
+                    uri={item.wine.image}
+                    weinart={wineImageWeinart(item.wine)}
+                    name={item.wine.name}
+                    size="liste"
+                    fill
+                    style={styles.img}
+                  />
                   <View style={styles.info}>
                     <Text style={styles.name} numberOfLines={2}>{item.wine.name}</Text>
                     <Text style={styles.winery}>{item.wine.winery} · {item.wine.vintage}</Text>

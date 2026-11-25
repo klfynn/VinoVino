@@ -10,8 +10,9 @@ const WINE_TYPE_MAP: Record<string, WineType> = {
   Süßwein: 'Süßwein',
 };
 
-const PLACEHOLDER_IMAGE =
-  'https://images.vivino.com/thumbs/TI7-c0qROhJWABkMgLOldQ_pb_x300.png';
+// Erkannte Weine haben kein Bild. Leer heißt „kein Bild“: `WineImage` zeigt die Flaschen-Silhouette
+// (bisher stand hier ein Bild einer fremden Wein-App).
+const PLACEHOLDER_IMAGE = '';
 
 export async function recognizeWineLabel(base64: string): Promise<Wine> {
   const apiKey = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;

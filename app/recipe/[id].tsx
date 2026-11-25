@@ -13,6 +13,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors, spacing, radii } from '../../theme';
+import { WineImage } from '../../components/WineImage';
+import { wineImageWeinart } from '../../lib/wineImage';
 import { recipes } from '../data/recipes';
 import { wines } from '../../data/wines';
 import { useApp } from '../../context/AppContext';
@@ -33,8 +35,15 @@ function WineRecommendCard({ wineId }: { wineId: string }) {
 
   return (
     <View style={styles.wineCard}>
-      <Image source={{ uri: wine.image }} style={styles.wineCardImage} resizeMode="cover" />
-      <View style={styles.wineCardOverlay} />
+      <WineImage
+        uri={wine.image}
+        weinart={wineImageWeinart(wine)}
+        name={wine.name}
+        size="liste"
+        fill
+        freiUnten={10}
+        style={styles.wineCardImage}
+      />
       <View style={styles.wineCardContent}>
         <Text style={styles.wineCardName} numberOfLines={2}>{wine.name}</Text>
         <Text style={styles.wineCardWinery} numberOfLines={1}>{wine.winery}</Text>
@@ -381,10 +390,6 @@ const styles = StyleSheet.create({
   wineCardImage: {
     width: '100%',
     height: 100,
-  },
-  wineCardOverlay: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(26, 10, 15, 0.5)',
   },
   wineCardContent: {
     position: 'absolute',

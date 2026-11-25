@@ -4,9 +4,11 @@
 import type { Wine } from '../../types';
 import type { WineRef } from '../tasting/types';
 
-/** Platzhalterbild für Weine ohne Bild (wie bisher bei der freien Eingabe). */
-export const CELLAR_PLACEHOLDER_IMAGE =
-  'https://images.unsplash.com/photo-1553361371-9b22f78e8b1d?auto=format&fit=crop&w=800&q=80';
+/**
+ * Bildadresse für Weine ohne Bild. Leer heißt „kein Bild“: `WineImage` zeigt dann die helle Fläche
+ * mit der Flaschen-Silhouette (bisher stand hier ein allgemeines Stockfoto).
+ */
+export const CELLAR_PLACEHOLDER_IMAGE = '';
 
 /** Herkunft eines Eintrags in der App (wie bisher im CellarContext). */
 export type CellarSource = 'purchase' | 'manual' | 'scanner';

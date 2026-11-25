@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Wine } from '../types';
 import { colors, radii, spacing } from '../theme';
+import { WineImage } from './WineImage';
+import { wineImageWeinart } from '../lib/wineImage';
 
 interface Props {
   wine: Wine;
@@ -11,7 +13,14 @@ interface Props {
 export function WineCardView({ wine }: Props) {
   return (
     <View style={styles.container}>
-      <Image source={{ uri: wine.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+      <WineImage
+        uri={wine.image}
+        weinart={wineImageWeinart(wine)}
+        name={wine.name}
+        size="karte"
+        fill
+        style={StyleSheet.absoluteFill}
+      />
 
       {/* Top gradient: protects logo, filter and cart icons */}
       <LinearGradient
