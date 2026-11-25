@@ -46,6 +46,8 @@ import {
   filterWines,
   isJahrgangFilterAktiv,
   isPreisFilterAktiv,
+  JAHRGANG_MAX,
+  jahrgangsObergrenze,
   wineMatchesFilter,
 } from '../lib/filter';
 import {
@@ -553,6 +555,15 @@ check('Filter Bewertung: 3 Sterne verlangt 88', !passt({ rating: 87 }, { bewertu
 eq('Filter: filterWines behält Reihenfolge',
   filterWines([fw({ vintage: 2019 }), fw({ vintage: 2025 }), fw({ vintage: 2001 })], mitFilter(J)).map((w) => w.vintage),
   [2019, 2001]);
+
+// Jahrgangs-Obergrenze folgt dem aktuellen Jahr
+eq('Jahrgang: Obergrenze ist das aktuelle Jahr', JAHRGANG_MAX, new Date().getFullYear());
+eq('Jahrgang: Standard nutzt dieselbe Obergrenze', DEFAULT_FILTER.jahrgang.max, JAHRGANG_MAX);
+eq('Jahrgang: Obergrenze für ein festes Datum', jahrgangsObergrenze(new Date(2031, 5, 1)), 2031);
+check('Jahrgang: Obergrenze nicht mehr 2024', JAHRGANG_MAX > 2024);
+check('Jahrgang: eingeschränkt auf alten Standard 2024 wirkt jetzt als Filter',
+  isJahrgangFilterAktiv({ min: DEFAULT_FILTER.jahrgang.min, max: 2024 }));
+check('Jahrgang: Wein aus dem aktuellen Jahr bei Standard sichtbar', passt({ vintage: JAHRGANG_MAX }));
 
 // Zähler aktiver Filter passt zur Filterwirkung
 eq('Aktive Filter: Standard', countActiveFilters(DEFAULT_FILTER), 0);

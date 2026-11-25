@@ -33,9 +33,18 @@ export interface FilterState {
   bewertungMin: number;
 }
 
-/** Grenzen der Regler im Filterbildschirm; der volle Bereich ist zugleich der Standard. */
+/** Obergrenze für den Jahrgang: das Kalenderjahr des übergebenen Datums. */
+export function jahrgangsObergrenze(datum: Date = new Date()): number {
+  return datum.getFullYear();
+}
+
+/**
+ * Grenzen der Regler im Filterbildschirm; der volle Bereich ist zugleich der Standard.
+ * Das aktuelle Jahr wird einmal beim Laden der App berechnet und von Standard, Regler und
+ * Zähler aktiver Filter gemeinsam benutzt.
+ */
 export const JAHRGANG_MIN = 1990;
-export const JAHRGANG_MAX = 2024;
+export const JAHRGANG_MAX = jahrgangsObergrenze();
 export const PREIS_MIN = 5;
 export const PREIS_MAX = 500;
 

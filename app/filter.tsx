@@ -16,6 +16,7 @@ import {
   Anlass,
   BioNaturVeganOption,
 } from '../context/FilterContext';
+import { JAHRGANG_MAX, JAHRGANG_MIN, PREIS_MAX, PREIS_MIN } from '../lib/filter';
 import { wines as ALL_WINES } from '../data/wines';
 import { colors, radii, spacing } from '../theme';
 
@@ -326,7 +327,7 @@ export default function FilterScreen() {
         </View>
         <SimpleSlider
           value={preis.min}
-          min={5}
+          min={PREIS_MIN}
           max={preis.max - 5}
           step={5}
           onValueChange={(v) => setFilter('preis', { ...preis, min: v })}
@@ -334,7 +335,7 @@ export default function FilterScreen() {
         <SimpleSlider
           value={preis.max}
           min={preis.min + 5}
-          max={500}
+          max={PREIS_MAX}
           step={5}
           onValueChange={(v) => setFilter('preis', { ...preis, max: v })}
         />
@@ -347,7 +348,7 @@ export default function FilterScreen() {
         </View>
         <SimpleSlider
           value={jahrgang.min}
-          min={1990}
+          min={JAHRGANG_MIN}
           max={jahrgang.max - 1}
           step={1}
           onValueChange={(v) => setFilter('jahrgang', { ...jahrgang, min: v })}
@@ -355,7 +356,7 @@ export default function FilterScreen() {
         <SimpleSlider
           value={jahrgang.max}
           min={jahrgang.min + 1}
-          max={2024}
+          max={JAHRGANG_MAX}
           step={1}
           onValueChange={(v) => setFilter('jahrgang', { ...jahrgang, max: v })}
         />
