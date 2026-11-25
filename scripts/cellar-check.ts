@@ -1,7 +1,8 @@
 // Prüfskript für „Mein Weinkeller“: Eingaben eigener Weine, Zusammenführen, Sortierung,
 // Weine ohne UUID, Mengenänderung, Weinart-Zuordnung und private Notiz (nie in reviews.review_text).
 // Außerdem: Weinbild-Darstellung (gültige Bildadresse, Platzhalterfarbe, Größen-Voreinstellungen).
-// Außerdem: Swipe-Filter (Jahrgang und Preis nur, wenn eingeschränkt) und Zähler aktiver Filter.
+// Außerdem: Swipe-Filter (Jahrgang und Preis nur, wenn eingeschränkt), Zähler aktiver Filter
+// und Neuladen des Swipe-Stapels (aktuelle Karte bleibt, neue Weine hinten).
 // Ausführen mit: npm run check:cellar
 import {
   canPersistMarketWine,
@@ -50,6 +51,7 @@ import {
   jahrgangsObergrenze,
   wineMatchesFilter,
 } from '../lib/filter';
+import { folgeIndex, mergeWineLists, NEULADEN_ABSTAND_MS, sollNeuLaden } from '../lib/reload';
 import {
   isLoadableWineImageUri,
   isValidWineImagePreset,
@@ -576,6 +578,40 @@ for (const f of [DEFAULT_FILTER, mitFilter(J), mitFilter(P), mitFilter(JP)]) {
   eq(`Aktive Filter: Zähler stimmt mit Wirkung überein (${JSON.stringify([f.jahrgang, f.preis])})`,
     isJahrgangFilterAktiv(f.jahrgang) || isPreisFilterAktiv(f.preis), countActiveFilters(f) > 0);
 }
+
+// ── Neuladen des Swipe-Stapels ───────────────────────────────────────────────
+
+type RW = { id: string; name: string };
+const rw = (id: string, name = id): RW => ({ id, name });
+const ids = (l: readonly RW[]) => l.map((w) => w.id);
+const ALT: RW[] = [rw('a'), rw('b'), rw('c'), rw('d')];
+
+eq('Neuladen: unverändert', ids(mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('b'), rw('c'), rw('d')] })), ['a', 'b', 'c', 'd']);
+eq('Neuladen: neuer Wein kommt hinten dazu', ids(mergeWineLists(ALT, { ok: true, wines: [rw('e'), rw('a'), rw('b'), rw('c'), rw('d')] })), ['a', 'b', 'c', 'd', 'e']);
+eq('Neuladen: entfernter Wein ist weg', ids(mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('c'), rw('d')] })), ['a', 'c', 'd']);
+eq('Neuladen: andere Reihenfolge der Datenbank ändert den Stapel nicht', ids(mergeWineLists(ALT, { ok: true, wines: [rw('d'), rw('c'), rw('b'), rw('a')] })), ['a', 'b', 'c', 'd']);
+eq('Neuladen: geänderte Daten werden übernommen', mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('b', 'Neu'), rw('c'), rw('d')] })[1].name, 'Neu');
+eq('Neuladen: leere neue Liste leert den Stapel', mergeWineLists(ALT, { ok: true, wines: [] }), []);
+eq('Neuladen: leere alte Liste übernimmt die neue', ids(mergeWineLists<RW>([], { ok: true, wines: [rw('x'), rw('y')] })), ['x', 'y']);
+check('Neuladen: Fehlerfall behält dieselbe Liste', mergeWineLists(ALT, { ok: false }) === ALT);
+eq('Neuladen: doppelte id in der neuen Liste nur einmal', ids(mergeWineLists(ALT, { ok: true, wines: [rw('a'), rw('e'), rw('e')] })), ['a', 'e']);
+
+eq('Position: aktuelle Karte bleibt (unverändert)', folgeIndex(ALT, ALT, 2), 2);
+eq('Position: aktuelle Karte bleibt, wenn davor ein Wein entfernt wurde', folgeIndex(ALT, [rw('a'), rw('c'), rw('d')], 2), 1);
+eq('Position: aktuelle Karte bleibt, wenn hinten ein Wein dazukommt', folgeIndex(ALT, [...ALT, rw('e')], 1), 1);
+eq('Position: aktuelle Karte entfernt, nächste rückt nach', folgeIndex(ALT, [rw('a'), rw('b'), rw('d')], 2), 2);
+eq('Position: aktuelle Karte entfernt, die davor auch', folgeIndex(ALT, [rw('a'), rw('d')], 2), 1);
+eq('Position: Stapel am Ende zeigt neuen Wein', folgeIndex(ALT, [...ALT, rw('e')], 4), 4);
+eq('Position: leere neue Liste', folgeIndex(ALT, [], 2), 0);
+eq('Position: leere alte Liste', folgeIndex([], [rw('x')], 0), 0);
+eq('Position: Fehlerfall (Liste unverändert)', folgeIndex(ALT, mergeWineLists(ALT, { ok: false }), 3), 3);
+
+eq('Neuladen-Abstand: 60 Sekunden', NEULADEN_ABSTAND_MS, 60_000);
+check('Neuladen-Abstand: ohne bisheriges Laden nicht', !sollNeuLaden(null, 1_000_000));
+check('Neuladen-Abstand: nach 10 Sekunden nicht', !sollNeuLaden(1_000_000, 1_010_000));
+check('Neuladen-Abstand: nach 59,9 Sekunden nicht', !sollNeuLaden(1_000_000, 1_059_900));
+check('Neuladen-Abstand: nach 60 Sekunden ja', sollNeuLaden(1_000_000, 1_060_000));
+check('Neuladen-Abstand: nach 5 Minuten ja', sollNeuLaden(1_000_000, 1_300_000));
 
 // ── Ergebnis ──────────────────────────────────────────────────────────────────
 
