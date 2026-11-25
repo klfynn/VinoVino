@@ -9,18 +9,8 @@ import { SwipeableCard } from '../../components/SwipeableCard';
 import { QuantityModal } from '../../components/QuantityModal';
 import { WineDetailModal } from '../../components/WineDetailModal';
 import { Wine } from '../../types';
+import { filterWines } from '../../lib/filter';
 import { colors, radii, spacing } from '../../theme';
-
-const WEINART_MAP: Record<string, string> = {
-  Rotwein: 'Rotwein',
-  Weißwein: 'Weißwein',
-  Rosé: 'Roséwein',
-  Schaumwein: 'Schaumwein',
-  'Dessert- und Likörwein': 'Süßwein',
-};
-
-const NEUE_WELT = ['USA', 'Australien', 'Neuseeland', 'Chile', 'Argentinien', 'Südafrika'];
-const STAR_MIN = [0, 0, 85, 88, 90, 95];
 
 function CartHeaderIcon() {
   const { cartCount } = useApp();
@@ -68,43 +58,14 @@ export default function SwipeScreen() {
       .finally(() => setLoading(false));
   }, []);
 
-  const filteredWines = useMemo(() => {
-    return allWines.filter((w) => {
-      if (weinart.length > 0) {
-        const mapped = weinart.map((wa) => WEINART_MAP[wa]);
-        if (!mapped.includes(w.type)) return false;
-      }
-      if (geschmack.length > 0) {
-        const mapped = geschmack.map((g) => g.toLowerCase());
-        if (!mapped.some((g) => w.taste.includes(g))) return false;
-      }
-      if (herkunft.length > 0) {
-        const matches = herkunft.some((h) =>
-          h === 'Neue Welt' ? NEUE_WELT.includes(w.country) : w.country === h,
-        );
-        if (!matches) return false;
-      }
-      if (region.length > 0) {
-        if (!region.some((r) => w.region === r)) return false;
-      }
-      if (rebsorte.length > 0) {
-        if (!rebsorte.some((r) => w.grape.includes(r))) return false;
-      }
-      if (w.vintage < jahrgang.min || w.vintage > jahrgang.max) return false;
-      if (w.price < preis.min || w.price > preis.max) return false;
-      if (anlass.length > 0) {
-        if (!anlass.some((a) => w.anlass?.includes(a))) return false;
-      }
-      if (bioNaturVegan.length > 0) {
-        if (!bioNaturVegan.some((b) => w.bioNaturVegan?.includes(b))) return false;
-      }
-      if (passtZu.length > 0) {
-        if (!passtZu.some((p) => w.passtZu?.includes(p))) return false;
-      }
-      if (w.rating < STAR_MIN[bewertungMin]) return false;
-      return true;
-    });
-  }, [allWines, weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin]);
+  // Jahrgang und Preis filtern nur, wenn der Nutzer den Bereich eingeschränkt hat (lib/filter.ts).
+  const filteredWines = useMemo(
+    () =>
+      filterWines(allWines, {
+        weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin,
+      }),
+    [allWines, weinart, geschmack, herkunft, region, rebsorte, jahrgang, preis, anlass, bioNaturVegan, passtZu, bewertungMin],
+  );
 
   useEffect(() => {
     setIndex(0);
