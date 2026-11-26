@@ -450,6 +450,29 @@ function AddToCellarModal({
             </TouchableOpacity>
           </View>
 
+          {/* Etikett scannen: vorgemerkt für den echten Scan (Claude Vision), bis dahin deaktiviert.
+              Bewusst kein Knopf: öffnet nichts, schreibt nichts und füllt kein Formular vor. */}
+          <View
+            style={styles.scanSoon}
+            accessible
+            accessibilityRole="button"
+            accessibilityState={{ disabled: true }}
+            accessibilityLabel="Etikett scannen, demnächst verfügbar"
+          >
+            <Ionicons name="camera-outline" size={20} color={colors.textMuted} />
+            <View style={styles.scanSoonBody}>
+              <View style={styles.scanSoonTitleRow}>
+                <Text style={styles.scanSoonTitle}>Etikett scannen</Text>
+                <View style={styles.scanSoonBadge}>
+                  <Text style={styles.scanSoonBadgeText}>Demnächst</Text>
+                </View>
+              </View>
+              <Text style={styles.scanSoonHint}>
+                Bald kannst du hier das Etikett fotografieren, und die App füllt die Angaben für dich aus.
+              </Text>
+            </View>
+          </View>
+
           {/* Catalog search */}
           {mode === 'catalog' && (
             <View style={{ flex: 1 }}>
@@ -927,20 +950,14 @@ export default function SammlungScreen() {
 
           {/* Stats header */}
           <View style={styles.cellarHeader}>
-            <View>
+            {/* Höhe des früheren Kamera-Knopfs (38) beibehalten, damit die Kopfzeile gleich hoch bleibt.
+                Der Scanner ist bis zum echten Scan nur im „+“-Dialog als „Demnächst“ vorgemerkt. */}
+            <View style={{ minHeight: 38, justifyContent: 'center' }}>
               <Text style={styles.cellarStats}>
                 {cellarWines.length} {cellarWines.length === 1 ? 'Wein' : 'Weine'} · {totalBottles}{' '}
                 {totalBottles === 1 ? 'Flasche' : 'Flaschen'} insgesamt
               </Text>
             </View>
-            <TouchableOpacity
-              style={styles.scannerBtn}
-              onPress={() =>
-                router.push({ pathname: '/(tabs)/scanner', params: { addToCellar: 'true' } })
-              }
-            >
-              <Ionicons name="camera-outline" size={22} color={colors.accent} />
-            </TouchableOpacity>
           </View>
 
           {/* Teil D1: Blindverkostung (öffnet die Weinauswahl im Blind-Modus) */}
@@ -964,7 +981,7 @@ export default function SammlungScreen() {
               <Ionicons name="library-outline" size={64} color={colors.accent} />
               <Text style={styles.emptyTitle}>Dein Weinkeller ist leer</Text>
               <Text style={styles.emptySub}>
-                Füge Weine über den + Button, den Scanner oder den Warenkorb-Checkout hinzu.
+                Füge Weine über den + Button oder den Warenkorb-Checkout hinzu.
               </Text>
             </View>
           ) : (
@@ -1274,17 +1291,8 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   cellarStats: { color: colors.accent, fontSize: 14, fontWeight: '700', letterSpacing: 0.5 },
-  scannerBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 
-  // Blindverkostung (Teil D1), Umrandung wie der Scanner-Button
+  // Blindverkostung (Teil D1), goldene Umrandung
   blindBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1445,6 +1453,29 @@ const styles = StyleSheet.create({
   modeTabActive: { borderBottomWidth: 2, borderBottomColor: colors.accent },
   modeTabText: { color: colors.textMuted, fontSize: 13, fontWeight: '600', letterSpacing: 1 },
   modeTabTextActive: { color: colors.accent },
+  // „Etikett scannen“ (Demnächst): ausgegraut, im Stil der Reiter darüber
+  scanSoon: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm + 2,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    opacity: 0.55,
+  },
+  scanSoonBody: { flex: 1 },
+  scanSoonTitleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  scanSoonTitle: { color: colors.textMuted, fontSize: 13, fontWeight: '600', letterSpacing: 1 },
+  scanSoonBadge: {
+    borderWidth: 1,
+    borderColor: colors.textMuted,
+    borderRadius: radii.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  scanSoonBadgeText: { color: colors.textMuted, fontSize: 10, fontWeight: '700', letterSpacing: 0.8 },
+  scanSoonHint: { color: colors.textMuted, fontSize: 12, lineHeight: 17, marginTop: 2 },
   searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',

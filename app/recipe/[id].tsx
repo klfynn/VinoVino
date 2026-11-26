@@ -15,7 +15,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { colors, spacing, radii } from '../../theme';
 import { WineImage } from '../../components/WineImage';
 import { wineImageWeinart } from '../../lib/wineImage';
-import { recipes } from '../data/recipes';
+import { recipes } from '../../data/recipes';
 import { wines } from '../../data/wines';
 import { useApp } from '../../context/AppContext';
 

@@ -44,11 +44,13 @@ export default function TabsLayout() {
         },
       }}
     >
+      {/* Rezepte stehen an der Stelle des früheren Scanner-Tabs. Der Scanner liegt jetzt als
+          eigener Bildschirm unter app/scanner.tsx (nicht mehr in der Tab-Leiste). */}
       <Tabs.Screen
-        name="scanner"
+        name="recipes"
         options={{
-          title: 'SCANNER',
-          tabBarIcon: ({ color, size }) => <Ionicons name="scan-outline" size={size} color={color as string} />,
+          title: 'REZEPTE',
+          tabBarIcon: ({ color, size }) => <Ionicons name="restaurant-outline" size={size} color={color as string} />,
         }}
       />
       <Tabs.Screen
@@ -87,13 +89,6 @@ export default function TabsLayout() {
           // `href: null` macht die Route ab SDK 58 unerreichbar.
           tabBarItemStyle: { display: 'none' },
           tabBarButton: () => null,
-        }}
-      />
-      {/* Rezepte bleiben im Repo, sind aber nicht mehr in der Tab-Leiste verlinkt. */}
-      <Tabs.Screen
-        name="recipes"
-        options={{
-          href: null,
         }}
       />
     </Tabs>

@@ -14,12 +14,12 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { WineDetailModal } from '../../components/WineDetailModal';
-import { useApp } from '../../context/AppContext';
-import { useCellar } from '../../context/CellarContext';
-import { recognizeWineLabel } from '../../services/wineRecognition';
-import { colors, radii, spacing } from '../../theme';
-import type { Wine } from '../../types';
+import { WineDetailModal } from '../components/WineDetailModal';
+import { useApp } from '../context/AppContext';
+import { useCellar } from '../context/CellarContext';
+import { recognizeWineLabel } from '../services/wineRecognition';
+import { colors, radii, spacing } from '../theme';
+import type { Wine } from '../types';
 
 const { width: SW, height: SH } = Dimensions.get('window');
 const FRAME_SIZE = Math.round(SW * 0.75);
