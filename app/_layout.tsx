@@ -79,6 +79,12 @@ export default function RootLayout() {
                     name="recipe/[id]"
                     options={{ headerShown: false }}
                   />
+                  {/* Scanner: kein Tab mehr, bleibt als eigener Bildschirm für den späteren
+                      echten Scan aus dem Weinkeller erhalten. */}
+                  <Stack.Screen
+                    name="scanner"
+                    options={{ headerShown: false }}
+                  />
                   <Stack.Screen
                     name="cellar/[id]"
                     options={{ headerShown: false }}

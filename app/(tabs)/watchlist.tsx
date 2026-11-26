@@ -936,7 +936,7 @@ export default function SammlungScreen() {
             <TouchableOpacity
               style={styles.scannerBtn}
               onPress={() =>
-                router.push({ pathname: '/(tabs)/scanner', params: { addToCellar: 'true' } })
+                router.push({ pathname: '/scanner', params: { addToCellar: 'true' } })
               }
             >
               <Ionicons name="camera-outline" size={22} color={colors.accent} />
