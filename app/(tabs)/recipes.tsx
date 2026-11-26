@@ -17,7 +17,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { colors, spacing, radii } from '../../theme';
-import { recipes, Recipe } from '../data/recipes';
+import { recipes, Recipe } from '../../data/recipes';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
